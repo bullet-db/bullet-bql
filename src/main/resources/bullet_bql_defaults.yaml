@@ -1,0 +1,8 @@
+# This control how parser treat decimal numbers.
+# The accepted values are "AS_DOUBLE", "AS_DECIMAL", "REJECT".
+# The default value is "AS_DOUBLE". Decimal number generates DoubleLiteral. "AS_DECIMAL" treats decimal number as a string. "REJECT" reject decimal number and throw ParsingException.
+bullet.bql.decimal.literal.treatment: "AS_DOUBLE"
+
+# This is the delimiter of BQL, which indicates the end of a BQL statement.
+# The default value is ";".
+bullet.bql.delimiter: ";"

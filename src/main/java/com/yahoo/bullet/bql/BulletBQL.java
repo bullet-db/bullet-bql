@@ -1,0 +1,26 @@
+/*
+ *  Copyright 2018, Oath Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
+package com.yahoo.bullet.bql;
+
+import com.yahoo.bullet.common.BulletConfig;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class BulletBQL {
+    private static BulletQueryBuilder BULLET_QUERY_BUILDER = new BulletQueryBuilder(new BulletConfig());
+
+    /**
+     * Print out a Bullet JSON by parsing BQL using default BulletConfig.
+     *
+     * @param args A BQL string.
+     * @throws Exception when bql is not valid.
+     */
+    public static void main(String[] args) throws Exception {
+        String bql = args[0];
+        log.debug("BQL passed in: " + bql);
+        System.out.println(BULLET_QUERY_BUILDER.buildJson(bql));
+    }
+}
