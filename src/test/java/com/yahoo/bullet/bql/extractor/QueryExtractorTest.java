@@ -17,6 +17,7 @@ import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.UNKNOWN;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuerySpecification;
+import static org.testng.Assert.assertEquals;
 
 public class QueryExtractorTest {
     private BulletQueryBuilder builder;
@@ -46,9 +47,11 @@ public class QueryExtractorTest {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) LIMIT ALL");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Grouping functions must be followed by GROUP BY () or GROUP BY element (, element)*\\E.*")
+    @Test
     public void testGroupFunctionWithoutGroupBy() {
-        builder.buildJson("SELECT COUNT(*) FROM STREAM(2000, TIME)");
+        String countWithoutGroup = builder.buildJson("SELECT COUNT(*) FROM STREAM(2000, TIME)");
+        String countWithGroup = builder.buildJson("SELECT COUNT(*) FROM STREAM(2000, TIME) GROUP BY ()");
+        assertEquals(countWithGroup, countWithoutGroup);
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subFiled or field.*\\E.*")
