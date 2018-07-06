@@ -310,7 +310,9 @@ public class QueryExtractor {
         }
 
         private void extractGroup(QuerySpecification node) {
-            if (type == GROUP) {
+            if (type == GROUP && !node.getGroupBy().isPresent()) {
+                groupByFields = new HashSet<>();
+            } else if (type == GROUP) {
                 process(node.getGroupBy().get());
             } else {
                 groupByFields = selectFields;

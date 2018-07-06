@@ -108,10 +108,6 @@ public class QueryClassifier {
 
             process(node.getSelect());
             node.getGroupBy().ifPresent(this::process);
-            if (type == QueryType.GROUP && !node.getGroupBy().isPresent()) {
-                throw new ParsingException("Grouping functions must be followed by GROUP BY () or GROUP BY element (, element)*");
-            }
-
             if (type == QueryType.UNKNOWN) {
                 type = QueryType.SELECT_FIELDS;
             }
