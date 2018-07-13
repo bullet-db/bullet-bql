@@ -29,7 +29,7 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
     `make fat-jar` 
 
-This will create a fat jar, which can be used to parse BQL commands into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries:
+    This will create a fat jar, which can be used to parse BQL commands into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries:
      
     `java -jar bullet-bql-version-fat.jar BQLString` 
      
