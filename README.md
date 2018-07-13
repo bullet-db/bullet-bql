@@ -23,7 +23,13 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 ## Install
 
-* The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql). Bullet-BQL can be run through the command line interface using the fat jar. The BQLString is parsed and a [Bullet JSON](https://bullet-db.github.io/ws/api/) is printed out.
+* The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql).
+
+* To run the tool from the command line you can create a fat jar (with all necessary dependencies) by running
+
+    `make fat-jar` 
+
+This will create a fat jar, which can be used to parse BQL commands into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries:
      
     `java -jar bullet-bql-version-fat.jar BQLString` 
      
