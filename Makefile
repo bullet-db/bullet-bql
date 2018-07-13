@@ -1,7 +1,7 @@
 all: full
 
 full:
-	    mvn clean javadoc:jar package
+	    mvn clean package javadoc:jar
 
 clean:
 	    mvn clean
