@@ -3,9 +3,6 @@ all: full
 full:
 	    mvn clean package javadoc:jar
 
-fat-jar:
-	    mvn -f fat-pom.xml clean package
-
 clean:
 	    mvn clean
 
