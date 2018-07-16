@@ -23,9 +23,17 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 ## Install
 
-* The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql). Bullet-BQL can be run through the command line interface using the fat jar. The BQLString is parsed and a [Bullet JSON](https://bullet-db.github.io/ws/api/) is printed out.
+* The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql).
+
+* To run the tool from the command line, first compile:
+
+    `mvn clean compile` 
+
+    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. For example:
      
-    `java -jar bullet-bql-version-fat.jar BQLString` 
+    `mvn exec:java -Dexec.args="'SELECT * FROM STREAM(30000, TIME) LIMIT 1;'"` 
+
+    **Note:** Notice the query must be enclosed in single+double quotes: `"'` so each word is not interpreted as it's own argument.
      
 * Bullet-BQL is currently being integrated into [Bullet-Service](https://github.com/bullet-db/bullet-service/), and will provide a BQL endpoint directly. 
 

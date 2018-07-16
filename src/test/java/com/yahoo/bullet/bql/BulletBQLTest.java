@@ -33,6 +33,8 @@ public class BulletBQLTest {
         String[] args = new String[]{"SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, FIRST, 3000, TIME) LIMIT 5"};
         BulletBQL.main(args);
         String printOut = outContent.toString();
-        assertEquals(printOut, "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"},\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}},\"duration\":2000}\n");
+        assertEquals(printOut, "\n############################## Bullet Query ##############################\n"
+                               + "\n{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"},\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}},\"duration\":2000}\n"
+                               + "\n##########################################################################\n\n");
     }
 }
