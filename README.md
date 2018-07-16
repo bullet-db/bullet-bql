@@ -25,9 +25,9 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql).
 
-* To run the tool from the command line, first build the jar:
+* To run the tool from the command line, first compile:
 
-    `mvn clean package` 
+    `mvn clean compile` 
 
     Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. For example:
      
