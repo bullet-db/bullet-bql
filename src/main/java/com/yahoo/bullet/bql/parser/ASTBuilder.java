@@ -179,7 +179,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         Unit emitType = Unit.valueOf(context.emitType.getText().toUpperCase());
         WindowInclude include = new WindowInclude(
                 getLocation(context),
-                TIME,
+                emitType,
                 Optional.of(FIRST),
                 Optional.of(emitEvery));
 

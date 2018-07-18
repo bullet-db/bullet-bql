@@ -453,6 +453,16 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testBuildRawTumblingRecord() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(TUMBLING, 3000, RECORD) LIMIT 5 "),
+                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
+                        "\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
+                        "\"window\":{\"emit\":{\"type\":\"RECORD\",\"every\":3000},\"include\":{\"type\":\"RECORD\",\"first\":3000}}," +
+                        "\"duration\":2000}");
+    }
+
+    @Test
     public void testBuildRawEveryWindowIncludeAll() {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, ALL) LIMIT 5 "),
