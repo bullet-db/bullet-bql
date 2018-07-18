@@ -77,7 +77,6 @@ import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 import static com.yahoo.bullet.bql.tree.WindowInclude.IncludeType.FIRST;
 import static com.yahoo.bullet.parsing.Window.Unit.ALL;
-import static com.yahoo.bullet.parsing.Window.Unit.TIME;
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
