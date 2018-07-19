@@ -39,7 +39,7 @@ queryNoWith
 
 windowOperation
     : EVERY ',' emitEvery=INTEGER_VALUE ',' emitType=(TIME | RECORD) ',' include          #emitEvery
-    | TUMBLING ',' emitEvery=INTEGER_VALUE ',' emitType=TIME                              #tumbling
+    | TUMBLING ',' emitEvery=INTEGER_VALUE ',' emitType=(TIME | RECORD)                   #tumbling
     ;
 
 include
