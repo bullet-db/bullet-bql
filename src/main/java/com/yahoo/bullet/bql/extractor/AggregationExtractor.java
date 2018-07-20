@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.yahoo.bullet.aggregations.TopK.NEW_NAME_FIELD;
 import static com.yahoo.bullet.aggregations.TopK.THRESHOLD_FIELD;
