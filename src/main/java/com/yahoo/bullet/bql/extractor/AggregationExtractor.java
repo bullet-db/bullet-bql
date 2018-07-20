@@ -6,6 +6,7 @@
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
+import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.Distribution;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
@@ -16,6 +17,7 @@ import com.yahoo.bullet.parsing.Aggregation;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -175,7 +177,7 @@ public class AggregationExtractor {
             group.setFields(getFields(new ArrayList<>(groupByFields)));
         }
 
-        Map<String, Object> attributes = getGroupAttributes(selectFields);
+        Map<String, Object> attributes = getGroupAttributes(selectFields, groupByFields);
         if (!attributes.isEmpty()) {
             group.setAttributes(attributes);
         }
@@ -206,12 +208,18 @@ public class AggregationExtractor {
         return fields;
     }
 
-    private Map<String, Object> getGroupAttributes(Set<Expression> selectFields) {
-        List<Expression> functions = selectFields.stream()
-                .filter(selectField -> selectField instanceof FunctionCall)
-                .sorted(Expression::compareTo)
-                .collect(Collectors.toList());
-
+    private Map<String, Object> getGroupAttributes(Set<Expression> selectFields, Set<Expression> groupByFields) {
+        List<Expression> functions = new ArrayList<>();
+        for (Expression selectField : selectFields) {
+            if (selectField instanceof FunctionCall) {
+                functions.add(selectField);
+            } else {
+                if (!groupByFields.contains(selectField)) {
+                    throw new ParsingException("Select field " + selectField.toFormatlessString()  + " should be a grouping function or in GROUP BY clause");
+                }
+            }
+        }
+        Collections.sort(functions, Expression::compareTo);
         Map<String, Object> attributes = new HashMap<>();
         List<Map<String, Object>> operations = getGroupOperations(functions);
         if (!operations.isEmpty()) {
