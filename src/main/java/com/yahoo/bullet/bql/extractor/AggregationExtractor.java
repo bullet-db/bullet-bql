@@ -164,8 +164,9 @@ public class AggregationExtractor {
      * @param size          The non-null Optional of size of this group aggregation.
      * @return A {@link Aggregation.Type#GROUP} Aggregation.
      * @throws NullPointerException when any of selectFields, groupByFields and size is null.
+     * @throws ParsingException when any of selectionField is not grouping function nor in group by clause.
      */
-    public Aggregation extractGroup(Set<Expression> selectFields, Set<Expression> groupByFields, Optional<Long> size) throws NullPointerException {
+    public Aggregation extractGroup(Set<Expression> selectFields, Set<Expression> groupByFields, Optional<Long> size) throws NullPointerException, ParsingException {
         requireNonNull(selectFields);
         requireNonNull(groupByFields);
         requireNonNull(size);
