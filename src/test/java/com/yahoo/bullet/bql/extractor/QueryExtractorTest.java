@@ -176,7 +176,7 @@ public class QueryExtractorTest {
         extractor.validateAndExtract(querySpecification, UNKNOWN);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Select field aaa should be a grouping function or in GROUP BY clause\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Select field aaa should be a grouping function or be in GROUP BY clause\\E.*")
     public void testGroupBySelectFieldNotInGroupByClause() {
         builder.buildJson("SELECT COUNT(*), aaa FROM STREAM(2000, TIME)");
     }

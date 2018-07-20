@@ -215,7 +215,7 @@ public class AggregationExtractor {
                 functions.add(selectField);
             } else {
                 if (!groupByFields.contains(selectField)) {
-                    throw new ParsingException("Select field " + selectField.toFormatlessString()  + " should be a grouping function or in GROUP BY clause");
+                    throw new ParsingException("Select field " + selectField.toFormatlessString()  + " should be a grouping function or be in GROUP BY clause");
                 }
             }
         }
