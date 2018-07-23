@@ -530,6 +530,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     private static SortItem.Ordering getOrderingType(Token token) throws IllegalArgumentException {
         if (token.getType() == BQLBaseLexer.DESC) {
             return SortItem.Ordering.DESCENDING;
+        } else if (token.getType() == BQLBaseLexer.ASC) {
+            return SortItem.Ordering.ASCENDING;
         }
 
         throw new IllegalArgumentException("Unsupported ordering: " + token.getText());

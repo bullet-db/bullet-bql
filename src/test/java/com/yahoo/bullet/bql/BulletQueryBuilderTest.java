@@ -434,12 +434,28 @@ public class BulletQueryBuilderTest {
                         "\"duration\":2000}");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its its alias name is supported in ORDER BY clause now\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its alias name is supported in ORDER BY clause now\\E.*")
     public void testBuildTopKInvalidOrderBy() {
         assertEquals(builder.buildJson(
                 "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY AVG(*) DESC LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only one field is supported in ORDER BY for TOP K\\E.*")
+    public void testBuildTopKOrderByMultipleFields() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC, top3 DESC LIMIT 3"),
+                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only DESC is supported in ORDER BY for TOP K\\E.*")
+    public void testBuildTopKOrderByASCOrder() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) ASC LIMIT 3"),
+                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
+                             "\"duration\":2000}");
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its alias name is supported in HAVING clause now\\E.*")

@@ -204,7 +204,7 @@ public class QueryClassifier {
             }
             Expression expression = sortItems.get(0).getSortKey();
             if (!isCountAsteriskField(node, expression)) {
-                throw new ParsingException("Only COUNT(*) or its its alias name is supported in ORDER BY clause now");
+                throw new ParsingException("Only COUNT(*) or its alias name is supported in ORDER BY clause now");
             }
         }
 
