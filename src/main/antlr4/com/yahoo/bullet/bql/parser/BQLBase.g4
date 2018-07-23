@@ -32,7 +32,7 @@ query
 
 queryNoWith
     : queryTerm
-      (ORDER BY sortItem)?
+      (ORDER BY sortItem (',' sortItem)*)?
       (WINDOWING '(' windowOperation ')')?
       (LIMIT limit=(INTEGER_VALUE | ALL))?
     ;
@@ -56,7 +56,7 @@ queryPrimary
     ;
 
 sortItem
-    : qualifiedName '(' ASTERISK ')' ordering=DESC
+    : expression ordering=(ASC | DESC)?
     ;
 
 querySpecification
@@ -68,7 +68,7 @@ querySpecification
     ;
 
 topKThreshold
-    : qualifiedName '(' ASTERISK ')' GTE right=INTEGER_VALUE
+    : expression comparisonOperator right=INTEGER_VALUE
     ;
 
 groupBy
