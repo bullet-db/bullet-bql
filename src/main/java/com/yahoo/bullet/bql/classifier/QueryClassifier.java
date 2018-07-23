@@ -203,7 +203,7 @@ public class QueryClassifier {
                 throw new ParsingException("Only DESC is supported in ORDER BY for TOP K");
             }
             Expression expression = sortItems.get(0).getSortKey();
-            if (!isCountAsteriskOField(node, expression)) {
+            if (!isCountAsteriskField(node, expression)) {
                 throw new ParsingException("Only COUNT(*) or its its alias name is supported in ORDER BY clause now");
             }
         }
@@ -214,12 +214,12 @@ public class QueryClassifier {
             }
             ComparisonExpression havingExpression = (ComparisonExpression) node.getHaving().get();
             Expression left = havingExpression.getLeft();
-            if (!isCountAsteriskOField(node, left)) {
+            if (!isCountAsteriskField(node, left)) {
                 throw new ParsingException("Only COUNT(*) or its alias name is supported in HAVING clause now");
             }
         }
 
-        private boolean isCountAsteriskOField(QuerySpecification node, Expression expression) {
+        private boolean isCountAsteriskField(QuerySpecification node, Expression expression) {
             String expressionString = expression.toString();
             if (expressionString.equals("COUNT(*)")) {
                 return true;
