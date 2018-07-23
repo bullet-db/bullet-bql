@@ -387,11 +387,35 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testBuildTopKWithOrderByAlias() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd.*, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY top3 DESC LIMIT 3"),
+                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
     public void testBuildTopKThreshold() {
         assertEquals(builder.buildJson(
                 "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
                         "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildTopKThresholdWithGreaterThan() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC LIMIT 3"),
+                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":2},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildTopKThresholdWithAlias() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING top3 >= 1 ORDER BY COUNT(*) DESC LIMIT 3"),
+                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
+                             "\"duration\":2000}");
     }
 
     @Test
@@ -410,7 +434,7 @@ public class BulletQueryBuilderTest {
                         "\"duration\":2000}");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) is supported in ORDER BY clause now\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its its alias name is supported in ORDER BY clause now\\E.*")
     public void testBuildTopKInvalidOrderBy() {
         assertEquals(builder.buildJson(
                 "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY AVG(*) DESC LIMIT 3"),
@@ -418,10 +442,16 @@ public class BulletQueryBuilderTest {
                         "\"duration\":2000}");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) >= int is supported in HAVING as the threshold for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its alias name is supported in HAVING clause now\\E.*")
     public void testBuildTopKInvalidHaving() {
         builder.buildJson(
                 "SELECT aaa, bbb, COUNT(*) FROM STREAM(2000, TIME) GROUP BY aaa, bbb HAVING AVG(*) >= 4 ORDER BY COUNT(*) DESC LIMIT 3;");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only > or >= are supported in HAVING clause\\E.*")
+    public void testBuildTopKInvalidHavingOperation() {
+        builder.buildJson(
+                "SELECT aaa, bbb, COUNT(*) FROM STREAM(2000, TIME) GROUP BY aaa, bbb HAVING COUNT(*) < 4 ORDER BY COUNT(*) DESC LIMIT 3;");
     }
 
     @Test

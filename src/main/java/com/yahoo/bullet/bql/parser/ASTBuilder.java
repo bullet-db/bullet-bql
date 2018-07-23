@@ -66,7 +66,6 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -74,7 +73,6 @@ import java.util.stream.Collectors;
 import static com.yahoo.bullet.aggregations.Distribution.Type.CDF;
 import static com.yahoo.bullet.aggregations.Distribution.Type.PMF;
 import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 import static com.yahoo.bullet.bql.tree.WindowInclude.IncludeType.FIRST;
 import static com.yahoo.bullet.parsing.Window.Unit.ALL;
 import static java.util.Arrays.asList;
@@ -108,7 +106,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         QueryBody term = (QueryBody) visit(context.queryTerm());
         Optional<OrderBy> orderBy = Optional.empty();
         if (context.ORDER() != null) {
-            orderBy = Optional.of(new OrderBy(getLocation(context.ORDER()), visit(asList(context.sortItem()), SortItem.class)));
+            orderBy = Optional.of(new OrderBy(getLocation(context.ORDER()), visit(context.sortItem(), SortItem.class)));
         }
         Optional<Windowing> windowing = visitIfPresent(context.windowOperation(), Windowing.class);
         QuerySpecification query = (QuerySpecification) term;
@@ -131,22 +129,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitSortItem(BQLBaseParser.SortItemContext context) throws ParsingException {
-        if (!context.qualifiedName().getText().equalsIgnoreCase("COUNT")) {
-            throw new ParsingException("Only COUNT(*) is supported in ORDER BY clause now");
-        }
-
-        Expression sortKey = new FunctionCall(
-                getLocation(context),
-                COUNT,
-                Optional.empty(),
-                Optional.empty(),
-                false,
-                Collections.emptyList());
+    public Node visitSortItem(BQLBaseParser.SortItemContext context) {
         return new SortItem(
                 getLocation(context),
-                sortKey,
-                getOrderingType(context.ordering),
+                (Expression) visit(context.expression()),
+                Optional.ofNullable(context.ordering)
+                        .map(ASTBuilder::getOrderingType)
+                        .orElse(SortItem.Ordering.ASCENDING),
                 SortItem.NullOrdering.UNDEFINED);
     }
 
@@ -205,23 +194,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTopKThreshold(BQLBaseParser.TopKThresholdContext context) throws ParsingException {
-        if (!context.qualifiedName().getText().equalsIgnoreCase("COUNT")) {
-            throw new ParsingException("Only COUNT(*) >= int is supported in HAVING as the threshold for TOP K");
-        }
-
-        Expression left = new FunctionCall(
-                getLocation(context),
-                COUNT,
-                Optional.empty(),
-                Optional.empty(),
-                false,
-                Collections.emptyList());
-        Expression right = new LongLiteral(getLocation(context.right), context.right.getText());
         return new ComparisonExpression(
                 getLocation(context),
-                Operation.GREATER_EQUALS,
-                left,
-                right,
+                getComparisonOperator(((TerminalNode) context.comparisonOperator().getChild(0)).getSymbol()),
+                (Expression) (visit(context.expression())),
+                new LongLiteral(getLocation(context.right), context.right.getText()),
                 false);
     }
 

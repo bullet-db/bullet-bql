@@ -31,6 +31,7 @@ import com.yahoo.bullet.bql.tree.Windowing;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Clause;
+import com.yahoo.bullet.parsing.Clause.Operation;
 import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
@@ -248,7 +249,18 @@ public class QueryExtractor {
         private void visitHaving(Optional<Expression> having) {
             having.ifPresent(expression -> {
                     Expression right = ((ComparisonExpression) expression).getRight();
-                    threshold = Optional.of(((LongLiteral) right).getValue());
+                    long rightValue = ((LongLiteral) right).getValue();
+                    Operation op = ((ComparisonExpression) expression).getOperation();
+                    switch (op) {
+                        case GREATER_EQUALS:
+                            threshold = Optional.of(rightValue);
+                            break;
+                        case GREATER_THAN:
+                            threshold = Optional.of(rightValue + 1);
+                            break;
+                        default:
+                            throw new ParsingException("Only > or >= are supported in HAVING clause");
+                    }
                 });
         }
 

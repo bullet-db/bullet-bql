@@ -6,17 +6,20 @@
 package com.yahoo.bullet.bql.classifier;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
+import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
 import com.yahoo.bullet.bql.tree.GroupingElement;
 import com.yahoo.bullet.bql.tree.Node;
+import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.bql.tree.Select;
 import com.yahoo.bullet.bql.tree.SelectItem;
 import com.yahoo.bullet.bql.tree.SelectItem.Type;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
+import com.yahoo.bullet.bql.tree.SortItem;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -167,24 +170,65 @@ public class QueryClassifier {
         private boolean isTopK(QuerySpecification node) {
             if (!hasRequiredTopKClauses(node)) {
                 return false;
-            } else {
-                Set<Expression> topKGroupByFields = getTopKGroupByFields(node);
-                Set<Expression> topKSelectFields = getTopKSelectFields(node);
-
-                if (node.getLimit().get().equalsIgnoreCase("ALL")) {
-                    return false;
-                }
-
-                if (topKSelectFields.isEmpty()) {
-                    return false;
-                }
-
-                return topKGroupByFields.equals(topKSelectFields);
             }
+
+            Set<Expression> topKGroupByFields = getTopKGroupByFields(node);
+            Set<Expression> topKSelectFields = getTopKSelectFields(node);
+
+            validOrderBy(node);
+            validHaving(node);
+
+            if (node.getLimit().get().equalsIgnoreCase("ALL")) {
+                return false;
+            }
+
+            if (topKSelectFields.isEmpty()) {
+                return false;
+            }
+
+            return topKGroupByFields.equals(topKSelectFields);
         }
 
         private boolean hasRequiredTopKClauses(QuerySpecification node) {
             return node.getGroupBy().isPresent() && node.getOrderBy().isPresent() && node.getLimit().isPresent();
+        }
+
+        private void validOrderBy(QuerySpecification node) {
+            OrderBy orderBy = node.getOrderBy().get();
+            List<SortItem> sortItems = orderBy.getSortItems();
+            if (sortItems.size() != 1) {
+                throw new ParsingException("Only one field is supported in ORDER BY for TOP K");
+            }
+            if (sortItems.get(0).getOrdering() != SortItem.Ordering.DESCENDING) {
+                throw new ParsingException("Only DESC is supported in ORDER BY for TOP K");
+            }
+            Expression expression = sortItems.get(0).getSortKey();
+            if (!isCountAsteriskOField(node, expression)) {
+                throw new ParsingException("Only COUNT(*) or its its alias name is supported in ORDER BY clause now");
+            }
+        }
+
+        private void validHaving(QuerySpecification node) {
+            if (!node.getHaving().isPresent()) {
+                return;
+            }
+            ComparisonExpression havingExpression = (ComparisonExpression) node.getHaving().get();
+            Expression left = havingExpression.getLeft();
+            if (!isCountAsteriskOField(node, left)) {
+                throw new ParsingException("Only COUNT(*) or its alias name is supported in HAVING clause now");
+            }
+        }
+
+        private boolean isCountAsteriskOField(QuerySpecification node, Expression expression) {
+            String expressionString = expression.toString();
+            if (expressionString.equals("COUNT(*)")) {
+                return true;
+            }
+            long count = node.getSelect().getSelectItems().stream()
+                             .filter(selectItem -> selectItem.getValue().toString().equals("COUNT(*)"))
+                             .filter(selectItem -> selectItem.getAlias().isPresent() && selectItem.getAlias().get().getValue().equals(expressionString))
+                             .count();
+            return count == 1;
         }
 
         private Set<Expression> getTopKGroupByFields(QuerySpecification node) {
