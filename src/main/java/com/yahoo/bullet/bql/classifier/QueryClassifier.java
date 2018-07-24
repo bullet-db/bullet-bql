@@ -103,6 +103,8 @@ public class QueryClassifier {
         @Override
         protected Void visitQuerySpecification(QuerySpecification node, Void context) throws ParsingException {
             if (isTopK(node)) {
+                validOrderBy(node);
+                validHaving(node);
                 type = QueryType.TOP_K;
                 return null;
             } else if (node.getOrderBy().isPresent() || node.getHaving().isPresent()) {
@@ -175,8 +177,6 @@ public class QueryClassifier {
             Set<Expression> topKGroupByFields = getTopKGroupByFields(node);
             Set<Expression> topKSelectFields = getTopKSelectFields(node);
 
-            validOrderBy(node);
-            validHaving(node);
 
             if (node.getLimit().get().equalsIgnoreCase("ALL")) {
                 return false;
