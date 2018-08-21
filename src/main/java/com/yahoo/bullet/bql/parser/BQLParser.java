@@ -151,16 +151,6 @@ public class BQLParser {
         }
 
         @Override
-        public void exitBackQuotedIdentifier(BQLBaseParser.BackQuotedIdentifierContext context) throws ParsingException {
-            Token token = context.BACKQUOTED_IDENTIFIER().getSymbol();
-            throw new ParsingException(
-                    "Backquoted identifiers are not supported; use double quotes to quote identifiers",
-                    null,
-                    token.getLine(),
-                    token.getCharPositionInLine());
-        }
-
-        @Override
         public void exitDigitIdentifier(BQLBaseParser.DigitIdentifierContext context) throws ParsingException {
             Token token = context.DIGIT_IDENTIFIER().getSymbol();
             throw new ParsingException(

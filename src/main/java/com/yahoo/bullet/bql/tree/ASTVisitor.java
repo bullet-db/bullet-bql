@@ -222,6 +222,28 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
+     * Visit a {@link ContainsPredicate} with passed in context.
+     *
+     * @param node    A {@link ContainsPredicate}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitContainsPredicate(ContainsPredicate node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
+     * Visit a {@link ReferenceWithFunction} with passed in context.
+     *
+     * @param node    A {@link ContainsPredicate}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitReferenceWithFunction(ReferenceWithFunction node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
      * Visit a {@link FunctionCall} with passed in context.
      *
      * @param node    A {@link FunctionCall}.

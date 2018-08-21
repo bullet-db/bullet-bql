@@ -18,6 +18,7 @@ import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
+import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
 import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Distribution;
@@ -37,6 +38,7 @@ import com.yahoo.bullet.bql.tree.LongLiteral;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.NullLiteral;
+import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
@@ -359,6 +361,31 @@ public final class ExpressionFormatter {
         @Override
         protected String visitInPredicate(InPredicate node, Void context) {
             return "(" + process(node.getValue(), context) + " IN " + process(node.getValueList(), context) + ")";
+        }
+
+        @Override
+        protected String visitContainsPredicate(ContainsPredicate node, Void context) {
+            String op = null;
+            switch (node.getOperation()) {
+                case CONTAINS_KEY:
+                    op = "CONTAINSKEY";
+                    break;
+                case CONTAINS_VALUE:
+                    op = "CONTAINSVALUE";
+                    break;
+            }
+            return process(node.getValue(), context) + " " + op + " " + process(node.getValueList(), context);
+        }
+
+        @Override
+        protected String visitReferenceWithFunction(ReferenceWithFunction node, Void context) {
+            String op = null;
+            switch (node.getOperation()) {
+                case SIZE_OF:
+                    op = "SIZEOF";
+                    break;
+            }
+            return op + "(" + process(node.getValue(), context) + ")";
         }
 
         @Override

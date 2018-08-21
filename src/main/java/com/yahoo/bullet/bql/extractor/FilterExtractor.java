@@ -5,10 +5,13 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
+import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.Expression;
+import com.yahoo.bullet.bql.tree.ContainsPredicate;
+import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotEmptyPredicate;
@@ -20,11 +23,16 @@ import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
+import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.FilterClause;
 import com.yahoo.bullet.parsing.LogicalClause;
+import com.yahoo.bullet.parsing.ObjectFilterClause;
+import com.yahoo.bullet.parsing.StringFilterClause;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.yahoo.bullet.parsing.Clause.Operation;
 import static com.yahoo.bullet.parsing.Clause.Operation.AND;
@@ -85,17 +93,43 @@ public class FilterExtractor {
 
         @Override
         protected Clause visitComparisonExpression(ComparisonExpression node, Void context) {
-            return createFilterClause(node.getOperation(), node.getLeft().toFormatlessString(), node.getRight().toFormatlessString());
+            Expression left = node.getLeft();
+            Operation op = node.getOperation();
+            boolean isNotExpression = false;
+            if (left instanceof ReferenceWithFunction) {
+                if (op != EQUALS && op != NOT_EQUALS) {
+                    throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) left).getOperation());
+                }
+                if (op == NOT_EQUALS) {
+                    isNotExpression = true;
+                }
+                op = ((ReferenceWithFunction) left).getOperation();
+                left = ((ReferenceWithFunction) left).getValue();
+            }
+            Clause clause = createFilterClause(op, left.toFormatlessString(), node.getRight());
+            if (!isNotExpression) {
+                return clause;
+            }
+
+            LogicalClause notClause = new LogicalClause();
+            notClause.setOperation(NOT);
+            notClause.setClauses(asList(clause));
+            return notClause;
         }
 
         // BetweenPredicate generates a AND clause that contains two comparison clauses.
         @Override
         protected Clause visitBetweenPredicate(BetweenPredicate node, Void context) {
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+
             LogicalClause binaryClause = new LogicalClause();
             binaryClause.setOperation(AND);
 
-            Clause lowerClause = createFilterClause(GREATER_EQUALS, node.getValue().toFormatlessString(), node.getMin().toFormatlessString());
-            Clause upperClause = createFilterClause(LESS_EQUALS, node.getValue().toFormatlessString(), node.getMax().toFormatlessString());
+            Clause lowerClause = createFilterClause(GREATER_EQUALS, value.toFormatlessString(), node.getMin());
+            Clause upperClause = createFilterClause(LESS_EQUALS, value.toFormatlessString(), node.getMax());
 
             binaryClause.setClauses(asList(lowerClause, upperClause));
 
@@ -104,43 +138,90 @@ public class FilterExtractor {
 
         @Override
         protected Clause visitInPredicate(InPredicate node, Void context) {
+            Expression value = node.getValue();
+            Operation op = EQUALS;
+            if (value instanceof ReferenceWithFunction) {
+                op = ((ReferenceWithFunction) value).getOperation();
+                value = ((ReferenceWithFunction) value).getValue();
+            }
+
             List<Expression> inList = node.getInList();
-            String[] values = inList.stream().map(Expression::toFormatlessString).toArray(String[]::new);
-            return createFilterClause(EQUALS, node.getValue().toFormatlessString(), values);
+            return createFilterClause(op, value.toFormatlessString(), inList.toArray(new Expression[0]));
+        }
+
+        @Override
+        protected Clause visitContainsPredicate(ContainsPredicate node, Void context) {
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+
+            List<Expression> valueList = node.getContainsList();
+            return createFilterClause(node.getOperation(), value.toFormatlessString(), valueList.toArray(new Expression[0]));
         }
 
         @Override
         protected Clause visitLikePredicate(LikePredicate node, Void context) {
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+
             List<Expression> likeList = node.getLikeList();
-            String[] values = likeList.stream().map(Expression::toFormatlessString).toArray(String[]::new);
-            return createFilterClause(REGEX_LIKE, node.getValue().toFormatlessString(), values);
+            return createFilterClause(REGEX_LIKE, value.toFormatlessString(), likeList.toArray(new Expression[0]));
         }
 
         @Override
         protected Clause visitIsNullPredicate(IsNullPredicate node, Void context) {
-            return createFilterClause(EQUALS, node.getValue().toFormatlessString(), "NULL");
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+
+            return createFilterClause(EQUALS, value.toFormatlessString(), "NULL");
         }
 
         @Override
         protected Clause visitIsNotNullPredicate(IsNotNullPredicate node, Void context) {
-            return createFilterClause(NOT_EQUALS, node.getValue().toFormatlessString(), "NULL");
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+            return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "NULL");
         }
 
         @Override
         protected Clause visitIsEmptyPredicate(IsEmptyPredicate node, Void context) {
-            return createFilterClause(EQUALS, node.getValue().toFormatlessString(), "");
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+            return createFilterClause(EQUALS, value.toFormatlessString(), "");
         }
 
         @Override
         protected Clause visitIsNotEmptyPredicate(IsNotEmptyPredicate node, Void context) {
-            return createFilterClause(NOT_EQUALS, node.getValue().toFormatlessString(), "");
+            Expression value = node.getValue();
+            if (value instanceof ReferenceWithFunction) {
+                throw new ParsingException("Only '==', '!=', '<>' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+            }
+            return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "");
         }
 
         private Clause createFilterClause(Operation operation, String field, String... values) {
-            FilterClause filterClause = new FilterClause();
+            FilterClause filterClause = new ObjectFilterClause();
             filterClause.setOperation(operation);
             filterClause.setField(field);
-            filterClause.setValues(asList(values));
+            filterClause.setValues(Stream.of(values).map(v -> new ObjectFilterClause.Value(ObjectFilterClause.Value.Kind.VALUE, v)).collect(Collectors.toList()));
+
+            return filterClause;
+        }
+
+        private Clause createFilterClause(Operation operation, String field, Expression... expressions) {
+            FilterClause filterClause = new ObjectFilterClause();
+            filterClause.setOperation(operation);
+            filterClause.setField(field);
+            filterClause.setValues(Stream.of(expressions).map(e -> new ObjectFilterClause.Value(e instanceof Identifier ? ObjectFilterClause.Value.Kind.FIELD : ObjectFilterClause.Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
 
             return filterClause;
         }

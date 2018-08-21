@@ -126,7 +126,16 @@ booleanExpression
     ;
 
 predicated
-    : referenceExpression predicate[$referenceExpression.ctx]
+    : predicatedReferenceExpression predicate[$predicatedReferenceExpression.ctx]
+    ;
+
+predicatedReferenceExpression
+    : referenceExpression                                                                 #referenceWithoutFunction
+    | functionName '(' referenceExpression ')'                                            #referenceWithFunction
+    ;
+
+functionName
+    : SIZEOF
     ;
 
 predicate[ParserRuleContext value]
@@ -137,6 +146,11 @@ predicate[ParserRuleContext value]
     | IS NOT? NULL                                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                                         #distinctFrom
     | IS NOT? EMPTY                                                                       #emptyPredicate
+    | NOT? containsOperator '(' valueExpression (',' valueExpression)* ')'                #containsList
+    ;
+
+containsOperator
+    : CONTAINSKEY | CONTAINSVALUE
     ;
 
 primaryExpression
@@ -172,6 +186,7 @@ valueExpression
     | booleanValue                                                                        #booleanLiteral
     | string                                                                              #stringLiteral
     | operator=(MINUS | PLUS) number                                                      #arithmeticUnary
+    | referenceExpression                                                                 #fieldReference
     ;
 
 signedNumber
@@ -196,9 +211,7 @@ qualifiedName
 
 identifier
     : IDENTIFIER                                                                          #unquotedIdentifier
-    | QUOTED_IDENTIFIER                                                                   #quotedIdentifier
     | nonReserved                                                                         #unquotedIdentifier
-    | BACKQUOTED_IDENTIFIER                                                               #backQuotedIdentifier
     | DIGIT_IDENTIFIER                                                                    #digitIdentifier
     ;
 
@@ -445,6 +458,9 @@ LT  : '<';
 LTE : '<=';
 GT  : '>';
 GTE : '>=';
+SIZEOF : 'SIZEOF';
+CONTAINSKEY : 'CONTAINSKEY';
+CONTAINSVALUE : 'CONTAINSVALUE';
 
 PLUS: '+';
 MINUS: '-';
@@ -455,6 +471,7 @@ CONCAT: '||';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
+    | '"' ( ~'"' | '""' )* '"'
     ;
 
 UNICODE_STRING

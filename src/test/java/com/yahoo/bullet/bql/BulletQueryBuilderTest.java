@@ -53,11 +53,118 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testBuildFilterWithFields() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=bbb LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"FIELD\",\"value\":\"bbb\"}],\"operation\":\"\\u003d\\u003d\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildSizeOfFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa)=4 LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildInSizeOfFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) IN(1, 4) LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildNotSizeOfFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) != 4 LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}],\"operation\":\"NOT\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is distinct from 4 LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}],\"operation\":\"NOT\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    public void testBuildSizeOfFilterWithUnsupportedOperation() {
+        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) > 4 LIMIT 3");
+    }
+
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    public void testBuildSizeOfFilterWithBetween() {
+        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) between 1 and 4 LIMIT 3");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    public void testBuildSizeOfFilterWithLike() {
+        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) like (4) LIMIT 3");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    public void testBuildSizeOfFilterWithEmpty() {
+        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is empty LIMIT 3");
+    }
+
+    @Test
+    public void testBuildContainsKeyFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa CONTAINSKEY(1, 4) LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSKEY\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildContainsValueFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa CONTAINSVALUE(1, 4) LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSVALUE\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildNotContainsKeyFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa NOT CONTAINSKEY(1, 4) LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSKEY\"}],\"operation\":\"NOT\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
+    public void testBuildNotContainsValueFilter() {
+        assertEquals(builder.buildJson(
+                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa NOT CONTAINSVALUE(1, 4) LIMIT 3"),
+                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
+                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSVALUE\"}],\"operation\":\"NOT\"}]," +
+                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
+                             "\"duration\":2000}");
+    }
+
+    @Test
     public void testBuildRawProjectionEqual() {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=5.12 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[\"5.12\"],\"operation\":\"\\u003d\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"5.12\"}],\"operation\":\"\\u003d\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -67,7 +174,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa!='ccc' LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[\"ccc\"],\"operation\":\"!\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -77,7 +184,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa IS DISTINCT FROM 'ccc' LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[\"ccc\"],\"operation\":\"!\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -87,7 +194,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa IS NOT DISTINCT FROM 'ccc' LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[\"ccc\"],\"operation\":\"!\\u003d\"}],\"operation\":\"NOT\"}]," +
+                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"NOT\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -97,7 +204,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd BETWEEN 2 AND 3 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[\"2\"],\"operation\":\"\\u003e\\u003d\"},{\"field\":\"ddd\",\"values\":[\"3\"],\"operation\":\"\\u003c\\u003d\"}],\"operation\":\"AND\"}]," +
+                        "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\\u003d\"}],\"operation\":\"AND\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -107,7 +214,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd<3 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"3\"],\"operation\":\"\\u003c\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -117,7 +224,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd<=3 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"3\"],\"operation\":\"\\u003c\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -127,7 +234,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd>2 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"2\"],\"operation\":\"\\u003e\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -137,7 +244,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd>=2 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"2\"],\"operation\":\"\\u003e\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -147,7 +254,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IN (2, 3) LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"2\",\"3\"],\"operation\":\"\\u003d\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"},{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003d\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -157,7 +264,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd NOT IN (1, 3, 4) LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[\"1\",\"3\",\"4\"],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"NOT\"}]," +
+                        "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"3\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"NOT\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -167,7 +274,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS EMPTY LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"\"],\"operation\":\"\\u003d\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"\\u003d\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -177,7 +284,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NOT EMPTY LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"\"],\"operation\":\"!\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -187,7 +294,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"NULL\"],\"operation\":\"\\u003d\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"\\u003d\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -197,7 +304,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NOT NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[\"NULL\"],\"operation\":\"!\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -207,7 +314,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa LIKE ('ccc[^*]', 'test') LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[\"ccc[^*]\",\"test\"],\"operation\":\"RLIKE\"}]," +
+                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc[^*]\"},{\"kind\":\"VALUE\",\"value\":\"test\"}],\"operation\":\"RLIKE\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -217,7 +324,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa='ccc' AND ddd IS NOT NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[\"ccc\"],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[\"NULL\"],\"operation\":\"!\\u003d\"}],\"operation\":\"AND\"}]," +
+                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"AND\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -227,7 +334,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa='ccc' OR ddd IS NOT NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[\"ccc\"],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[\"NULL\"],\"operation\":\"!\\u003d\"}],\"operation\":\"OR\"}]," +
+                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"OR\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -236,7 +343,7 @@ public class BulletQueryBuilderTest {
     public void testBuildRawProjectionNestedFilter() {
         assertEquals(builder.buildJson(
                 "SELECT * FROM STREAM(2000, TIME) WHERE (bbb='eee' AND ggg IS NULL) AND (browser_version<='test2' OR fff IS EMPTY OR hhh LIKE ('jjj', 'kkk', 'mmm')) AND (bbb IN ('test6', 'test7')) LIMIT 1"),
-                "{\"filters\":[{\"clauses\":[{\"clauses\":[{\"clauses\":[{\"field\":\"bbb\",\"values\":[\"eee\"],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ggg\",\"values\":[\"NULL\"],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"},{\"clauses\":[{\"clauses\":[{\"field\":\"browser_version\",\"values\":[\"test2\"],\"operation\":\"\\u003c\\u003d\"},{\"field\":\"fff\",\"values\":[\"\"],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"OR\"},{\"field\":\"hhh\",\"values\":[\"jjj\",\"kkk\",\"mmm\"],\"operation\":\"RLIKE\"}],\"operation\":\"OR\"}],\"operation\":\"AND\"},{\"field\":\"bbb\",\"values\":[\"test6\",\"test7\"],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"}]," +
+                "{\"filters\":[{\"clauses\":[{\"clauses\":[{\"clauses\":[{\"field\":\"bbb\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"eee\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ggg\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"},{\"clauses\":[{\"clauses\":[{\"field\":\"browser_version\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"test2\"}],\"operation\":\"\\u003c\\u003d\"},{\"field\":\"fff\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"OR\"},{\"field\":\"hhh\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"jjj\"},{\"kind\":\"VALUE\",\"value\":\"kkk\"},{\"kind\":\"VALUE\",\"value\":\"mmm\"}],\"operation\":\"RLIKE\"}],\"operation\":\"OR\"}],\"operation\":\"AND\"},{\"field\":\"bbb\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"test6\"},{\"kind\":\"VALUE\",\"value\":\"test7\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"}]," +
                         "\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
@@ -245,7 +352,7 @@ public class BulletQueryBuilderTest {
     public void testBuildGroupByFilter() {
         assertEquals(builder.buildJson(
                 "SELECT ddd AS bv, aaa AS uc FROM STREAM(2000, TIME) WHERE ddd IS NOT NULL GROUP BY ddd, aaa LIMIT 10"),
-                "{\"filters\":[{\"field\":\"ddd\",\"values\":[\"NULL\"],\"operation\":\"!\\u003d\"}]," +
+                "{\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":10,\"type\":\"GROUP\",\"fields\":{\"aaa\":\"uc\",\"ddd\":\"bv\"}}," +
                         "\"duration\":2000}");
     }
@@ -523,7 +630,7 @@ public class BulletQueryBuilderTest {
         assertEquals(decimalBuilder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=5.12 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[\"5.12\"],\"operation\":\"\\u003d\\u003d\"}]," +
+                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"5.12\"}],\"operation\":\"\\u003d\\u003d\"}]," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
     }
