@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
+import com.google.gson.annotations.SerializedName;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
@@ -97,7 +98,7 @@ public class FilterExtractor {
             boolean isNotExpression = false;
             if (left instanceof ReferenceWithFunction) {
                 if (op != EQUALS && op != NOT_EQUALS) {
-                    throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) left).getOperation());
+                    throw unsupportedReferenceWithFunction(((ReferenceWithFunction) left).getOperation());
                 }
                 if (op == NOT_EQUALS) {
                     isNotExpression = true;
@@ -121,7 +122,7 @@ public class FilterExtractor {
         protected Clause visitBetweenPredicate(BetweenPredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
 
             LogicalClause binaryClause = new LogicalClause();
@@ -152,7 +153,7 @@ public class FilterExtractor {
         protected Clause visitContainsPredicate(ContainsPredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
 
             List<Expression> valueList = node.getContainsList();
@@ -163,7 +164,7 @@ public class FilterExtractor {
         protected Clause visitLikePredicate(LikePredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
 
             List<Expression> likeList = node.getLikeList();
@@ -174,7 +175,7 @@ public class FilterExtractor {
         protected Clause visitIsNullPredicate(IsNullPredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
 
             return createFilterClause(EQUALS, value.toFormatlessString(), "NULL");
@@ -184,7 +185,7 @@ public class FilterExtractor {
         protected Clause visitIsNotNullPredicate(IsNotNullPredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
             return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "NULL");
         }
@@ -193,7 +194,7 @@ public class FilterExtractor {
         protected Clause visitIsEmptyPredicate(IsEmptyPredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
             return createFilterClause(EQUALS, value.toFormatlessString(), "");
         }
@@ -202,7 +203,7 @@ public class FilterExtractor {
         protected Clause visitIsNotEmptyPredicate(IsNotEmptyPredicate node, Void context) {
             Expression value = node.getValue();
             if (value instanceof ReferenceWithFunction) {
-                throw new ParsingException("Only '==', '!=', '<>' or 'IN' are supported in " + ((ReferenceWithFunction) value).getOperation());
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
             }
             return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "");
         }
@@ -223,6 +224,16 @@ public class FilterExtractor {
             filterClause.setValues(Stream.of(expressions).map(e -> new ObjectFilterClause.Value(e instanceof Identifier ? ObjectFilterClause.Value.Kind.FIELD : ObjectFilterClause.Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
 
             return filterClause;
+        }
+
+        private ParsingException unsupportedReferenceWithFunction(Operation op) {
+            String opName;
+            try {
+                opName = op.getClass().getField(op.name()).getAnnotation(SerializedName.class).value();
+            } catch (Exception e) {
+                opName = op.name();
+            }
+            return new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + opName);
         }
     }
 }

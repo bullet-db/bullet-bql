@@ -98,23 +98,23 @@ public class BulletQueryBuilderTest {
                              "\"duration\":2000}");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
     public void testBuildSizeOfFilterWithUnsupportedOperation() {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) > 4 LIMIT 3");
     }
 
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
     public void testBuildSizeOfFilterWithBetween() {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) between 1 and 4 LIMIT 3");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
     public void testBuildSizeOfFilterWithLike() {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) like (4) LIMIT 3");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZE_OF\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
     public void testBuildSizeOfFilterWithEmpty() {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is empty LIMIT 3");
     }
