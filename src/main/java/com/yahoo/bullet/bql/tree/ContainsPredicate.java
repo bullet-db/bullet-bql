@@ -27,7 +27,7 @@ public class ContainsPredicate extends Expression {
      *
      * @param operation      A {@link Operation}.
      * @param value     An {@link Expression}.
-     * @param valueList An {@link Expression}. Currently we use {@link InListExpression}.
+     * @param valueList An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
     public ContainsPredicate(Operation operation, Expression value, Expression valueList) {
         this(Optional.empty(), operation, value, valueList);
@@ -39,7 +39,7 @@ public class ContainsPredicate extends Expression {
      * @param location  A {@link NodeLocation}.
      * @param operation      A {@link Operation}.
      * @param value     An {@link Expression}.
-     * @param valueList An {@link Expression}. Currently we use {@link InListExpression}.
+     * @param valueList An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
     public ContainsPredicate(NodeLocation location, Operation operation, Expression value, Expression valueList) {
         this(Optional.of(location), operation, value, valueList);
@@ -76,7 +76,7 @@ public class ContainsPredicate extends Expression {
      * @return A List of {@link Expression}.
      */
     public List<Expression> getContainsList() {
-        return ((InListExpression) valueList).getValues();
+        return ((ValueListExpression) valueList).getValues();
     }
 
     /**

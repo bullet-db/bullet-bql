@@ -25,7 +25,7 @@ public class InPredicateTest {
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        valueList = new InListExpression(singletonList(identifier("bbb")));
+        valueList = new ValueListExpression(singletonList(identifier("bbb")));
         inPredicate = new InPredicate(value, valueList);
     }
 
@@ -46,7 +46,7 @@ public class InPredicateTest {
         InPredicate inPredicateDiffValue = new InPredicate(diffValue, valueList);
         assertFalse(inPredicate.equals(inPredicateDiffValue));
 
-        Expression diffValueList = new InListExpression(singletonList(identifier("ddd")));
+        Expression diffValueList = new ValueListExpression(singletonList(identifier("ddd")));
         InPredicate inPredicateDiffValueList = new InPredicate(value, diffValueList);
         assertFalse(inPredicate.equals(inPredicateDiffValueList));
     }

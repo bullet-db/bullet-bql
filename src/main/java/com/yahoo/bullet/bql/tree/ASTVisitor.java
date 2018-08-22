@@ -277,24 +277,13 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
-     * Visit a {@link InListExpression} with passed in context.
+     * Visit a {@link ValueListExpression} with passed in context.
      *
-     * @param node    A {@link InListExpression}.
+     * @param node    A {@link ValueListExpression}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
-    protected R visitInListExpression(InListExpression node, C context) {
-        return visitExpression(node, context);
-    }
-
-    /**
-     * Visit a {@link LikeListExpression} with passed in context.
-     *
-     * @param node    A {@link LikeListExpression}.
-     * @param context A {@link C}.
-     * @return A {@link R}.
-     */
-    protected R visitLikeListExpression(LikeListExpression node, C context) {
+    protected R visitValueListExpression(ValueListExpression node, C context) {
         return visitExpression(node, context);
     }
 

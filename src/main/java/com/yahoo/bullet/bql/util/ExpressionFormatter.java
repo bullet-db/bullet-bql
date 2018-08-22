@@ -27,11 +27,9 @@ import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupingElement;
 import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.InListExpression;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
 import com.yahoo.bullet.bql.tree.IsNullPredicate;
-import com.yahoo.bullet.bql.tree.LikeListExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
 import com.yahoo.bullet.bql.tree.LongLiteral;
@@ -43,6 +41,7 @@ import com.yahoo.bullet.bql.tree.SimpleGroupBy;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.bql.tree.TopK;
+import com.yahoo.bullet.bql.tree.ValueListExpression;
 import com.yahoo.bullet.bql.tree.WindowInclude;
 import com.yahoo.bullet.bql.tree.Windowing;
 import com.yahoo.bullet.parsing.Window.Unit;
@@ -326,30 +325,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitLikePredicate(LikePredicate node, Void context) {
-            StringBuilder builder = new StringBuilder();
-
-            builder.append(process(node.getValue(), context))
-                    .append(" LIKE ")
-                    .append('(')
-                    .append(process(node.getPatterns(), context))
-                    .append(')');
-
-            return builder.toString();
-        }
-
-        @Override
-        protected String visitLikeListExpression(LikeListExpression node, Void context) {
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < node.getValues().size(); i++) {
-                if (i == 0) {
-                    builder.append(process(node.getValues().get(i), context));
-                } else {
-                    builder.append(", ")
-                            .append(process(node.getValues().get(i), context));
-                }
-            }
-
-            return builder.toString();
+            return "(" + process(node.getValue(), context) + " LIKE " + process(node.getPatterns(), context) + ")";
         }
 
         @Override
@@ -374,7 +350,7 @@ public final class ExpressionFormatter {
                     op = "CONTAINSVALUE";
                     break;
             }
-            return process(node.getValue(), context) + " " + op + " " + process(node.getValueList(), context);
+            return "(" + process(node.getValue(), context) + " " + op + " " + process(node.getValueList(), context) + ")";
         }
 
         @Override
@@ -389,7 +365,7 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitInListExpression(InListExpression node, Void context) {
+        protected String visitValueListExpression(ValueListExpression node, Void context) {
             return "(" + joinExpressions(node.getValues()) + ")";
         }
 

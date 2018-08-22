@@ -141,12 +141,16 @@ functionName
 predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                                            #comparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                        #between
-    | NOT? IN '(' valueExpression (',' valueExpression)* ')'                              #inList
-    | NOT? LIKE '(' valueExpression (',' valueExpression)* ')'                            #likeList
+    | NOT? IN valueExpressionList                                                         #inList
+    | NOT? LIKE valueExpressionList                                                       #likeList
     | IS NOT? NULL                                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                                         #distinctFrom
     | IS NOT? EMPTY                                                                       #emptyPredicate
-    | NOT? containsOperator '(' valueExpression (',' valueExpression)* ')'                #containsList
+    | NOT? containsOperator valueExpressionList                                           #containsList
+    ;
+
+valueExpressionList
+    : '(' valueExpression (',' valueExpression)* ')'
     ;
 
 containsOperator

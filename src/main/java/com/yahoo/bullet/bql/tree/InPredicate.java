@@ -24,7 +24,7 @@ public class InPredicate extends Expression {
      * Constructor that requires an {@link Expression} value and an {@link Expression} valueList.
      *
      * @param value     An {@link Expression}.
-     * @param valueList An {@link Expression}. Currently we use {@link InListExpression}.
+     * @param valueList An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
     public InPredicate(Expression value, Expression valueList) {
         this(Optional.empty(), value, valueList);
@@ -35,7 +35,7 @@ public class InPredicate extends Expression {
      *
      * @param location  A {@link NodeLocation}.
      * @param value     An {@link Expression}.
-     * @param valueList An {@link Expression}. Currently we use {@link InListExpression}.
+     * @param valueList An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
     public InPredicate(NodeLocation location, Expression value, Expression valueList) {
         this(Optional.of(location), value, valueList);
@@ -71,7 +71,7 @@ public class InPredicate extends Expression {
      * @return A List of {@link Expression}.
      */
     public List<Expression> getInList() {
-        return ((InListExpression) valueList).getValues();
+        return ((ValueListExpression) valueList).getValues();
     }
 
     @Override

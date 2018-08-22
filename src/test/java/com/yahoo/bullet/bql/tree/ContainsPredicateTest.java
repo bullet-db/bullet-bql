@@ -27,7 +27,7 @@ public class ContainsPredicateTest {
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        valueList = new InListExpression(singletonList(identifier("bbb")));
+        valueList = new ValueListExpression(singletonList(identifier("bbb")));
         op = Operation.EQUALS;
         containsPredicate = new ContainsPredicate(op, value, valueList);
     }
@@ -49,7 +49,7 @@ public class ContainsPredicateTest {
         ContainsPredicate conatainsPredicateDiffValue = new ContainsPredicate(op, diffValue, valueList);
         assertFalse(containsPredicate.equals(conatainsPredicateDiffValue));
 
-        Expression diffValueList = new InListExpression(singletonList(identifier("ddd")));
+        Expression diffValueList = new ValueListExpression(singletonList(identifier("ddd")));
         ContainsPredicate containsPredicateDiffValueList = new ContainsPredicate(op, value, diffValueList);
         assertFalse(containsPredicate.equals(containsPredicateDiffValueList));
     }

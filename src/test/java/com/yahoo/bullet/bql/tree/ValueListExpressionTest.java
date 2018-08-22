@@ -15,19 +15,19 @@ import static java.util.Collections.singletonList;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
-public class InListExpressionTest {
+public class ValueListExpressionTest {
     private List<Expression> values;
-    private InListExpression inListExpression;
+    private ValueListExpression inListExpression;
 
     @Test
     public void setUp() {
         values = singletonList(identifier("aaa"));
-        inListExpression = new InListExpression(values);
+        inListExpression = new ValueListExpression(values);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "\\Qvalues cannot be empty\\E.*")
     public void testEmptyValues() {
-        new InListExpression(emptyList());
+        new ValueListExpression(emptyList());
     }
 
     @Test

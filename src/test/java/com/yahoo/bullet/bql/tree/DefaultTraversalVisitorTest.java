@@ -125,7 +125,7 @@ public class DefaultTraversalVisitorTest {
     @Test
     public void testVisitLikePredicateWithEscape() {
         Expression value = identifier("aaa");
-        LikeListExpression patterns = new LikeListExpression(singletonList(identifier("bbb")));
+        ValueListExpression patterns = new ValueListExpression(singletonList(identifier("bbb")));
         Expression escape = identifier("``");
         LikePredicate likePredicate = new LikePredicate(value, patterns, Optional.of(escape));
 

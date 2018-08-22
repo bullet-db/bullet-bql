@@ -26,13 +26,11 @@ import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
 import com.yahoo.bullet.bql.tree.GroupingElement;
 import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.InListExpression;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
 import com.yahoo.bullet.bql.tree.IsNullPredicate;
-import com.yahoo.bullet.bql.tree.LikeListExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LinearDistribution;
 import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
@@ -58,6 +56,7 @@ import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.bql.tree.TopK;
+import com.yahoo.bullet.bql.tree.ValueListExpression;
 import com.yahoo.bullet.bql.tree.WindowInclude;
 import com.yahoo.bullet.bql.tree.WindowInclude.IncludeType;
 import com.yahoo.bullet.bql.tree.Windowing;
@@ -359,7 +358,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         Expression result = new LikePredicate(
                 getLocation(context),
                 (Expression) visit(context.value),
-                new LikeListExpression(getLocation(context), visit(context.valueExpression(), Expression.class)));
+                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
 
         if (context.NOT() != null) {
             result = new NotExpression(getLocation(context), result);
@@ -373,7 +372,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         Expression result = new InPredicate(
                 getLocation(context),
                 (Expression) visit(context.value),
-                new InListExpression(getLocation(context), visit(context.valueExpression(), Expression.class)));
+                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
 
         if (context.NOT() != null) {
             result = new NotExpression(getLocation(context), result);
@@ -388,7 +387,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 getLocation(context),
                 getContainsOperator(((TerminalNode) context.containsOperator().getChild(0)).getSymbol()),
                 (Expression) visit(context.value),
-                new InListExpression(getLocation(context), visit(context.valueExpression(), Expression.class)));
+                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
 
         if (context.NOT() != null) {
             result = new NotExpression(getLocation(context), result);
