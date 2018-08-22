@@ -63,7 +63,6 @@ import com.yahoo.bullet.bql.tree.WindowInclude.IncludeType;
 import com.yahoo.bullet.bql.tree.Windowing;
 import com.yahoo.bullet.parsing.Clause.Operation;
 import com.yahoo.bullet.parsing.Window.Unit;
-import javafx.beans.binding.ListExpression;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;

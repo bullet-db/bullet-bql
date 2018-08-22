@@ -7,7 +7,6 @@ package com.yahoo.bullet.bql.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.yahoo.bullet.parsing.Clause.Operation;
-import javafx.beans.binding.ListExpression;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 

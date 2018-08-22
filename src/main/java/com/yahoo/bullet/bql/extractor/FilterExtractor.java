@@ -28,7 +28,6 @@ import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.FilterClause;
 import com.yahoo.bullet.parsing.LogicalClause;
 import com.yahoo.bullet.parsing.ObjectFilterClause;
-import com.yahoo.bullet.parsing.StringFilterClause;
 
 import java.util.List;
 import java.util.stream.Collectors;

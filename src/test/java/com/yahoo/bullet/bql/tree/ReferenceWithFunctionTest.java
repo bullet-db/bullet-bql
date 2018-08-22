@@ -13,7 +13,6 @@ import org.testng.annotations.Test;
 import java.util.List;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static java.util.Collections.singletonList;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;

@@ -12,7 +12,6 @@ package com.yahoo.bullet.bql.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.yahoo.bullet.parsing.Clause.Operation;
-import javafx.beans.binding.ListExpression;
 
 import java.util.List;
 import java.util.Objects;
