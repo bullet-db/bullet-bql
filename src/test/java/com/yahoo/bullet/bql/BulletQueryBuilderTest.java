@@ -67,7 +67,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa)=4 LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}]," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}]," +
                              "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                              "\"duration\":2000}");
     }
@@ -77,7 +77,7 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) IN(1, 4) LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}]," +
+                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}]," +
                              "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                              "\"duration\":2000}");
     }
@@ -87,13 +87,13 @@ public class BulletQueryBuilderTest {
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) != 4 LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}],\"operation\":\"NOT\"}]," +
+                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}],\"operation\":\"NOT\"}]," +
                              "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                              "\"duration\":2000}");
         assertEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is distinct from 4 LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEOF\"}],\"operation\":\"NOT\"}]," +
+                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}],\"operation\":\"NOT\"}]," +
                              "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                              "\"duration\":2000}");
     }

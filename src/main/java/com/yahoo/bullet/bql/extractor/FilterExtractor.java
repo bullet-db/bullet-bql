@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.google.gson.annotations.SerializedName;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
@@ -217,10 +216,12 @@ public class FilterExtractor {
 
         private ParsingException unsupportedReferenceWithFunction(Operation op) {
             String opName;
-            try {
-                opName = op.getClass().getField(op.name()).getAnnotation(SerializedName.class).value();
-            } catch (Exception e) {
-                opName = op.name();
+            switch (op) {
+                case SIZE_IS:
+                    opName = "SIZEOF";
+                    break;
+                default:
+                    opName = op.name();
             }
             return new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + opName);
         }

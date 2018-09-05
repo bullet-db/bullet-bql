@@ -357,7 +357,7 @@ public final class ExpressionFormatter {
         protected String visitReferenceWithFunction(ReferenceWithFunction node, Void context) {
             String op = null;
             switch (node.getOperation()) {
-                case SIZE_OF:
+                case SIZE_IS:
                     op = "SIZEOF";
                     break;
             }

@@ -25,7 +25,7 @@ public class ReferenceWithFunctionTest {
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        op = Operation.SIZE_OF;
+        op = Operation.SIZE_IS;
         referenceWithFunction = new ReferenceWithFunction(op, value);
     }
 

@@ -629,7 +629,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     private static Operation getFunctionOperator(Token symbol) throws IllegalArgumentException {
         switch (symbol.getType()) {
             case BQLBaseLexer.SIZEOF:
-                return Operation.SIZE_OF;
+                return Operation.SIZE_IS;
         }
 
         throw new IllegalArgumentException("Unsupported function operator: " + symbol.getText());
