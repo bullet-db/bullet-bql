@@ -121,9 +121,7 @@ public class FilterExtractor {
         @Override
         protected Clause visitBetweenPredicate(BetweenPredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
+            failIfReferenceWithFunction(value);
 
             LogicalClause binaryClause = new LogicalClause();
             binaryClause.setOperation(AND);
@@ -152,10 +150,7 @@ public class FilterExtractor {
         @Override
         protected Clause visitContainsPredicate(ContainsPredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
-
+            failIfReferenceWithFunction(value);
             List<Expression> valueList = node.getContainsList();
             return createFilterClause(node.getOperation(), value.toFormatlessString(), valueList.toArray(new Expression[0]));
         }
@@ -163,10 +158,7 @@ public class FilterExtractor {
         @Override
         protected Clause visitLikePredicate(LikePredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
-
+            failIfReferenceWithFunction(value);
             List<Expression> likeList = node.getLikeList();
             return createFilterClause(REGEX_LIKE, value.toFormatlessString(), likeList.toArray(new Expression[0]));
         }
@@ -174,37 +166,28 @@ public class FilterExtractor {
         @Override
         protected Clause visitIsNullPredicate(IsNullPredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
-
+            failIfReferenceWithFunction(value);
             return createFilterClause(EQUALS, value.toFormatlessString(), "NULL");
         }
 
         @Override
         protected Clause visitIsNotNullPredicate(IsNotNullPredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
+            failIfReferenceWithFunction(value);
             return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "NULL");
         }
 
         @Override
         protected Clause visitIsEmptyPredicate(IsEmptyPredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
+            failIfReferenceWithFunction(value);
             return createFilterClause(EQUALS, value.toFormatlessString(), "");
         }
 
         @Override
         protected Clause visitIsNotEmptyPredicate(IsNotEmptyPredicate node, Void context) {
             Expression value = node.getValue();
-            if (value instanceof ReferenceWithFunction) {
-                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) value).getOperation());
-            }
+            failIfReferenceWithFunction(value);
             return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "");
         }
 
@@ -224,6 +207,12 @@ public class FilterExtractor {
             filterClause.setValues(Stream.of(expressions).map(e -> new ObjectFilterClause.Value(e instanceof Identifier ? ObjectFilterClause.Value.Kind.FIELD : ObjectFilterClause.Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
 
             return filterClause;
+        }
+
+        private void failIfReferenceWithFunction(Expression expression) {
+            if (expression instanceof ReferenceWithFunction) {
+                throw unsupportedReferenceWithFunction(((ReferenceWithFunction) expression).getOperation());
+            }
         }
 
         private ParsingException unsupportedReferenceWithFunction(Operation op) {

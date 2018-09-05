@@ -24,7 +24,7 @@ public class ReferenceWithFunction extends Expression {
     /**
      * Constructor that requires a {@link Operation} and an {@link Expression} value.
      *
-     * @param operation      A {@link Operation}.
+     * @param operation A {@link Operation}.
      * @param value     An {@link Expression}.
      */
     public ReferenceWithFunction(Operation operation, Expression value) {
@@ -35,7 +35,7 @@ public class ReferenceWithFunction extends Expression {
      * Constructor that requires a {@link NodeLocation}, a {@link Operation} and  an {@link Expression} value.
      *
      * @param location  A {@link NodeLocation}.
-     * @param operation      A {@link Operation}.
+     * @param operation A {@link Operation}.
      * @param value     An {@link Expression}.
      */
     public ReferenceWithFunction(NodeLocation location, Operation operation, Expression value) {

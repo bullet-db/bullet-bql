@@ -25,7 +25,7 @@ public class ContainsPredicate extends Expression {
     /**
      * Constructor that requires a {@link Operation} operation, an {@link Expression} value and an {@link Expression} valueList.
      *
-     * @param operation      A {@link Operation}.
+     * @param operation A {@link Operation}.
      * @param value     An {@link Expression}.
      * @param valueList An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
@@ -37,7 +37,7 @@ public class ContainsPredicate extends Expression {
      * Constructor that requires a{@link NodeLocation}, a {@link Operation} operation, an {@link Expression} value and an {@link Expression} valueList.
      *
      * @param location  A {@link NodeLocation}.
-     * @param operation      A {@link Operation}.
+     * @param operation A {@link Operation}.
      * @param value     An {@link Expression}.
      * @param valueList An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
