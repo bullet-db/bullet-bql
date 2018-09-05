@@ -215,13 +215,11 @@ public class FilterExtractor {
         }
 
         private ParsingException unsupportedReferenceWithFunction(Operation op) {
-            String opName;
+            String opName = op.name();
             switch (op) {
                 case SIZE_IS:
                     opName = "SIZEOF";
                     break;
-                default:
-                    opName = op.name();
             }
             return new ParsingException("Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in " + opName);
         }

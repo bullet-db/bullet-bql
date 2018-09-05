@@ -597,67 +597,81 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     private static Operation getComparisonOperator(Token symbol) throws IllegalArgumentException {
+        Operation op = null;
         switch (symbol.getType()) {
             case BQLBaseLexer.EQ:
-                return Operation.EQUALS;
+                op = Operation.EQUALS;
+                break;
             case BQLBaseLexer.NEQ:
-                return Operation.NOT_EQUALS;
+                op = Operation.NOT_EQUALS;
+                break;
             case BQLBaseLexer.LT:
-                return Operation.LESS_THAN;
+                op = Operation.LESS_THAN;
+                break;
             case BQLBaseLexer.LTE:
-                return Operation.LESS_EQUALS;
+                op = Operation.LESS_EQUALS;
+                break;
             case BQLBaseLexer.GT:
-                return Operation.GREATER_THAN;
+                op = Operation.GREATER_THAN;
+                break;
             case BQLBaseLexer.GTE:
-                return Operation.GREATER_EQUALS;
+                op = Operation.GREATER_EQUALS;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
+        return op;
     }
 
     private static Operation getContainsOperator(Token symbol) throws IllegalArgumentException {
+        Operation op = null;
         switch (symbol.getType()) {
             case BQLBaseLexer.CONTAINSKEY:
-                return Operation.CONTAINS_KEY;
+                op = Operation.CONTAINS_KEY;
+                break;
             case BQLBaseLexer.CONTAINSVALUE:
-                return Operation.CONTAINS_VALUE;
+                op = Operation.CONTAINS_VALUE;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported function operator: " + symbol.getText());
+        return op;
     }
 
     private static Operation getFunctionOperator(Token symbol) throws IllegalArgumentException {
+        Operation op = null;
         switch (symbol.getType()) {
             case BQLBaseLexer.SIZEOF:
-                return Operation.SIZE_IS;
+                op = Operation.SIZE_IS;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported function operator: " + symbol.getText());
+        return op;
     }
 
     private Type getDistributionType(BQLBaseParser.DistributionOperationContext context) throws IllegalArgumentException {
-        String type = context.distributionType().getText().toUpperCase();
-        switch (type) {
+        String typeString = context.distributionType().getText().toUpperCase();
+        Type type = null;
+        switch (typeString) {
             case "QUANTILE":
-                return QUANTILE;
+                type = QUANTILE;
+                break;
             case "FREQ":
-                return PMF;
+                type = PMF;
+                break;
             case "CUMFREQ":
-                return CDF;
+                type = CDF;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported distribution type: " + type);
+        return type;
     }
 
     private static Operation getLogicalBinaryOperator(Token token) throws IllegalArgumentException {
+        Operation op = null;
         switch (token.getType()) {
             case BQLBaseLexer.AND:
-                return Operation.AND;
+                op = Operation.AND;
+                break;
             case BQLBaseLexer.OR:
-                return Operation.OR;
+                op = Operation.OR;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported operator: " + token.getText());
+        return op;
     }
 
     private static NodeLocation getLocation(TerminalNode terminalNode) {

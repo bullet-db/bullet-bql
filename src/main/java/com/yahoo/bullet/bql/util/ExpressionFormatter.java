@@ -165,11 +165,10 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitIdentifier(Identifier node, Void context) {
-            if (!withFormat || !node.isDelimited()) {
+            if (!withFormat) {
                 return node.getValue();
-            } else {
-                return '"' + node.getValue().replace("\"", "\"\"") + '"';
             }
+            return node.getValue();
         }
 
         @Override
