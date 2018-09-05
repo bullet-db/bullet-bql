@@ -30,7 +30,7 @@ public class LikePredicateTest {
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        patterns = new LikeListExpression(singletonList(identifier("bbb")));
+        patterns = new ValueListExpression(singletonList(identifier("bbb")));
         likePredicate = new LikePredicate(value, patterns);
     }
 
@@ -45,7 +45,7 @@ public class LikePredicateTest {
         LikePredicate likePredicateDiffValue = new LikePredicate(diffValue, patterns);
         assertFalse(likePredicate.equals(likePredicateDiffValue));
 
-        Expression diffPatterns = new LikeListExpression(singletonList(identifier("ddd")));
+        Expression diffPatterns = new ValueListExpression(singletonList(identifier("ddd")));
         LikePredicate likePredicateDiffPatterns = new LikePredicate(value, diffPatterns);
         assertFalse(likePredicate.equals(likePredicateDiffPatterns));
 

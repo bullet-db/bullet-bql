@@ -107,7 +107,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     }
 
     @Override
-    protected R visitInListExpression(InListExpression node, C context) {
+    protected R visitValueListExpression(ValueListExpression node, C context) {
         for (Expression value : node.getValues()) {
             process(value, context);
         }
@@ -131,15 +131,6 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
         process(node.getPatterns(), context);
         if (node.getEscape().isPresent()) {
             process(node.getEscape().get(), context);
-        }
-
-        return null;
-    }
-
-    @Override
-    protected R visitLikeListExpression(LikeListExpression node, C context) {
-        for (Expression value : node.getValues()) {
-            process(value, context);
         }
 
         return null;

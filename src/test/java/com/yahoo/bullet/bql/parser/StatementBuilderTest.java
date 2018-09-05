@@ -32,8 +32,6 @@ public class StatementBuilderTest {
 
         assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME)");
 
-        assertStatement("SELECT \"aaa\" AS bbb FROM STREAM(3, TIME)");
-
         assertStatement("SELECT aaa.bbb AS ccc FROM STREAM(3, TIME)");
 
         assertStatement("SELECT aaa.* AS bbb FROM STREAM(3, TIME)");
@@ -125,6 +123,26 @@ public class StatementBuilderTest {
         assertStatement("SELECT TOP(3, aaa) AS top3A FROM STREAM(3, TIME) WINDOWING(EVERY, 3, TIME, FIRST, 3, TIME)");
 
         assertStatement("SELECT TOP(3, aaa) AS top3A FROM STREAM(3, TIME) WINDOWING(EVERY, 3, TIME, ALL)");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE aaa CONTAINSKEY (1, 3, 'a')");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE aaa NOT CONTAINSKEY (1, 3, 'a')");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE aaa CONTAINSVALUE (1, 3, 'a')");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE aaa NOT CONTAINSVALUE (1, 3, a)");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa)=1");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa)!=1");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa) IS DISTINCT FROM 1");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa) IS NOT DISTINCT FROM 1");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa) IN (1, 2)");
+
+        assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa) NOT IN (1, 2)");
     }
 
     @Test

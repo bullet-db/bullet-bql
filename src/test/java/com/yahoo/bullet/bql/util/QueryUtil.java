@@ -18,9 +18,7 @@ import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
 import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.InListExpression;
 import com.yahoo.bullet.bql.tree.InPredicate;
-import com.yahoo.bullet.bql.tree.LikeListExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LinearDistribution;
 import com.yahoo.bullet.bql.tree.ManualDistribution;
@@ -36,6 +34,7 @@ import com.yahoo.bullet.bql.tree.SingleColumn;
 import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.TopK;
+import com.yahoo.bullet.bql.tree.ValueListExpression;
 import com.yahoo.bullet.bql.tree.WindowInclude;
 import com.yahoo.bullet.bql.tree.Windowing;
 import com.yahoo.bullet.bql.tree.With;
@@ -228,20 +227,17 @@ public final class QueryUtil {
     }
 
     public static InPredicate simpleInPredicate() {
-        return new InPredicate(identifier("bbb"), simpleInList());
+        return new InPredicate(identifier("bbb"), simpleValueList());
     }
 
-    public static InListExpression simpleInList() {
-        return new InListExpression(singletonList(identifier("aaa")));
+    public static ValueListExpression simpleValueList() {
+        return new ValueListExpression(singletonList(identifier("aaa")));
     }
 
     public static LikePredicate simpleLikePredicate() {
-        return new LikePredicate(identifier("bbb"), simpleLikeList(), Optional.of(identifier("ccc")));
+        return new LikePredicate(identifier("bbb"), simpleValueList(), Optional.of(identifier("ccc")));
     }
 
-    public static LikeListExpression simpleLikeList() {
-        return new LikeListExpression(singletonList(identifier("aaa")));
-    }
 
     public static TopK simpleTopK(long k) {
         return new TopK(singletonList(identifier("aaa")), k, Optional.empty());

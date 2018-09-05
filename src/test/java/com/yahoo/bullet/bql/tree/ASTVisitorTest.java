@@ -19,14 +19,13 @@ import static com.yahoo.bullet.bql.util.QueryUtil.logicalNot;
 import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleBetween;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleFunctionCall;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleInList;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleInPredicate;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleLikeList;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleLikePredicate;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuery;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuerySpecification;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleSortItem;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleTopK;
+import static com.yahoo.bullet.bql.util.QueryUtil.simpleValueList;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleWindowing;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleWithQuery;
 import static com.yahoo.bullet.bql.util.QueryUtil.unaliasedName;
@@ -116,13 +115,13 @@ public class ASTVisitorTest {
     }
 
     @Test
-    public void testVisitInListExpression() {
-        InListExpression inListExpression = simpleInList();
+    public void testVisitValueListExpression() {
+        ValueListExpression valueListExpression = simpleValueList();
 
         ASTTestVisitor spy = spy(visitor);
-        spy.process(inListExpression);
-        verify(spy).visitInListExpression(inListExpression, null);
-        verify(spy).visitExpression(inListExpression, null);
+        spy.process(valueListExpression);
+        verify(spy).visitValueListExpression(valueListExpression, null);
+        verify(spy).visitExpression(valueListExpression, null);
     }
 
     @Test
@@ -133,16 +132,6 @@ public class ASTVisitorTest {
         spy.process(likePredicate);
         verify(spy).visitLikePredicate(likePredicate, null);
         verify(spy).visitExpression(likePredicate, null);
-    }
-
-    @Test
-    public void testVisitLikeListExpression() {
-        LikeListExpression likeListExpression = simpleLikeList();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(likeListExpression);
-        verify(spy).visitLikeListExpression(likeListExpression, null);
-        verify(spy).visitExpression(likeListExpression, null);
     }
 
     @Test

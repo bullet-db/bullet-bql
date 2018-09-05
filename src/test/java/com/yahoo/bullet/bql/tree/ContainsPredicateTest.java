@@ -6,6 +6,7 @@
 package com.yahoo.bullet.bql.tree;
 
 import com.google.common.collect.ImmutableList;
+import com.yahoo.bullet.parsing.Clause.Operation;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -17,43 +18,45 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-public class InPredicateTest {
-    private InPredicate inPredicate;
+public class ContainsPredicateTest {
+    private ContainsPredicate containsPredicate;
     private Expression value;
     private Expression valueList;
+    private Operation op;
 
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
         valueList = new ValueListExpression(singletonList(identifier("bbb")));
-        inPredicate = new InPredicate(value, valueList);
+        op = Operation.EQUALS;
+        containsPredicate = new ContainsPredicate(op, value, valueList);
     }
 
     @Test
     public void testGetChildren() {
         List<Node> expected = ImmutableList.of(value, valueList);
-        assertEquals(inPredicate.getChildren(), expected);
+        assertEquals(containsPredicate.getChildren(), expected);
     }
 
     @Test
     public void testEquals() {
-        InPredicate copy = inPredicate;
-        assertTrue(inPredicate.equals(copy));
-        assertFalse(inPredicate.equals(null));
-        assertFalse(inPredicate.equals(value));
+        ContainsPredicate copy = containsPredicate;
+        assertTrue(containsPredicate.equals(copy));
+        assertFalse(containsPredicate.equals(null));
+        assertFalse(containsPredicate.equals(value));
 
         Expression diffValue = identifier("ccc");
-        InPredicate inPredicateDiffValue = new InPredicate(diffValue, valueList);
-        assertFalse(inPredicate.equals(inPredicateDiffValue));
+        ContainsPredicate conatainsPredicateDiffValue = new ContainsPredicate(op, diffValue, valueList);
+        assertFalse(containsPredicate.equals(conatainsPredicateDiffValue));
 
         Expression diffValueList = new ValueListExpression(singletonList(identifier("ddd")));
-        InPredicate inPredicateDiffValueList = new InPredicate(value, diffValueList);
-        assertFalse(inPredicate.equals(inPredicateDiffValueList));
+        ContainsPredicate containsPredicateDiffValueList = new ContainsPredicate(op, value, diffValueList);
+        assertFalse(containsPredicate.equals(containsPredicateDiffValueList));
     }
 
     @Test
     public void testHashCode() {
-        InPredicate same = new InPredicate(identifier("aaa"), valueList);
-        assertEquals(inPredicate.hashCode(), same.hashCode());
+        ContainsPredicate same = new ContainsPredicate(op, identifier("aaa"), valueList);
+        assertEquals(containsPredicate.hashCode(), same.hashCode());
     }
 }

@@ -17,6 +17,7 @@ import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
+import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
 import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.DoubleLiteral;
@@ -25,13 +26,11 @@ import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
 import com.yahoo.bullet.bql.tree.GroupingElement;
 import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.InListExpression;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
 import com.yahoo.bullet.bql.tree.IsNullPredicate;
-import com.yahoo.bullet.bql.tree.LikeListExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LinearDistribution;
 import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
@@ -46,6 +45,7 @@ import com.yahoo.bullet.bql.tree.QualifiedName;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QueryBody;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
+import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.bql.tree.RegionDistribution;
 import com.yahoo.bullet.bql.tree.Relation;
 import com.yahoo.bullet.bql.tree.Select;
@@ -56,6 +56,7 @@ import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.bql.tree.TopK;
+import com.yahoo.bullet.bql.tree.ValueListExpression;
 import com.yahoo.bullet.bql.tree.WindowInclude;
 import com.yahoo.bullet.bql.tree.WindowInclude.IncludeType;
 import com.yahoo.bullet.bql.tree.Windowing;
@@ -282,6 +283,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitReferenceWithFunction(BQLBaseParser.ReferenceWithFunctionContext context) {
+        return new ReferenceWithFunction(
+                getLocation(context),
+                getFunctionOperator(((TerminalNode) context.functionName().getChild(0)).getSymbol()),
+                (Expression) visit(context.referenceExpression()));
+    }
+
+    @Override
     public Node visitComparison(BQLBaseParser.ComparisonContext context) throws IllegalArgumentException {
         return new ComparisonExpression(
                 getLocation(context.comparisonOperator()),
@@ -349,7 +358,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         Expression result = new LikePredicate(
                 getLocation(context),
                 (Expression) visit(context.value),
-                new LikeListExpression(getLocation(context), visit(context.valueExpression(), Expression.class)));
+                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
 
         if (context.NOT() != null) {
             result = new NotExpression(getLocation(context), result);
@@ -363,12 +372,26 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         Expression result = new InPredicate(
                 getLocation(context),
                 (Expression) visit(context.value),
-                new InListExpression(getLocation(context), visit(context.valueExpression(), Expression.class)));
+                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
 
         if (context.NOT() != null) {
             result = new NotExpression(getLocation(context), result);
         }
 
+        return result;
+    }
+
+    @Override
+    public Node visitContainsList(BQLBaseParser.ContainsListContext context) {
+        Expression result = new ContainsPredicate(
+                getLocation(context),
+                getContainsOperator(((TerminalNode) context.containsOperator().getChild(0)).getSymbol()),
+                (Expression) visit(context.value),
+                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
+
+        if (context.NOT() != null) {
+            result = new NotExpression(getLocation(context), result);
+        }
         return result;
     }
 
@@ -413,14 +436,6 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) {
         return new Identifier(getLocation(context), context.getText(), false);
-    }
-
-    @Override
-    public Node visitQuotedIdentifier(BQLBaseParser.QuotedIdentifierContext context) {
-        String token = context.getText();
-        String identifier = token.substring(1, token.length() - 1).replace("\"\"", "\"");
-
-        return new Identifier(getLocation(context), identifier, true);
     }
 
     @Override
@@ -582,47 +597,81 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     private static Operation getComparisonOperator(Token symbol) throws IllegalArgumentException {
+        Operation op = null;
         switch (symbol.getType()) {
             case BQLBaseLexer.EQ:
-                return Operation.EQUALS;
+                op = Operation.EQUALS;
+                break;
             case BQLBaseLexer.NEQ:
-                return Operation.NOT_EQUALS;
+                op = Operation.NOT_EQUALS;
+                break;
             case BQLBaseLexer.LT:
-                return Operation.LESS_THAN;
+                op = Operation.LESS_THAN;
+                break;
             case BQLBaseLexer.LTE:
-                return Operation.LESS_EQUALS;
+                op = Operation.LESS_EQUALS;
+                break;
             case BQLBaseLexer.GT:
-                return Operation.GREATER_THAN;
+                op = Operation.GREATER_THAN;
+                break;
             case BQLBaseLexer.GTE:
-                return Operation.GREATER_EQUALS;
+                op = Operation.GREATER_EQUALS;
+                break;
         }
+        return op;
+    }
 
-        throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
+    private static Operation getContainsOperator(Token symbol) throws IllegalArgumentException {
+        Operation op = null;
+        switch (symbol.getType()) {
+            case BQLBaseLexer.CONTAINSKEY:
+                op = Operation.CONTAINS_KEY;
+                break;
+            case BQLBaseLexer.CONTAINSVALUE:
+                op = Operation.CONTAINS_VALUE;
+                break;
+        }
+        return op;
+    }
+
+    private static Operation getFunctionOperator(Token symbol) throws IllegalArgumentException {
+        Operation op = null;
+        switch (symbol.getType()) {
+            case BQLBaseLexer.SIZEOF:
+                op = Operation.SIZE_IS;
+                break;
+        }
+        return op;
     }
 
     private Type getDistributionType(BQLBaseParser.DistributionOperationContext context) throws IllegalArgumentException {
-        String type = context.distributionType().getText().toUpperCase();
-        switch (type) {
+        String typeString = context.distributionType().getText().toUpperCase();
+        Type type = null;
+        switch (typeString) {
             case "QUANTILE":
-                return QUANTILE;
+                type = QUANTILE;
+                break;
             case "FREQ":
-                return PMF;
+                type = PMF;
+                break;
             case "CUMFREQ":
-                return CDF;
+                type = CDF;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported distribution type: " + type);
+        return type;
     }
 
     private static Operation getLogicalBinaryOperator(Token token) throws IllegalArgumentException {
+        Operation op = null;
         switch (token.getType()) {
             case BQLBaseLexer.AND:
-                return Operation.AND;
+                op = Operation.AND;
+                break;
             case BQLBaseLexer.OR:
-                return Operation.OR;
+                op = Operation.OR;
+                break;
         }
-
-        throw new IllegalArgumentException("Unsupported operator: " + token.getText());
+        return op;
     }
 
     private static NodeLocation getLocation(TerminalNode terminalNode) {

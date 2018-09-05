@@ -180,16 +180,6 @@ public class BQLParserTest {
         BQL_PARSER.createStatement("select * from  ", new ParsingOptions());
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:8: Backquoted identifiers are not supported; use double quotes to quote identifiers")
-    public void testParseErrorBackquotes() {
-        BQL_PARSER.createStatement("select `foo` from stream(3, time)", new ParsingOptions());
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:37: Backquoted identifiers are not supported; use double quotes to quote identifiers")
-    public void testParseErrorBackquotesEndOfInput() {
-        BQL_PARSER.createStatement("select * from stream(3, time) where `fav`='bar'", new ParsingOptions());
-    }
-
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:8: Identifiers must not start with a digit; surround the identifier with double quotes")
     public void testParseErrorDigitIdentifiers() {
         BQL_PARSER.createStatement("select 1x from stream(3, time)", new ParsingOptions());

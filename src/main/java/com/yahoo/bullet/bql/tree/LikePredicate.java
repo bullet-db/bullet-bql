@@ -27,7 +27,7 @@ public class LikePredicate extends Expression {
      * Constructor that requires an {@link Expression} value, an {@link Expression} patterns and an Optional of {@link Expression} escape.
      *
      * @param value    An {@link Expression}.
-     * @param patterns An {@link Expression}. Currently we use {@link LikeListExpression}.
+     * @param patterns An {@link Expression}. Currently we use {@link ValueListExpression}.
      * @param escape   An Optional of {@link Expression}.
      */
     public LikePredicate(Expression value, Expression patterns, Optional<Expression> escape) {
@@ -39,7 +39,7 @@ public class LikePredicate extends Expression {
      *
      * @param location A {@link NodeLocation}.
      * @param value    An {@link Expression}.
-     * @param patterns An {@link Expression}. Currently we use {@link LikeListExpression}.
+     * @param patterns An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
     public LikePredicate(NodeLocation location, Expression value, Expression patterns) {
         this(Optional.of(location), value, patterns, Optional.empty());
@@ -49,7 +49,7 @@ public class LikePredicate extends Expression {
      * Constructor that requires an {@link Expression} value, an {@link Expression} patterns.
      *
      * @param value    An {@link Expression}.
-     * @param patterns An {@link Expression}. Currently we use {@link LikeListExpression}.
+     * @param patterns An {@link Expression}. Currently we use {@link ValueListExpression}.
      */
     public LikePredicate(Expression value, Expression patterns) {
         this(Optional.empty(), value, patterns, Optional.empty());
@@ -94,12 +94,12 @@ public class LikePredicate extends Expression {
     }
 
     /**
-     * Get the List of {@link Expression} inside the {@link LikeListExpression}.
+     * Get the List of {@link Expression} inside the {@link ValueListExpression}.
      *
      * @return A List of {@link Expression}.
      */
     public List<Expression> getLikeList() {
-        return ((LikeListExpression) patterns).getValues();
+        return ((ValueListExpression) patterns).getValues();
     }
 
     @Override

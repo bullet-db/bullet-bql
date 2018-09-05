@@ -126,17 +126,35 @@ booleanExpression
     ;
 
 predicated
-    : referenceExpression predicate[$referenceExpression.ctx]
+    : predicatedReferenceExpression predicate[$predicatedReferenceExpression.ctx]
+    ;
+
+predicatedReferenceExpression
+    : referenceExpression                                                                 #referenceWithoutFunction
+    | functionName '(' referenceExpression ')'                                            #referenceWithFunction
+    ;
+
+functionName
+    : SIZEOF
     ;
 
 predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                                            #comparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                        #between
-    | NOT? IN '(' valueExpression (',' valueExpression)* ')'                              #inList
-    | NOT? LIKE '(' valueExpression (',' valueExpression)* ')'                            #likeList
+    | NOT? IN valueExpressionList                                                         #inList
+    | NOT? LIKE valueExpressionList                                                       #likeList
     | IS NOT? NULL                                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                                         #distinctFrom
     | IS NOT? EMPTY                                                                       #emptyPredicate
+    | NOT? containsOperator valueExpressionList                                           #containsList
+    ;
+
+valueExpressionList
+    : '(' valueExpression (',' valueExpression)* ')'
+    ;
+
+containsOperator
+    : CONTAINSKEY | CONTAINSVALUE
     ;
 
 primaryExpression
@@ -172,6 +190,7 @@ valueExpression
     | booleanValue                                                                        #booleanLiteral
     | string                                                                              #stringLiteral
     | operator=(MINUS | PLUS) number                                                      #arithmeticUnary
+    | referenceExpression                                                                 #fieldReference
     ;
 
 signedNumber
@@ -196,9 +215,7 @@ qualifiedName
 
 identifier
     : IDENTIFIER                                                                          #unquotedIdentifier
-    | QUOTED_IDENTIFIER                                                                   #quotedIdentifier
     | nonReserved                                                                         #unquotedIdentifier
-    | BACKQUOTED_IDENTIFIER                                                               #backQuotedIdentifier
     | DIGIT_IDENTIFIER                                                                    #digitIdentifier
     ;
 
@@ -445,6 +462,9 @@ LT  : '<';
 LTE : '<=';
 GT  : '>';
 GTE : '>=';
+SIZEOF : 'SIZEOF';
+CONTAINSKEY : 'CONTAINSKEY';
+CONTAINSVALUE : 'CONTAINSVALUE';
 
 PLUS: '+';
 MINUS: '-';
@@ -455,6 +475,7 @@ CONCAT: '||';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
+    | '"' ( ~'"' | '""' )* '"'
     ;
 
 UNICODE_STRING
