@@ -65,7 +65,7 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * **String**: character string which can have escapes. Example: `'this is a string'`, `'this is ''another'' string'`.
 
-* **ColumnReference**: representation of a single column. Unquoted ColumnReference must start with a letter or `_`. Quoted ColumnReference can have escape. Example: `column_name`, `"#column""with""escape"`.
+* **ColumnReference**: representation of a single column. Unquoted ColumnReference must start with a letter or `_`.
 
 * **Dereference**: representation of a column field. Example: `column_name.field_name`.
 
@@ -193,9 +193,14 @@ and `where_clause` is one of
     reference_expr NOT? BETWEEN value_expr AND value_expr
     reference_expr NOT? IN ( value_expr ( , value_expr )* )
     reference_expr NOT? LIKE ( value_expr ( , value_expr )* )
+    reference_expr NOT? CONTAINSKEY ( value_expr ( , value_expr )* )
+    reference_expr NOT? CONTAINSVALUE ( value_expr ( , value_expr )* )
     reference_expr ( = | <> | != | < | > | <= | >= ) value_expr
+    SIZEOF(reference_expr) ( = | <> | != ) value_expr
+    SIZEOF(reference_expr) NOT? IN ( value_expr ( , value_expr )* )
+    SIZEOF(reference_expr) NOT? DISTINCT FROM value_expr
   
-`value_expr` is one of Null, Boolean, Integer, Long, Double, Decimal and String. 
+`value_expr` is one of Null, Boolean, Integer, Long, Double, Decimal, String or `reference_expr`.
 
 and `groupBy_clause` is one of
 
@@ -261,7 +266,139 @@ and `limit_clause` is one of
             {
                 "field":"id",
                 "values":[
-                    "btsg8l9b234ha"
+                    {
+                        "kind":"VALUE",
+                        "value":"btsg8l9b234ha"
+                    }
+                ],
+                "operation":"=="
+            }
+        ],
+        "aggregation":{
+            "type":"RAW",
+            "size":1
+        },
+        "duration":30000
+    }
+
+### SIZEOF Filtering
+
+**BQL**
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE SIZEOF(id_map) = 4
+    LIMIT 1;
+
+**Bullet Query**
+
+    {
+        "filters":[
+            {
+                "field":"id_map",
+                "values":[
+                    {
+                        "kind":"VALUE",
+                        "value":"4"
+                    }
+                ],
+                "operation":"SIZEIS"
+            }
+        ],
+        "aggregation":{
+            "type":"RAW",
+            "size":1
+        },
+        "duration":30000
+    }
+
+### CONTAINSKEY Filtering
+
+**BQL**
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE id_map CONTAINSKEY ("key")
+    LIMIT 1;
+
+**Bullet Query**
+
+    {
+        "filters":[
+            {
+                "field":"id_map",
+                "values":[
+                    {
+                        "kind":"VALUE",
+                        "value":"key"
+                    }
+                ],
+                "operation":"CONTAINSKEY"
+            }
+        ],
+        "aggregation":{
+            "type":"RAW",
+            "size":1
+        },
+        "duration":30000
+    }
+
+### CONTAINSVALUE Filtering
+
+**BQL**
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE id_map NOT CONTAINSVALUE ("key")
+    LIMIT 1;
+
+**Bullet Query**
+
+    {
+        "filters":[
+            {
+                "clauses":[
+                    {
+                        "field":"id_map",
+                        "values":[
+                            {
+                                "kind":"VALUE",
+                                "value":"key"
+                            }
+                        ],
+                        "operation":"CONTAINSKEY"
+                    }
+                ],
+                "operation": "NOT"
+            }
+        ],
+        "aggregation":{
+            "type":"RAW",
+            "size":1
+        },
+        "duration":30000
+    }
+
+### Compare to other fields Filtering
+
+**BQL**
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE id = uid
+    LIMIT 1;
+
+**Bullet Query**
+
+    {
+        "filters":[
+            {
+                "field":"id",
+                "values":[
+                    {
+                        "kind":"FIELD",
+                        "value":"uid"
+                    }
                 ],
                 "operation":"=="
             }
@@ -292,14 +429,20 @@ and `limit_clause` is one of
                     {
                         "field":"id",
                         "values":[
-                            "btsg8l9b234ha"
+                            {
+                                "kind":"VALUE",
+                                "value":"btsg8l9b234ha"
+                            }
                         ],
                         "operation":"=="
                     },
                     {
                         "field":"page_id",
                         "values":[
-                            "NULL"
+                            {
+                                "kind":"VALUE",
+                                "value":"NULL"
+                            }
                         ],
                         "operation":"!="
                     }
@@ -338,7 +481,10 @@ and `limit_clause` is one of
             {
                 "field":"demographics.age",
                 "values":[
-                    "65"
+                    {
+                        "kind":"VALUE",
+                        "value":"65"
+                    }
                 ],
                 "operation":">"
             }
@@ -375,7 +521,10 @@ and `limit_clause` is one of
             {
                 "field":"demographics.state",
                 "values":[
-                    "california"
+                    {
+                        "kind":"VALUE",
+                        "value":"california"
+                    }
                 ],
                 "operation":"=="
             }
@@ -475,7 +624,10 @@ and `limit_clause` is one of
             {
                 "field":"demographics",
                 "values":[
-                    "NULL"
+                    {
+                        "kind":"VALUE",
+                        "value":"NULL"
+                    }
                 ],
                 "operation":"!="
             }
@@ -615,14 +767,20 @@ Or
                     {
                         "field":"demographics.country",
                         "values":[
-                            "NULL"
+                            {
+                                "kind":"VALUE",
+                                "value":"NULL"
+                            }
                         ],
                         "operation":"!="
                     },
                     {
                         "field":"browser_name",
                         "values":[
-                            "NULL"
+                            {
+                                "kind":"VALUE",
+                                "value":"NULL"
+                            }
                         ],
                         "operation":"!="
                     }
