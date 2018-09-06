@@ -73,8 +73,6 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 ## Reserved Keywords
 
-Reserved keywords must be double quoted in order to be used as ColumnReference or Dereference.
-
 |      Keyword          |    SQL:2016     |   SQL-92      |
 | --------------------- | :-------------: | :-----------: |
 | `ALTER`               |     reserved    |   reserved    |
@@ -167,8 +165,10 @@ where `select_clause` is one of
     distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )?
     TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )?
     
+
+`reference_expr` is one of `ColumnReference` or `Dereference`.
     
-`group_function` is one of `SUM(reference_expr)`, `MIN(reference_expr)`, `MAX(reference_expr)`, `AVG(reference_expr)` and `COUNT(*)`. `reference_expr` is one of ColumnReference and Dereference. `distribution_type` is one of `QUANTILE`, `FREQ` and `CUMFREQ`. The 1st number in `TOP` is K, and the 2nd number is an optional threshold.  The `input_mode` is one of 
+and `group_function` is one of `SUM(reference_expr)`, `MIN(reference_expr)`, `MAX(reference_expr)`, `AVG(reference_expr)` and `COUNT(*)`. `reference_expr` is one of ColumnReference and Dereference. `distribution_type` is one of `QUANTILE`, `FREQ` and `CUMFREQ`. The 1st number in `TOP` is K, and the 2nd number is an optional threshold.  The `input_mode` is one of 
 
     LINEAR, ( Integer | Long )                                              evenly spaced
     REGION, ( Integer | Long ), ( Integer | Long ), ( Integer | Long )      evenly spaced in a region
