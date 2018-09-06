@@ -65,7 +65,7 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * **String**: character string which can have escapes. Example: `'this is a string'`, `'this is ''another'' string'`.
 
-* **ColumnReference**: representation of a single column. Unquoted ColumnReference must start with a letter or `_`.
+* **ColumnReference**: representation of a single column. Unquoted ColumnReference must start with a letter or `_`. Example: `column_name`.
 
 * **Dereference**: representation of a column field. Example: `column_name.field_name`.
 
@@ -349,7 +349,7 @@ and `limit_clause` is one of
 
     SELECT *
     FROM STREAM(30000, TIME)
-    WHERE id_map NOT CONTAINSVALUE ("key")
+    WHERE id_map NOT CONTAINSVALUE ("btsg8l9b234ha")
     LIMIT 1;
 
 **Bullet Query**
@@ -363,10 +363,10 @@ and `limit_clause` is one of
                         "values":[
                             {
                                 "kind":"VALUE",
-                                "value":"key"
+                                "value":"btsg8l9b234ha"
                             }
                         ],
-                        "operation":"CONTAINSKEY"
+                        "operation":"CONTAINSVALUE"
                     }
                 ],
                 "operation": "NOT"
