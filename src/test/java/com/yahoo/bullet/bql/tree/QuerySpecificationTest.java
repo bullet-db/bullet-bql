@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.LAST;
-import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
 import static com.yahoo.bullet.bql.util.QueryUtil.equal;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
@@ -144,7 +143,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffHaving));
 
-        SortItem sortItem2 = new SortItem(identifier("aaa"), ASCENDING, LAST);
+        SortItem sortItem2 = new SortItem(identifier("aaa"), LAST);
         OrderBy orderBy2 = new OrderBy(singletonList(sortItem2));
         QuerySpecification querySpecificationDiffOrderBy = new QuerySpecification(
                 select,

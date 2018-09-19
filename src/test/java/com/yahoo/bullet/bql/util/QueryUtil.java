@@ -46,7 +46,6 @@ import java.util.Optional;
 import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.FIRST;
-import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
 import static com.yahoo.bullet.bql.tree.WindowInclude.IncludeType.LAST;
 import static com.yahoo.bullet.parsing.Clause.Operation.EQUALS;
 import static com.yahoo.bullet.parsing.Window.Unit.TIME;
@@ -199,11 +198,11 @@ public final class QueryUtil {
     }
 
     public static SortItem simpleSortItem() {
-        return new SortItem(identifier("aaa"), ASCENDING, FIRST);
+        return new SortItem(identifier("aaa"), FIRST);
     }
 
     public static OrderBy simpleOrderBy() {
-        return new OrderBy(singletonList(simpleSortItem()));
+        return new OrderBy(singletonList(simpleSortItem()), OrderBy.Ordering.ASCENDING);
     }
 
     public static FunctionCall simpleFunctionCall() {

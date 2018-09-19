@@ -21,7 +21,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 public class OrderBy extends Node {
+    public enum Ordering {
+        ASCENDING, DESCENDING
+    }
+
     private final List<SortItem> sortItems;
+    private final Ordering ordering;
 
     /**
      * Constructor that requires a List of {@link SortItem}.
@@ -29,24 +34,37 @@ public class OrderBy extends Node {
      * @param sortItems A List of {@link SortItem}.
      */
     public OrderBy(List<SortItem> sortItems) {
-        this(Optional.empty(), sortItems);
+        this(Optional.empty(), sortItems, Ordering.ASCENDING);
     }
 
     /**
-     * Constructor that requires a {@link NodeLocation} and a List of {@link SortItem}.
+     * Constructor that requires a List of {@link SortItem} and an {@link Ordering}.
+     *
+     * @param sortItems A List of {@link SortItem}.
+     * @param ordering An {@link Ordering}.
+     */
+    public OrderBy(List<SortItem> sortItems, Ordering ordering) {
+        this(Optional.empty(), sortItems, ordering);
+    }
+
+    /**
+     * Constructor that requires a {@link NodeLocation}, a List of {@link SortItem}, and an {@link Ordering}.
      *
      * @param location  A {@link NodeLocation}.
      * @param sortItems A List of {@link SortItem}.
+     * @param ordering An {@link Ordering}.
      */
-    public OrderBy(NodeLocation location, List<SortItem> sortItems) {
-        this(Optional.of(location), sortItems);
+    public OrderBy(NodeLocation location, List<SortItem> sortItems, Ordering ordering) {
+        this(Optional.of(location), sortItems, ordering);
     }
 
-    private OrderBy(Optional<NodeLocation> location, List<SortItem> sortItems) {
+    private OrderBy(Optional<NodeLocation> location, List<SortItem> sortItems, Ordering ordering) {
         super(location);
         requireNonNull(sortItems, "sortItems is null");
+        requireNonNull(ordering, "ordering is null");
         checkArgument(!sortItems.isEmpty(), "sortItems should not be empty");
         this.sortItems = ImmutableList.copyOf(sortItems);
+        this.ordering = ordering;
     }
 
     /**
@@ -56,6 +74,15 @@ public class OrderBy extends Node {
      */
     public List<SortItem> getSortItems() {
         return sortItems;
+    }
+
+    /**
+     * Get the {@link Ordering} of this OrderBy.
+     *
+     * @return An {@link Ordering}.
+     */
+    public Ordering getOrdering() {
+        return ordering;
     }
 
     @Override
@@ -72,6 +99,7 @@ public class OrderBy extends Node {
     public String toString() {
         return toStringHelper(this)
                 .add("sortItems", sortItems)
+                .add("ordering", ordering)
                 .toString();
     }
 
@@ -84,11 +112,12 @@ public class OrderBy extends Node {
             return false;
         }
         OrderBy o = (OrderBy) obj;
-        return Objects.equals(sortItems, o.sortItems);
+        return Objects.equals(sortItems, o.sortItems) &&
+                (ordering == o.ordering);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sortItems);
+        return Objects.hash(sortItems, ordering);
     }
 }

@@ -1,5 +1,6 @@
 package com.yahoo.bullet.bql.extractor;
 
+import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BinaryExpression;
 import com.yahoo.bullet.bql.tree.CastExpression;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class PostAggregationExtractor {
+public class ComputationExtractor {
     private Set<Expression> computations;
     private Map<Node, Identifier> aliases;
 
@@ -31,7 +32,7 @@ public class PostAggregationExtractor {
      * @param aliases      The non-null Map of aliases.
      * @throws NullPointerException when any of selectFields and aliases is null.
      */
-    public PostAggregationExtractor(Set<Expression> computations, Map<Node, Identifier> aliases) throws NullPointerException {
+    public ComputationExtractor(Set<Expression> computations, Map<Node, Identifier> aliases) throws NullPointerException {
         requireNonNull(computations);
         requireNonNull(aliases);
 
@@ -40,7 +41,7 @@ public class PostAggregationExtractor {
     }
 
     /**
-     * Extract a List of computation PostAggregations.
+     * Extract a List of Computation PostAggregations.
      *
      * @return A Projection based on selectFields and aliases.
      */
@@ -49,6 +50,7 @@ public class PostAggregationExtractor {
 
         return computations.stream().map(node -> {
                 Computation computation = new Computation();
+                computation.setType(PostAggregation.Type.COMPUTATION);
                 computation.setExpression(visitor.process(node));
                 computation.setNewName(getAlias(node));
                 return computation;
@@ -70,7 +72,7 @@ public class PostAggregationExtractor {
             this.aliases = aliases;
         }
 
-        protected com.yahoo.bullet.parsing.Expression visitCastExpression(CastExpression node, Void context) {
+        protected com.yahoo.bullet.parsing.Expression visitCastExpression(CastExpression node, Void context) throws ParsingException {
             if (node.getExpression() instanceof BinaryExpression) {
                 com.yahoo.bullet.parsing.BinaryExpression expression = (com.yahoo.bullet.parsing.BinaryExpression) process(node.getExpression());
                 expression.setType(Type.valueOf(node.getCastType().toUpperCase()));
@@ -81,10 +83,10 @@ public class PostAggregationExtractor {
                 expression.setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
                 return expression;
             }
-            throw new UnsupportedOperationException("Only casting of binary and leaf expressions supported");
+            throw new ParsingException("Only casting of binary and leaf expressions supported");
         }
 
-        protected com.yahoo.bullet.parsing.Expression visitBinaryExpression(BinaryExpression node, Void context) {
+        protected com.yahoo.bullet.parsing.Expression visitBinaryExpression(BinaryExpression node, Void context) throws ParsingException {
             com.yahoo.bullet.parsing.BinaryExpression binaryExpression = new com.yahoo.bullet.parsing.BinaryExpression();
             binaryExpression.setLeft(process(node.getLeft()));
             binaryExpression.setRight(process(node.getRight()));
@@ -102,7 +104,7 @@ public class PostAggregationExtractor {
                     binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.DIV);
                     break;
                 default:
-                    throw new UnsupportedOperationException("Only +, -, *, / supported");
+                    throw new ParsingException("Only +, -, *, / supported");
             }
             return binaryExpression;
         }

@@ -11,6 +11,7 @@ import com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
+import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Distribution;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
@@ -19,10 +20,12 @@ import com.yahoo.bullet.bql.tree.GroupingElement;
 import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.LongLiteral;
 import com.yahoo.bullet.bql.tree.Node;
+import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.bql.tree.Select;
 import com.yahoo.bullet.bql.tree.SelectItem;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
+import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.TopK;
 import com.yahoo.bullet.bql.tree.WindowInclude;
@@ -32,7 +35,6 @@ import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.Clause.Operation;
-import com.yahoo.bullet.parsing.OrderBy;
 import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
@@ -74,7 +76,6 @@ public class QueryExtractor {
     private Aggregation aggregation;
     private Projection projection;
     private List<PostAggregation> postAggregations;
-    private OrderBy orderBy;
     private QueryType type;
     /**
      * The constructor with a {@link BQLConfig}.
@@ -125,7 +126,7 @@ public class QueryExtractor {
         query.setFilters(filters);
         query.setProjection(projection);
         query.setWindow(window);
-        query.setPostAggregations(postAggregations);
+        query.setPostAggregations(!postAggregations.isEmpty() ? postAggregations : null);
         return query;
     }
 
@@ -161,6 +162,10 @@ public class QueryExtractor {
                 case SELECT_FIELDS:
                 case SELECT_ALL:
                     extractRaw();
+                    node.getOrderBy().ifPresent(value -> {
+                            process(value);
+                            postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                        });
                     break;
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
@@ -207,6 +212,18 @@ public class QueryExtractor {
         }
 
         @Override
+        protected Void visitOrderBy(OrderBy node, Void context) throws ParsingException {
+            List<SortItem> sortItems = node.getSortItems();
+            for (SortItem sortItem : sortItems) {
+                Expression sortKey = sortItem.getSortKey();
+                if (!(sortKey instanceof Identifier) && !(sortKey instanceof DereferenceExpression)) {
+                    throw new ParsingException("Only order by fields supported");
+                }
+            }
+            return null;
+        }
+
+        @Override
         protected Void visitGroupBy(GroupBy node, Void context) {
             for (GroupingElement groupingElement : node.getGroupingElements()) {
                 process(groupingElement);
@@ -219,7 +236,6 @@ public class QueryExtractor {
             groupByFields = new HashSet<>(node.getColumnExpressions());
             return null;
         }
-
 
         @Override
         protected Void visitFunctionCall(FunctionCall node, Void context) throws ParsingException {
@@ -343,7 +359,7 @@ public class QueryExtractor {
 
         private void extractRaw() {
             aggregation = new AggregationExtractor(aliases).extractRaw(size);
-            postAggregations = new PostAggregationExtractor(computations, aliases).extractComputations();
+            postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
             if (type == SELECT_FIELDS) {
                 projection = new ProjectionExtractor(selectFields, aliases).extractProjection();
             }
