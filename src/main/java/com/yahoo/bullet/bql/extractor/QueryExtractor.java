@@ -32,6 +32,7 @@ import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.Clause.Operation;
+import com.yahoo.bullet.parsing.OrderBy;
 import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
@@ -72,10 +73,9 @@ public class QueryExtractor {
     private Window window;
     private Aggregation aggregation;
     private Projection projection;
-    private QueryType type;
-
     private List<PostAggregation> postAggregations;
-
+    private OrderBy orderBy;
+    private QueryType type;
     /**
      * The constructor with a {@link BQLConfig}.
      *
@@ -292,7 +292,6 @@ public class QueryExtractor {
                 if (isDistinct) {
                     throw new ParsingException(type + " function doesn't support DISTINCT");
                 }
-
                 if (arguments.size() != 1) {
                     throw new ParsingException(type + " function requires only 1 field");
                 }

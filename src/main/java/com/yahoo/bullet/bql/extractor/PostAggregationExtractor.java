@@ -7,6 +7,7 @@ import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.LeafExpression;
 import com.yahoo.bullet.bql.tree.Node;
+import com.yahoo.bullet.bql.tree.SelectItem;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Value;
@@ -80,7 +81,7 @@ public class PostAggregationExtractor {
                 expression.setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
                 return expression;
             }
-            throw new UnsupportedOperationException("Only casting of binary and leaf expressions supported.");
+            throw new UnsupportedOperationException("Only casting of binary and leaf expressions supported");
         }
 
         protected com.yahoo.bullet.parsing.Expression visitBinaryExpression(BinaryExpression node, Void context) {
@@ -101,20 +102,22 @@ public class PostAggregationExtractor {
                     binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.DIV);
                     break;
                 default:
-                    throw new UnsupportedOperationException("Only +, -, *, / supported.");
-            }
-            if (node.getCastType() != null) {
-                binaryExpression.setType(Type.valueOf(node.getCastType().toUpperCase()));
+                    throw new UnsupportedOperationException("Only +, -, *, / supported");
             }
             return binaryExpression;
         }
 
         protected com.yahoo.bullet.parsing.Expression visitLeafExpression(LeafExpression node, Void context) {
-            Value value = new Value(node.getValue() instanceof Identifier ? Value.Kind.FIELD : Value.Kind.VALUE,
-                                    node.getValue().toFormatlessString(),
-                                    node.getCastType() != null ? Type.valueOf(node.getCastType().toUpperCase()) : null);
             com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
-            leafExpression.setValue(value);
+            Expression value = node.getValue();
+            switch (value.getType(SelectItem.Type.class)) {
+                case COLUMN:
+                case SUB_COLUMN:
+                    leafExpression.setValue(new Value(Value.Kind.FIELD, value.toFormatlessString()));
+                    break;
+                default:
+                    leafExpression.setValue(new Value(Value.Kind.VALUE, value.toFormatlessString()));
+            }
             return leafExpression;
         }
     }

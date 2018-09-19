@@ -12,17 +12,16 @@ public class BinaryExpression extends Expression {
     private final Expression left;
     private final Expression right;
     private final String op;
-    private final String castType;
 
-    public BinaryExpression(Expression left, Expression right, String op, String castType) {
-        this(Optional.empty(), left, right, op, castType);
+    public BinaryExpression(Expression left, Expression right, String op) {
+        this(Optional.empty(), left, right, op);
     }
 
-    public BinaryExpression(NodeLocation location, Expression left, Expression right, String op, String castType) {
-        this(Optional.of(location), left, right, op, castType);
+    public BinaryExpression(NodeLocation location, Expression left, Expression right, String op) {
+        this(Optional.of(location), left, right, op);
     }
 
-    public BinaryExpression(Optional<NodeLocation> location, Expression left, Expression right, String op, String castType) {
+    public BinaryExpression(Optional<NodeLocation> location, Expression left, Expression right, String op) {
         super(location);
         checkArgument(left != null, "left is null");
         checkArgument(right != null, "right is null");
@@ -30,7 +29,6 @@ public class BinaryExpression extends Expression {
         this.left = left;
         this.right = right;
         this.op = op;
-        this.castType = castType;
     }
 
     @Override
@@ -50,10 +48,6 @@ public class BinaryExpression extends Expression {
         return op;
     }
 
-    public String getCastType() {
-        return castType;
-    }
-
     @Override
     public SelectItem.Type getType(Class<SelectItem.Type> clazz) {
         return SelectItem.Type.COMPUTATION;
@@ -66,7 +60,7 @@ public class BinaryExpression extends Expression {
 
     @Override
     public int hashCode() {
-        return Objects.hash(left, right, op, castType);
+        return Objects.hash(left, right, op);
     }
 
     @Override
@@ -80,7 +74,6 @@ public class BinaryExpression extends Expression {
         BinaryExpression that = (BinaryExpression) obj;
         return Objects.equals(left, that.left) &&
                 Objects.equals(right, that.right) &&
-                Objects.equals(op, that.op) &&
-                Objects.equals(castType, that.castType);
+                Objects.equals(op, that.op);
     }
 }

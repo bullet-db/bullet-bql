@@ -373,18 +373,11 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitBinaryExpression(BinaryExpression node, Void context) {
-            String body = process(node.getLeft(), context) + " " + node.getOp() + " " + process(node.getRight(), context);
-            if (node.getCastType() != null) {
-                return "CAST (" + body + ", " + node.getCastType().toUpperCase() + ")";
-            }
-            return body;
+            return process(node.getLeft(), context) + " " + node.getOp() + " " + process(node.getRight(), context);
         }
 
         @Override
         protected String visitLeafExpression(LeafExpression node, Void context) {
-            if (node.getCastType() != null) {
-                return "CAST (" + node.getValue().toFormatlessString() + ", " + node.getCastType().toUpperCase() + ")";
-            }
             return node.getValue().toFormatlessString();
         }
 

@@ -494,20 +494,16 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitBinaryExpression(BQLBaseParser.BinaryExpressionContext context) {
-        //BQLBaseParser.CastTypeContext castTypeContext = context.castType();
         return new BinaryExpression(getLocation(context),
                                     (Expression) visit(context.left),
                                     (Expression) visit(context.right),
-                                    context.op.getText(),
-                                    null);
+                                    context.op.getText());
     }
 
     @Override
     public Node visitLeafExpression(BQLBaseParser.LeafExpressionContext context) {
-        //BQLBaseParser.CastTypeContext castTypeContext = context.castType();
         return new LeafExpression(getLocation(context),
-                                  (Expression) visit(context.valueExpression()),
-                                  null);
+                                  (Expression) visit(context.valueExpression()));
     }
 
     @Override

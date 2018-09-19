@@ -10,21 +10,19 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class LeafExpression extends Expression {
     private final Expression value;
-    private final String castType;
 
-    public LeafExpression(Expression value, String castType) {
-        this(Optional.empty(), value, castType);
+    public LeafExpression(Expression value) {
+        this(Optional.empty(), value);
     }
 
-    public LeafExpression(NodeLocation location, Expression value, String castType) {
-        this(Optional.of(location), value, castType);
+    public LeafExpression(NodeLocation location, Expression value) {
+        this(Optional.of(location), value);
     }
 
-    public LeafExpression(Optional<NodeLocation> location, Expression value, String castType) {
+    public LeafExpression(Optional<NodeLocation> location, Expression value) {
         super(location);
         checkArgument(value != null, "value is null");
         this.value = value;
-        this.castType = castType;
     }
 
     @Override
@@ -34,10 +32,6 @@ public class LeafExpression extends Expression {
 
     public Expression getValue() {
         return value;
-    }
-
-    public String getCastType() {
-        return castType;
     }
 
     @Override
@@ -52,7 +46,7 @@ public class LeafExpression extends Expression {
 
     @Override
     public int hashCode() {
-        return Objects.hash(value, castType);
+        return Objects.hash(value);
     }
 
     @Override
@@ -64,7 +58,6 @@ public class LeafExpression extends Expression {
             return false;
         }
         LeafExpression that = (LeafExpression) obj;
-        return Objects.equals(value, that.value) &&
-                Objects.equals(castType, that.castType);
+        return Objects.equals(value, that.value);
     }
 }
