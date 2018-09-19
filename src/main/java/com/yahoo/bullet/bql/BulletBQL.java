@@ -8,6 +8,9 @@ package com.yahoo.bullet.bql;
 import com.yahoo.bullet.common.BulletConfig;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
 @Slf4j
 public class BulletBQL {
     private static BulletQueryBuilder BULLET_QUERY_BUILDER = new BulletQueryBuilder(new BulletConfig());
@@ -19,14 +22,18 @@ public class BulletBQL {
      * @throws Exception when bql is not valid.
      */
     public static void main(String[] args) throws Exception {
-        String bql = args[0];
-        log.debug("BQL passed in: " + bql);
-        System.out.println();
-        System.out.println("############################## Bullet Query ##############################");
-        System.out.println();
-        System.out.println(BULLET_QUERY_BUILDER.buildJson(bql));
-        System.out.println();
-        System.out.println("##########################################################################");
-        System.out.println();
+        //String bql = args[0];
+        while (true) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            String bql = reader.readLine();
+            log.debug("BQL passed in: " + bql);
+            System.out.println();
+            System.out.println("############################## Bullet Query ##############################");
+            System.out.println();
+            System.out.println(BULLET_QUERY_BUILDER.buildJson(bql));
+            System.out.println();
+            System.out.println("##########################################################################");
+            System.out.println();
+        }
     }
 }

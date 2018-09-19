@@ -15,7 +15,9 @@ import com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
 import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
+import com.yahoo.bullet.bql.tree.BinaryExpression;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
+import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
@@ -31,6 +33,7 @@ import com.yahoo.bullet.bql.tree.IsEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
 import com.yahoo.bullet.bql.tree.IsNullPredicate;
+import com.yahoo.bullet.bql.tree.LeafExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LinearDistribution;
 import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
@@ -479,6 +482,37 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
             threshold = Optional.of(Long.parseLong(context.threshold.getText()));
         }
         return new TopK(getLocation(context), columns, size, threshold);
+    }
+
+    @Override
+    public Node visitCastExpression(BQLBaseParser.CastExpressionContext context) {
+        BQLBaseParser.CastTypeContext castTypeContext = context.castType();
+        return new CastExpression(getLocation(context),
+                                  (Expression) visit(context.arithmeticExpression()),
+                                  castTypeContext != null ? castTypeContext.getText() : null);
+    }
+
+    @Override
+    public Node visitBinaryExpression(BQLBaseParser.BinaryExpressionContext context) {
+        //BQLBaseParser.CastTypeContext castTypeContext = context.castType();
+        return new BinaryExpression(getLocation(context),
+                                    (Expression) visit(context.left),
+                                    (Expression) visit(context.right),
+                                    context.op.getText(),
+                                    null);
+    }
+
+    @Override
+    public Node visitLeafExpression(BQLBaseParser.LeafExpressionContext context) {
+        //BQLBaseParser.CastTypeContext castTypeContext = context.castType();
+        return new LeafExpression(getLocation(context),
+                                  (Expression) visit(context.valueExpression()),
+                                  null);
+    }
+
+    @Override
+    public Node visitParensExpression(BQLBaseParser.ParensExpressionContext context) {
+        return visit(context.arithmeticExpression());
     }
 
     // ************** Literals **************

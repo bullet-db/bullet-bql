@@ -550,4 +550,16 @@ public abstract class ASTVisitor<R, C> {
     protected R visitSimpleGroupBy(SimpleGroupBy node, C context) {
         return visitGroupingElement(node, context);
     }
+
+    protected R visitCastExpression(CastExpression node, C context) {
+        return visitNode(node, context);
+    }
+
+    protected R visitBinaryExpression(BinaryExpression node, C context) {
+        return visitNode(node, context);
+    }
+
+    protected R visitLeafExpression(LeafExpression node, C context) {
+        return visitNode(node, context);
+    }
 }

@@ -16,7 +16,9 @@ import com.google.common.collect.ImmutableSet;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
+import com.yahoo.bullet.bql.tree.BinaryExpression;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
+import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
@@ -30,6 +32,7 @@ import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
 import com.yahoo.bullet.bql.tree.IsNullPredicate;
+import com.yahoo.bullet.bql.tree.LeafExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
 import com.yahoo.bullet.bql.tree.LongLiteral;
@@ -361,6 +364,28 @@ public final class ExpressionFormatter {
                     break;
             }
             return op + "(" + process(node.getValue(), context) + ")";
+        }
+
+        @Override
+        protected String visitCastExpression(CastExpression node, Void context) {
+            return "CAST (" + process(node.getExpression(), context) + ", " + node.getCastType().toUpperCase() + ")";
+        }
+
+        @Override
+        protected String visitBinaryExpression(BinaryExpression node, Void context) {
+            String body = process(node.getLeft(), context) + " " + node.getOp() + " " + process(node.getRight(), context);
+            if (node.getCastType() != null) {
+                return "CAST (" + body + ", " + node.getCastType().toUpperCase() + ")";
+            }
+            return body;
+        }
+
+        @Override
+        protected String visitLeafExpression(LeafExpression node, Void context) {
+            if (node.getCastType() != null) {
+                return "CAST (" + node.getValue().toFormatlessString() + ", " + node.getCastType().toUpperCase() + ")";
+            }
+            return node.getValue().toFormatlessString();
         }
 
         @Override

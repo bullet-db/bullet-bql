@@ -161,8 +161,21 @@ primaryExpression
     : qualifiedName '(' ASTERISK ')'                                                      #functionCall
     | qualifiedName '(' setQuantifier? referenceExpression (',' referenceExpression)*')'  #functionCall
     | referenceExpression                                                                 #reference
+    | arithmeticExpression                                                                #computation
     | distributionType '(' referenceExpression ',' inputMode ')'                          #distributionOperation
     | TOP '(' topKConfig ')'                                                              #topK
+    ;
+
+arithmeticExpression
+    : '(' arithmeticExpression ')'                                                                    #parensExpression
+    | CAST '(' arithmeticExpression ',' castType ')'                                                    #castExpression
+    | left=arithmeticExpression op=('*' | '/') right=arithmeticExpression                            #binaryExpression
+    | left=arithmeticExpression op=('+' | '-') right=arithmeticExpression                            #binaryExpression
+    | valueExpression                                                                                 #leafExpression
+    ;
+
+castType
+    : 'INTEGER' | 'LONG' | 'FLOAT' | 'DOUBLE' | 'BOOLEAN' | 'STRING'
     ;
 
 distributionType

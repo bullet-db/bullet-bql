@@ -32,6 +32,7 @@ import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.Clause.Operation;
+import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
@@ -52,6 +53,7 @@ import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperati
 import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.GROUP;
 import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.SELECT_FIELDS;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.ALL;
+import static com.yahoo.bullet.bql.tree.SelectItem.Type.COMPUTATION;
 import static java.util.Objects.requireNonNull;
 
 @Slf4j
@@ -61,6 +63,7 @@ public class QueryExtractor {
 
     private Set<Expression> groupByFields;
     private Set<Expression> selectFields;
+    private Set<Expression> computations;
     private Map<Node, Identifier> aliases;
     private Optional<Long> size;
     private Optional<Long> threshold;
@@ -70,6 +73,8 @@ public class QueryExtractor {
     private Aggregation aggregation;
     private Projection projection;
     private QueryType type;
+
+    private List<PostAggregation> postAggregations;
 
     /**
      * The constructor with a {@link BQLConfig}.
@@ -101,6 +106,7 @@ public class QueryExtractor {
     private void reset() {
         groupByFields = new HashSet<>();
         selectFields = new HashSet<>();
+        computations = new HashSet<>();
         aliases = new HashMap<>();
         size = Optional.empty();
         threshold = Optional.empty();
@@ -109,6 +115,7 @@ public class QueryExtractor {
         window = null;
         aggregation = null;
         projection = null;
+        postAggregations = null;
     }
 
     private Query constructQuery() {
@@ -118,6 +125,7 @@ public class QueryExtractor {
         query.setFilters(filters);
         query.setProjection(projection);
         query.setWindow(window);
+        query.setPostAggregations(postAggregations);
         return query;
     }
 
@@ -163,7 +171,6 @@ public class QueryExtractor {
                     process(value);
                     filters = new FilterExtractor().extractFilter(node);
                 });
-
             node.getWindowing().ifPresent(value -> {
                     process(value);
                     window = new WindowExtractor(value).extractWindow();
@@ -268,9 +275,12 @@ public class QueryExtractor {
             if (item.getType() == ALL) {
                 return;
             }
-
+            if (item.getType() == COMPUTATION) {
+                computations.add(item.getValue());
+            } else {
+                selectFields.add(item.getValue());
+            }
             item.getAlias().ifPresent(alias -> aliases.put(item.getValue(), alias));
-            selectFields.add(item.getValue());
         }
 
         private void validateFunctionField(GroupOperationType type, List<Expression> arguments, boolean isDistinct) throws ParsingException {
@@ -334,6 +344,7 @@ public class QueryExtractor {
 
         private void extractRaw() {
             aggregation = new AggregationExtractor(aliases).extractRaw(size);
+            postAggregations = new PostAggregationExtractor(computations, aliases).extractComputations();
             if (type == SELECT_FIELDS) {
                 projection = new ProjectionExtractor(selectFields, aliases).extractProjection();
             }
