@@ -22,22 +22,14 @@ public class BulletBQL {
      * @throws Exception when bql is not valid.
      */
     public static void main(String[] args) throws Exception {
-        //String bql = args[0];
-        while (true) {
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                String bql = reader.readLine();
-                log.debug("BQL passed in: " + bql);
-                System.out.println();
-                System.out.println("############################## Bullet Query ##############################");
-                System.out.println();
-                System.out.println(BULLET_QUERY_BUILDER.buildJson(bql));
-                System.out.println();
-                System.out.println("##########################################################################");
-                System.out.println();
-            } catch (Exception e) {
-                System.out.println(e);
-            }
-        }
+        String bql = args[0];
+        log.debug("BQL passed in: " + bql);
+        System.out.println();
+        System.out.println("############################## Bullet Query ##############################");
+        System.out.println();
+        System.out.println(BULLET_QUERY_BUILDER.buildJson(bql));
+        System.out.println();
+        System.out.println("##########################################################################");
+        System.out.println();
     }
 }

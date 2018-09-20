@@ -8,10 +8,12 @@ package com.yahoo.bullet.bql.classifier;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
+import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
 import com.yahoo.bullet.bql.tree.GroupingElement;
+import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
@@ -107,8 +109,13 @@ public class QueryClassifier {
                 validHaving(node);
                 type = QueryType.TOP_K;
                 return null;
-            } else if (node.getHaving().isPresent()) {
-                throw new ParsingException("HAVING is only supported for TOP K");
+            } else {
+                if (node.getHaving().isPresent()) {
+                    throw new ParsingException("HAVING is only supported for TOP K");
+                }
+                if (node.getOrderBy().isPresent()) {
+                    node.getOrderBy().ifPresent(this::process);
+                }
             }
 
             process(node.getSelect());
@@ -166,6 +173,18 @@ public class QueryClassifier {
             validateSelectWithGroupBy();
             // Update hasGroup, hasNonRaw when SELECT field1, field2 GROUP BY field1, field2.
             type = QueryType.GROUP;
+            return null;
+        }
+
+        @Override
+        protected Void visitOrderBy(OrderBy node, Void context) throws ParsingException {
+            List<SortItem> sortItems = node.getSortItems();
+            for (SortItem sortItem : sortItems) {
+                Expression sortKey = sortItem.getSortKey();
+                if (!(sortKey instanceof Identifier) && !(sortKey instanceof DereferenceExpression)) {
+                    throw new ParsingException("Only order by fields supported");
+                }
+            }
             return null;
         }
 

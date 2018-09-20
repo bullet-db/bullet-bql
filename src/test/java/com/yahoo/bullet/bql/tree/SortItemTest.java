@@ -58,9 +58,6 @@ public class SortItemTest {
         SortItem sortItemDiffSortKey = new SortItem(diffSortKey, FIRST);
         assertFalse(sortItem.equals(sortItemDiffSortKey));
 
-        SortItem sortItemDiffOrdering = new SortItem(sortKey, FIRST);
-        assertFalse(sortItem.equals(sortItemDiffOrdering));
-
         SortItem sortItemDiffNullOrdering = new SortItem(sortKey, LAST);
         assertFalse(sortItem.equals(sortItemDiffNullOrdering));
 

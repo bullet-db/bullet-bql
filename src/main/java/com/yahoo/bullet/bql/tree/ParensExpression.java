@@ -8,21 +8,26 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class LeafExpression extends Expression {
+public class ParensExpression extends Expression {
     private final Expression value;
 
-    public LeafExpression(Expression value) {
+    public ParensExpression(Expression value) {
         this(Optional.empty(), value);
     }
 
-    public LeafExpression(NodeLocation location, Expression value) {
+    public ParensExpression(NodeLocation location, Expression value) {
         this(Optional.of(location), value);
     }
 
-    public LeafExpression(Optional<NodeLocation> location, Expression value) {
+    public ParensExpression(Optional<NodeLocation> location, Expression value) {
         super(location);
         checkArgument(value != null, "value is null");
         this.value = value;
+    }
+
+    @Override
+    public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
+        return visitor.visitParensExpression(this, context);
     }
 
     public Expression getValue() {
@@ -52,7 +57,7 @@ public class LeafExpression extends Expression {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        LeafExpression that = (LeafExpression) obj;
+        ParensExpression that = (ParensExpression) obj;
         return Objects.equals(value, that.value);
     }
 }

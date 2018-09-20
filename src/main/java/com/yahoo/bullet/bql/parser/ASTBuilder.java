@@ -44,6 +44,7 @@ import com.yahoo.bullet.bql.tree.NodeLocation;
 import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.NullLiteral;
 import com.yahoo.bullet.bql.tree.OrderBy;
+import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.QualifiedName;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QueryBody;
@@ -502,13 +503,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitLeafExpression(BQLBaseParser.LeafExpressionContext context) {
-        return new LeafExpression(getLocation(context),
-                                  (Expression) visit(context.valueExpression()));
+        return visit(context.valueExpression());
     }
 
     @Override
     public Node visitParensExpression(BQLBaseParser.ParensExpressionContext context) {
-        return visit(context.arithmeticExpression());
+        return new ParensExpression(getLocation(context),
+                                    (Expression) visit(context.arithmeticExpression()));
     }
 
     // ************** Literals **************

@@ -126,7 +126,9 @@ public class QueryExtractor {
         query.setFilters(filters);
         query.setProjection(projection);
         query.setWindow(window);
-        query.setPostAggregations(!postAggregations.isEmpty() ? postAggregations : null);
+        if (postAggregations != null && !postAggregations.isEmpty()) {
+            query.setPostAggregations(postAggregations);
+        }
         return query;
     }
 
@@ -163,7 +165,6 @@ public class QueryExtractor {
                 case SELECT_ALL:
                     extractRaw();
                     node.getOrderBy().ifPresent(value -> {
-                            process(value);
                             postAggregations.add(new OrderByExtractor(value).extractOrderBy());
                         });
                     break;
@@ -206,18 +207,6 @@ public class QueryExtractor {
                     duration = queryMaxDuration;
                 } else {
                     duration = Long.parseLong(timeDuration.get());
-                }
-            }
-            return null;
-        }
-
-        @Override
-        protected Void visitOrderBy(OrderBy node, Void context) throws ParsingException {
-            List<SortItem> sortItems = node.getSortItems();
-            for (SortItem sortItem : sortItems) {
-                Expression sortKey = sortItem.getSortKey();
-                if (!(sortKey instanceof Identifier) && !(sortKey instanceof DereferenceExpression)) {
-                    throw new ParsingException("Only order by fields supported");
                 }
             }
             return null;

@@ -39,6 +39,7 @@ import com.yahoo.bullet.bql.tree.LongLiteral;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.NullLiteral;
+import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
 import com.yahoo.bullet.bql.tree.Stream;
@@ -377,7 +378,10 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitLeafExpression(LeafExpression node, Void context) {
+        protected String visitParensExpression(ParensExpression node, Void context) {
+            if (node.getValue() instanceof BinaryExpression) {
+                return "(" + node.getValue().toFormatlessString() + ")";
+            }
             return node.getValue().toFormatlessString();
         }
 

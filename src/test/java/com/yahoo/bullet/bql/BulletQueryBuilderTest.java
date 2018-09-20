@@ -552,7 +552,7 @@ public class BulletQueryBuilderTest {
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only one field is supported in ORDER BY for TOP K\\E.*")
     public void testBuildTopKOrderByMultipleFields() {
         assertEquals(builder.buildJson(
-                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC, top3 DESC LIMIT 3"),
+                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*), top3 DESC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                              "\"duration\":2000}");
     }

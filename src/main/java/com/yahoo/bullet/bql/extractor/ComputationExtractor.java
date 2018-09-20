@@ -2,12 +2,16 @@ package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
+import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.BinaryExpression;
 import com.yahoo.bullet.bql.tree.CastExpression;
+import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.LeafExpression;
+import com.yahoo.bullet.bql.tree.Literal;
 import com.yahoo.bullet.bql.tree.Node;
+import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.SelectItem;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.PostAggregation;
@@ -77,7 +81,8 @@ public class ComputationExtractor {
                 com.yahoo.bullet.parsing.BinaryExpression expression = (com.yahoo.bullet.parsing.BinaryExpression) process(node.getExpression());
                 expression.setType(Type.valueOf(node.getCastType().toUpperCase()));
                 return expression;
-            } else if (node.getExpression() instanceof LeafExpression) {
+            } else if (!(node.getExpression() instanceof CastExpression)){
+            //} else if (node.getExpression() instanceof LeafExpression) {
                 com.yahoo.bullet.parsing.LeafExpression expression = (com.yahoo.bullet.parsing.LeafExpression) process(node.getExpression());
                 Value value = expression.getValue();
                 expression.setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
@@ -109,17 +114,36 @@ public class ComputationExtractor {
             return binaryExpression;
         }
 
-        protected com.yahoo.bullet.parsing.Expression visitLeafExpression(LeafExpression node, Void context) {
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitParensExpression(ParensExpression node, Void context) {
+            return process(node.getValue());
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitLiteral(Literal node, Void context) {
             com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
-            Expression value = node.getValue();
-            switch (value.getType(SelectItem.Type.class)) {
-                case COLUMN:
-                case SUB_COLUMN:
-                    leafExpression.setValue(new Value(Value.Kind.FIELD, value.toFormatlessString()));
-                    break;
-                default:
-                    leafExpression.setValue(new Value(Value.Kind.VALUE, value.toFormatlessString()));
-            }
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString()));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitArithmeticUnary(ArithmeticUnaryExpression node, Void context) {
+            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString()));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitIdentifier(Identifier node, Void context) {
+            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.FIELD, node.toFormatlessString()));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitDereferenceExpression(DereferenceExpression node, Void context) {
+            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.FIELD, node.toFormatlessString()));
             return leafExpression;
         }
     }

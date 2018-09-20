@@ -64,7 +64,7 @@ public class QuerySpecificationTest {
                 "from=Optional[Stream{timeDuration=Optional[10], recordDuration=Optional[20]}], " +
                 "where=(bbb = ccc), " +
                 "groupBy=Optional[GroupBy{isDistinct=true, groupingElements=[SimpleGroupBy{columns=[ddd]}]}], " +
-                "having=(eee = fff), orderBy=Optional[OrderBy{sortItems=[SortItem{sortKey=aaa, ordering=ASCENDING, nullOrdering=FIRST}]}], " +
+                "having=(eee = fff), orderBy=Optional[OrderBy{sortItems=[SortItem{sortKey=aaa, nullOrdering=FIRST}], ordering=ASCENDING}], " +
                 "limit=10, " +
                 "windowing=Windowing{emitEvery=100, emitType=TIME, include=WindowInclude{type=Optional[LAST], unit=TIME, number=Optional[100]}}}";
         assertEquals(querySpecification.toString(), expected);

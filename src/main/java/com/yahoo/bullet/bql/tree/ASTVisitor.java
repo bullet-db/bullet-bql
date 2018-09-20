@@ -559,7 +559,7 @@ public abstract class ASTVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    protected R visitLeafExpression(LeafExpression node, C context) {
+    protected R visitParensExpression(ParensExpression node, C context) {
         return visitNode(node, context);
     }
 }

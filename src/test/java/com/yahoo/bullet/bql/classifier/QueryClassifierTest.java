@@ -25,13 +25,13 @@ public class QueryClassifierTest {
         queryClassifier = new QueryClassifier();
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only order by fields supported\\E.*")
     public void testClassifyInvalidOrderBy() {
         String bql = "SELECT * FROM STREAM(2000, TIME) ORDER BY COUNT(*) DESC LIMIT 1";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyInvalidHaving() {
         String bql = "SELECT * FROM STREAM(2000, TIME) HAVING COUNT(*) >= 2 LIMIT 1";
         parseAndGetType(bql);
@@ -61,61 +61,61 @@ public class QueryClassifierTest {
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKLimitAll() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT ALL";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoField() {
         String bql = "SELECT COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoGroupBy() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoOrderBy() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 LIMIT 3";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoLimit() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoGroupByNoOrderBy() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) HAVING COUNT(*) >= 1 LIMIT 3";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoGroupByNoLimit() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKNoOrderByNoLimit() {
         String bql = "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKInvalidField() {
         String bql = "SELECT ddd AS d, *, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3";
         parseAndGetType(bql);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: ORDER BY or HAVING are only supported for TOP K\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: HAVING is only supported for TOP K\\E.*")
     public void testClassifyTopKInvalidGroup() {
         String bql = "SELECT ddd AS d, aaa.cc, AVG(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3";
         parseAndGetType(bql);
