@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2018, Oath Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
@@ -8,11 +13,9 @@ import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.LeafExpression;
 import com.yahoo.bullet.bql.tree.Literal;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.ParensExpression;
-import com.yahoo.bullet.bql.tree.SelectItem;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Value;
@@ -47,7 +50,7 @@ public class ComputationExtractor {
     /**
      * Extract a List of Computation PostAggregations.
      *
-     * @return A Projection based on selectFields and aliases.
+     * @return A List of PostAggregations based on computations and aliases.
      */
     public List<PostAggregation> extractComputations() {
         ExtractVisitor visitor = new ExtractVisitor(aliases);
@@ -81,8 +84,7 @@ public class ComputationExtractor {
                 com.yahoo.bullet.parsing.BinaryExpression expression = (com.yahoo.bullet.parsing.BinaryExpression) process(node.getExpression());
                 expression.setType(Type.valueOf(node.getCastType().toUpperCase()));
                 return expression;
-            } else if (!(node.getExpression() instanceof CastExpression)){
-            //} else if (node.getExpression() instanceof LeafExpression) {
+            } else if (!(node.getExpression() instanceof CastExpression)) {
                 com.yahoo.bullet.parsing.LeafExpression expression = (com.yahoo.bullet.parsing.LeafExpression) process(node.getExpression());
                 Value value = expression.getValue();
                 expression.setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));

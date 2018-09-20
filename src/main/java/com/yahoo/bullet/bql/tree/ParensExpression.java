@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2018, Oath Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -11,15 +16,26 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class ParensExpression extends Expression {
     private final Expression value;
 
+    /**
+     * Constructor that requires an {@link Expression} value.
+     *
+     * @param value An {@link Expression}.
+     */
     public ParensExpression(Expression value) {
         this(Optional.empty(), value);
     }
 
+    /**
+     * Constructor that requires a {@link NodeLocation} and an {@link Expression} value.
+     *
+     * @param location A {@link NodeLocation}.
+     * @param value A {@link Expression}.
+     */
     public ParensExpression(NodeLocation location, Expression value) {
         this(Optional.of(location), value);
     }
 
-    public ParensExpression(Optional<NodeLocation> location, Expression value) {
+    private ParensExpression(Optional<NodeLocation> location, Expression value) {
         super(location);
         checkArgument(value != null, "value is null");
         this.value = value;
@@ -30,6 +46,11 @@ public class ParensExpression extends Expression {
         return visitor.visitParensExpression(this, context);
     }
 
+    /**
+     * Get the {@link #value} of this ParensExpression.
+     *
+     * @return An {@link Expression}.
+     */
     public Expression getValue() {
         return value;
     }

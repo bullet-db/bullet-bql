@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2018, Oath Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.tree.OrderBy;
@@ -23,6 +28,11 @@ public class OrderByExtractor {
         this.node = node;
     }
 
+    /**
+     * Extract an OrderBy PostAggregation.
+     *
+     * @return A PostAggregation based on an OrderBy node
+     */
     public PostAggregation extractOrderBy() {
         List<String> fields = node.getSortItems().stream().map(sortItem -> sortItem.getSortKey().toFormatlessString()).collect(Collectors.toList());
         com.yahoo.bullet.parsing.OrderBy.Direction direction =

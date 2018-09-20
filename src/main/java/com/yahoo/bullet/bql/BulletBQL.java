@@ -8,9 +8,6 @@ package com.yahoo.bullet.bql;
 import com.yahoo.bullet.common.BulletConfig;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
 @Slf4j
 public class BulletBQL {
     private static BulletQueryBuilder BULLET_QUERY_BUILDER = new BulletQueryBuilder(new BulletConfig());

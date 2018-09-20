@@ -551,14 +551,35 @@ public abstract class ASTVisitor<R, C> {
         return visitGroupingElement(node, context);
     }
 
+    /**
+     * Visit a {@link CastExpression} with passed in context.
+     *
+     * @param node A {@link CastExpression}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
     protected R visitCastExpression(CastExpression node, C context) {
         return visitNode(node, context);
     }
 
+    /**
+     * Visit a {@link BinaryExpression} with passed in context.
+     *
+     * @param node A {@link BinaryExpression}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
     protected R visitBinaryExpression(BinaryExpression node, C context) {
         return visitNode(node, context);
     }
 
+    /**
+     * Visit a {@link ParensExpression} with passed in context.
+     *
+     * @param node A {@link ParensExpression}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
     protected R visitParensExpression(ParensExpression node, C context) {
         return visitNode(node, context);
     }

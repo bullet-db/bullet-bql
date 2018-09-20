@@ -32,7 +32,6 @@ import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
 import com.yahoo.bullet.bql.tree.IsNullPredicate;
-import com.yahoo.bullet.bql.tree.LeafExpression;
 import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
 import com.yahoo.bullet.bql.tree.LongLiteral;
