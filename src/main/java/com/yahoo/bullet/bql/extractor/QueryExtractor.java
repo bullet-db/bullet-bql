@@ -38,6 +38,7 @@ import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -123,9 +124,7 @@ public class QueryExtractor {
         query.setFilters(filters);
         query.setProjection(projection);
         query.setWindow(window);
-        if (postAggregations != null && !postAggregations.isEmpty()) {
-            query.setPostAggregations(postAggregations);
-        }
+        query.setPostAggregations(postAggregations);
         return query;
     }
 
@@ -160,10 +159,7 @@ public class QueryExtractor {
                     break;
                 case SELECT_FIELDS:
                 case SELECT_ALL:
-                    extractRaw();
-                    node.getOrderBy().ifPresent(value -> {
-                            postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                        });
+                    extractRaw(node);
                     break;
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
@@ -343,12 +339,21 @@ public class QueryExtractor {
             aggregation = new AggregationExtractor(aliases).extractGroup(selectFields, groupByFields, size);
         }
 
-        private void extractRaw() {
+        private void extractRaw(QuerySpecification node) {
             aggregation = new AggregationExtractor(aliases).extractRaw(size);
-            postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
             if (type == SELECT_FIELDS) {
                 projection = new ProjectionExtractor(selectFields, aliases).extractProjection();
             }
+            if (!computations.isEmpty()) {
+                postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
+            }
+            node.getOrderBy().ifPresent(value -> {
+                if (postAggregations != null) {
+                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                } else {
+                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                }
+            });
         }
     }
 }

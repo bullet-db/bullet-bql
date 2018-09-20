@@ -169,13 +169,13 @@ primaryExpression
 arithmeticExpression
     : '(' arithmeticExpression ')'                                                                    #parensExpression
     | CAST '(' arithmeticExpression ',' castType ')'                                                    #castExpression
-    | left=arithmeticExpression op=('*' | '/') right=arithmeticExpression                            #binaryExpression
-    | left=arithmeticExpression op=('+' | '-') right=arithmeticExpression                            #binaryExpression
+    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression                            #binaryExpression
+    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression                            #binaryExpression
     | valueExpression                                                                                 #leafExpression
     ;
 
 castType
-    : 'INTEGER' | 'LONG' | 'FLOAT' | 'DOUBLE' | 'BOOLEAN' | 'STRING'
+    : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
     ;
 
 distributionType
@@ -468,6 +468,13 @@ EVERY: 'EVERY';
 EMPTY: 'EMPTY';
 TUMBLING: 'TUMBLING';
 MAX: 'MAX';
+
+INTEGER_TYPE: 'INTEGER';
+LONG_TYPE: 'LONG';
+FLOAT_TYPE: 'FLOAT';
+DOUBLE_TYPE: 'DOUBLE';
+BOOLEAN_TYPE: 'BOOLEAN';
+STRING_TYPE: 'STRING';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

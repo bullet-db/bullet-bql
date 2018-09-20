@@ -29,7 +29,7 @@ public class ParensExpression extends Expression {
      * Constructor that requires a {@link NodeLocation} and an {@link Expression} value.
      *
      * @param location A {@link NodeLocation}.
-     * @param value A {@link Expression}.
+     * @param value    A {@link Expression}.
      */
     public ParensExpression(NodeLocation location, Expression value) {
         this(Optional.of(location), value);

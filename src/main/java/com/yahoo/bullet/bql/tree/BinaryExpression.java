@@ -19,23 +19,23 @@ public class BinaryExpression extends Expression {
     private final String op;
 
     /**
-     * Constructor that requires an {@link Expression} left, an {@link Expression} right, and aa {@link String} op.
+     * Constructor that requires an {@link Expression} left, an {@link Expression} right, and a {@link String} op.
      *
-     * @param left An {@link Expression}.
+     * @param left  An {@link Expression}.
      * @param right An {@link Expression}.
-     * @param op A {@link String}.
+     * @param op    A {@link String}.
      */
     public BinaryExpression(Expression left, Expression right, String op) {
         this(Optional.empty(), left, right, op);
     }
 
     /**
-     * Constructor that requires a {@link NodeLocation}, an {@link Expression} left, an {@link Expression} right, and aa {@link String} op.
+     * Constructor that requires a {@link NodeLocation}, an {@link Expression} left, an {@link Expression} right, and a {@link String} op.
      *
      * @param location A {@link NodeLocation}.
-     * @param left An {@link Expression}.
-     * @param right An {@link Expression}.
-     * @param op A {@link String}.
+     * @param left     An {@link Expression}.
+     * @param right    An {@link Expression}.
+     * @param op       A {@link String}.
      */
     public BinaryExpression(NodeLocation location, Expression left, Expression right, String op) {
         this(Optional.of(location), left, right, op);

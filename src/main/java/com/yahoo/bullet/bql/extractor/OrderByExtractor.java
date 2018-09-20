@@ -11,6 +11,8 @@ import com.yahoo.bullet.parsing.PostAggregation;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.yahoo.bullet.bql.tree.OrderBy.Ordering;
+import static com.yahoo.bullet.parsing.OrderBy.Direction;
 import static java.util.Objects.requireNonNull;
 
 public class OrderByExtractor {
@@ -20,11 +22,9 @@ public class OrderByExtractor {
      * Constructor that requires an {@link OrderBy}.
      *
      * @param node A non-null {@link OrderBy}.
-     * @throws NullPointerException when node is null.
      */
-    public OrderByExtractor(OrderBy node) throws NullPointerException {
+    public OrderByExtractor(OrderBy node) {
         requireNonNull(node);
-
         this.node = node;
     }
 
@@ -36,9 +36,7 @@ public class OrderByExtractor {
     public PostAggregation extractOrderBy() {
         List<String> fields = node.getSortItems().stream().map(sortItem -> sortItem.getSortKey().toFormatlessString()).collect(Collectors.toList());
         com.yahoo.bullet.parsing.OrderBy.Direction direction =
-                node.getOrdering() == OrderBy.Ordering.ASCENDING ?
-                        com.yahoo.bullet.parsing.OrderBy.Direction.ASC :
-                        com.yahoo.bullet.parsing.OrderBy.Direction.DESC;
+                node.getOrdering() == Ordering.ASCENDING ? Direction.ASC : Direction.DESC;
         com.yahoo.bullet.parsing.OrderBy orderBy = new com.yahoo.bullet.parsing.OrderBy();
         orderBy.setType(PostAggregation.Type.ORDER_BY);
         orderBy.setFields(fields);

@@ -105,7 +105,7 @@ public class QueryClassifier {
         @Override
         protected Void visitQuerySpecification(QuerySpecification node, Void context) throws ParsingException {
             if (isTopK(node)) {
-                validOrderBy(node);
+                validTopKOrderBy(node);
                 validHaving(node);
                 type = QueryType.TOP_K;
                 return null;
@@ -212,7 +212,7 @@ public class QueryClassifier {
             return node.getGroupBy().isPresent() && node.getOrderBy().isPresent() && node.getLimit().isPresent();
         }
 
-        private void validOrderBy(QuerySpecification node) {
+        private void validTopKOrderBy(QuerySpecification node) {
             OrderBy orderBy = node.getOrderBy().get();
             List<SortItem> sortItems = orderBy.getSortItems();
             if (sortItems.size() != 1) {

@@ -112,8 +112,7 @@ public class OrderBy extends Node {
             return false;
         }
         OrderBy o = (OrderBy) obj;
-        return Objects.equals(sortItems, o.sortItems) &&
-                (ordering == o.ordering);
+        return Objects.equals(sortItems, o.sortItems) && ordering == o.ordering;
     }
 
     @Override

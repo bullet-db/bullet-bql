@@ -21,7 +21,7 @@ public class CastExpression extends Expression {
      * Constructor that requires an {@link Expression} and a {@link String} castType.
      *
      * @param expression An {@link Expression}.
-     * @param castType A {@link String}.
+     * @param castType   A {@link String}.
      */
     public CastExpression(Expression expression, String castType) {
         this(Optional.empty(), expression, castType);
@@ -30,9 +30,9 @@ public class CastExpression extends Expression {
     /**
      * Constructor that requires a {@link NodeLocation}, an {@link Expression}, and a {@link String} castType.
      *
-     * @param location A {@link NodeLocation}.
+     * @param location   A {@link NodeLocation}.
      * @param expression An {@link Expression}.
-     * @param castType A {@link String}.
+     * @param castType   A {@link String}.
      */
     public CastExpression(NodeLocation location, Expression expression, String castType) {
         this(Optional.of(location), expression, castType);
@@ -93,7 +93,6 @@ public class CastExpression extends Expression {
             return false;
         }
         CastExpression that = (CastExpression) obj;
-        return Objects.equals(expression, that.expression) &&
-                Objects.equals(castType, that.castType);
+        return Objects.equals(expression, that.expression) && Objects.equals(castType, that.castType);
     }
 }

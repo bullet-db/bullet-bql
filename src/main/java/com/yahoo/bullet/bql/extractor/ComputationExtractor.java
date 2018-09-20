@@ -73,6 +73,11 @@ public class ComputationExtractor {
     }
 
     private static class ExtractVisitor extends ASTVisitor<com.yahoo.bullet.parsing.Expression, Void> {
+        private static final String ADD = "+";
+        private static final String SUB = "-";
+        private static final String MUL = "*";
+        private static final String DIV = "/";
+
         private Map<Node, Identifier> aliases;
 
         ExtractVisitor(Map<Node, Identifier> aliases) {
@@ -98,16 +103,16 @@ public class ComputationExtractor {
             binaryExpression.setLeft(process(node.getLeft()));
             binaryExpression.setRight(process(node.getRight()));
             switch (node.getOp()) {
-                case "+":
+                case ADD:
                     binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.ADD);
                     break;
-                case "-":
+                case SUB:
                     binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.SUB);
                     break;
-                case "*":
+                case MUL:
                     binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.MUL);
                     break;
-                case "/":
+                case DIV:
                     binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.DIV);
                     break;
                 default:
