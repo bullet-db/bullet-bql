@@ -348,12 +348,12 @@ public class QueryExtractor {
                 postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
             }
             node.getOrderBy().ifPresent(value -> {
-                if (postAggregations != null) {
-                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                } else {
-                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
-                }
-            });
+                    if (postAggregations != null) {
+                        postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                    } else {
+                        postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                    }
+                });
         }
     }
 }
