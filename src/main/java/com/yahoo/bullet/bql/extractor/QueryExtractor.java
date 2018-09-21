@@ -310,12 +310,27 @@ public class QueryExtractor {
             }
 
             aggregation = new AggregationExtractor(aliases).extractTopKFunction(topK);
+
+            node.getOrderBy().ifPresent(value -> {
+                if (postAggregations != null) {
+                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                } else {
+                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                }
+            });
         }
 
         private void extractDistribution(QuerySpecification node) {
             SelectItem item = node.getSelect().getSelectItems().get(0);
             Distribution distribution = (Distribution) item.getValue();
             aggregation = new AggregationExtractor(aliases).extractDistribution(distribution, size);
+            node.getOrderBy().ifPresent(value -> {
+                if (postAggregations != null) {
+                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                } else {
+                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                }
+            });
         }
 
         private void extractCountDistinct(QuerySpecification node) throws ParsingException {
@@ -326,6 +341,14 @@ public class QueryExtractor {
 
             FunctionCall countDistinct = (FunctionCall) item.getValue();
             aggregation = new AggregationExtractor(aliases).extractCountDistinct(countDistinct);
+
+            node.getOrderBy().ifPresent(value -> {
+                if (postAggregations != null) {
+                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                } else {
+                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                }
+            });
         }
 
         private void extractGroup(QuerySpecification node) {
@@ -337,6 +360,13 @@ public class QueryExtractor {
                 groupByFields = selectFields;
             }
             aggregation = new AggregationExtractor(aliases).extractGroup(selectFields, groupByFields, size);
+            node.getOrderBy().ifPresent(value -> {
+                if (postAggregations != null) {
+                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                } else {
+                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                }
+            });
         }
 
         private void extractRaw(QuerySpecification node) {

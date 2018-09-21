@@ -37,12 +37,10 @@ public class ComputationExtractor {
      *
      * @param computations The non-null Set of computations.
      * @param aliases      The non-null Map of aliases.
-     * @throws NullPointerException when any of selectFields and aliases is null.
      */
-    public ComputationExtractor(Set<Expression> computations, Map<Node, Identifier> aliases) throws NullPointerException {
+    public ComputationExtractor(Set<Expression> computations, Map<Node, Identifier> aliases) {
         requireNonNull(computations);
         requireNonNull(aliases);
-
         this.computations = computations;
         this.aliases = aliases;
     }
@@ -53,23 +51,19 @@ public class ComputationExtractor {
      * @return A List of PostAggregations based on computations and aliases.
      */
     public List<PostAggregation> extractComputations() {
-        ExtractVisitor visitor = new ExtractVisitor(aliases);
+        ExtractVisitor visitor = new ExtractVisitor();
 
         return computations.stream().map(node -> {
                 Computation computation = new Computation();
                 computation.setType(PostAggregation.Type.COMPUTATION);
                 computation.setExpression(visitor.process(node));
-                computation.setNewName(getAlias(node));
+                computation.setNewName(getNewName(node));
                 return computation;
             }).collect(Collectors.toList());
     }
 
-    private String getAlias(Expression column) {
-        if (aliases.containsKey(column)) {
-            return aliases.get(column).toFormatlessString();
-        } else {
-            return column.toFormatlessString();
-        }
+    private String getNewName(Expression column) {
+        return aliases.containsKey(column) ? aliases.get(column).toFormatlessString() : column.toFormatlessString();
     }
 
     private static class ExtractVisitor extends ASTVisitor<com.yahoo.bullet.parsing.Expression, Void> {
@@ -77,12 +71,6 @@ public class ComputationExtractor {
         private static final String SUB = "-";
         private static final String MUL = "*";
         private static final String DIV = "/";
-
-        private Map<Node, Identifier> aliases;
-
-        ExtractVisitor(Map<Node, Identifier> aliases) {
-            this.aliases = aliases;
-        }
 
         protected com.yahoo.bullet.parsing.Expression visitCastExpression(CastExpression node, Void context) throws ParsingException {
             if (node.getExpression() instanceof BinaryExpression) {

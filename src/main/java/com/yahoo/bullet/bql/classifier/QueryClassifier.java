@@ -113,9 +113,7 @@ public class QueryClassifier {
                 if (node.getHaving().isPresent()) {
                     throw new ParsingException("HAVING is only supported for TOP K");
                 }
-                if (node.getOrderBy().isPresent()) {
-                    node.getOrderBy().ifPresent(this::process);
-                }
+                node.getOrderBy().ifPresent(this::process);
             }
 
             process(node.getSelect());
