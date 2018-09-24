@@ -8,7 +8,7 @@ package com.yahoo.bullet.bql.extractor;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
-import com.yahoo.bullet.bql.tree.BinaryExpression;
+import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
@@ -16,7 +16,10 @@ import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.Literal;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.ParensExpression;
+import com.yahoo.bullet.parsing.BinaryExpression;
 import com.yahoo.bullet.parsing.Computation;
+import com.yahoo.bullet.parsing.Expression.Operation;
+import com.yahoo.bullet.parsing.LeafExpression;
 import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Value;
 import com.yahoo.bullet.typesystem.Type;
@@ -73,35 +76,37 @@ public class ComputationExtractor {
         private static final String DIV = "/";
 
         protected com.yahoo.bullet.parsing.Expression visitCastExpression(CastExpression node, Void context) throws ParsingException {
-            if (node.getExpression() instanceof BinaryExpression) {
-                com.yahoo.bullet.parsing.BinaryExpression expression = (com.yahoo.bullet.parsing.BinaryExpression) process(node.getExpression());
-                expression.setType(Type.valueOf(node.getCastType().toUpperCase()));
-                return expression;
-            } else if (!(node.getExpression() instanceof CastExpression)) {
-                com.yahoo.bullet.parsing.LeafExpression expression = (com.yahoo.bullet.parsing.LeafExpression) process(node.getExpression());
-                Value value = expression.getValue();
-                expression.setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
-                return expression;
+            if (!(node.getExpression() instanceof CastExpression)) {
+                com.yahoo.bullet.parsing.Expression expression = process(node.getExpression());
+                if (expression instanceof BinaryExpression) {
+                    ((BinaryExpression) expression).setType(Type.valueOf(node.getCastType().toUpperCase()));
+                    return expression;
+                }
+                if (expression instanceof LeafExpression) {
+                    Value value = ((LeafExpression) expression).getValue();
+                    ((LeafExpression) expression).setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
+                    return expression;
+                }
             }
             throw new ParsingException("Only casting of binary and leaf expressions supported");
         }
 
-        protected com.yahoo.bullet.parsing.Expression visitBinaryExpression(BinaryExpression node, Void context) throws ParsingException {
-            com.yahoo.bullet.parsing.BinaryExpression binaryExpression = new com.yahoo.bullet.parsing.BinaryExpression();
+        protected com.yahoo.bullet.parsing.Expression visitBinaryExpression(InfixExpression node, Void context) throws ParsingException {
+            BinaryExpression binaryExpression = new BinaryExpression();
             binaryExpression.setLeft(process(node.getLeft()));
             binaryExpression.setRight(process(node.getRight()));
             switch (node.getOp()) {
                 case ADD:
-                    binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.ADD);
+                    binaryExpression.setOperation(Operation.ADD);
                     break;
                 case SUB:
-                    binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.SUB);
+                    binaryExpression.setOperation(Operation.SUB);
                     break;
                 case MUL:
-                    binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.MUL);
+                    binaryExpression.setOperation(Operation.MUL);
                     break;
                 case DIV:
-                    binaryExpression.setOperation(com.yahoo.bullet.parsing.Expression.Operation.DIV);
+                    binaryExpression.setOperation(Operation.DIV);
                     break;
                 default:
                     throw new ParsingException("Only +, -, *, / supported");
@@ -111,33 +116,36 @@ public class ComputationExtractor {
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitParensExpression(ParensExpression node, Void context) {
+            if (node.getValue() instanceof CastExpression) {
+                throw new ParsingException("CAST cannot be surrounded in parentheses.");
+            }
             return process(node.getValue());
         }
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitLiteral(Literal node, Void context) {
-            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            LeafExpression leafExpression = new LeafExpression();
             leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString()));
             return leafExpression;
         }
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitArithmeticUnary(ArithmeticUnaryExpression node, Void context) {
-            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            LeafExpression leafExpression = new LeafExpression();
             leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString()));
             return leafExpression;
         }
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitIdentifier(Identifier node, Void context) {
-            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            LeafExpression leafExpression = new LeafExpression();
             leafExpression.setValue(new Value(Value.Kind.FIELD, node.toFormatlessString()));
             return leafExpression;
         }
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitDereferenceExpression(DereferenceExpression node, Void context) {
-            com.yahoo.bullet.parsing.LeafExpression leafExpression = new com.yahoo.bullet.parsing.LeafExpression();
+            LeafExpression leafExpression = new LeafExpression();
             leafExpression.setValue(new Value(Value.Kind.FIELD, node.toFormatlessString()));
             return leafExpression;
         }

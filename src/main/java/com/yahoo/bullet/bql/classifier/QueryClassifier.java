@@ -31,6 +31,7 @@ import java.util.Set;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.ALL;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.COLUMN;
+import static com.yahoo.bullet.bql.tree.SelectItem.Type.COMPUTATION;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.COUNT_DISTINCT;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.DISTRIBUTION;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.GROUP;
@@ -135,12 +136,12 @@ public class QueryClassifier {
                 Type selectType = item.getType();
 
                 if (!isValidSelectDistinct(selectType)) {
-                    throw new ParsingException("SELECT DISTINCT can only run with field, field.subFiled or field.*");
+                    throw new ParsingException("SELECT DISTINCT can only run with field, field.subField or field.*");
                 }
 
                 if ((selectType == COUNT_DISTINCT || selectType == TOP_K || selectType == DISTRIBUTION ||
-                        selectType == ALL) && selectItems.size() > 1) {
-                    throw new ParsingException("SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other selectItems");
+                        selectType == ALL) && selectItems.stream().anyMatch(selectItem -> selectItem != item && selectItem.getType() != COMPUTATION)) {
+                    throw new ParsingException("SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other non-computation selectItems");
                 }
                 updateSelectFields(item);
                 updateAggregation(item);

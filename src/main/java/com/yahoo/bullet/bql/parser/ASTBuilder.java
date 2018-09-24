@@ -15,7 +15,7 @@ import com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
 import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
-import com.yahoo.bullet.bql.tree.BinaryExpression;
+import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
 import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
@@ -493,8 +493,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitBinaryExpression(BQLBaseParser.BinaryExpressionContext context) {
-        return new BinaryExpression(getLocation(context),
+    public Node visitInfixExpression(BQLBaseParser.InfixExpressionContext context) {
+        return new InfixExpression(getLocation(context),
                                     (Expression) visit(context.left),
                                     (Expression) visit(context.right),
                                     context.op.getText());

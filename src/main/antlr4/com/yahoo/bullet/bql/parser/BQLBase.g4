@@ -169,8 +169,8 @@ primaryExpression
 arithmeticExpression
     : '(' arithmeticExpression ')'                                                        #parensExpression
     | CAST '(' arithmeticExpression ',' castType ')'                                      #castExpression
-    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression          #binaryExpression
-    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression              #binaryExpression
+    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression          #infixExpression
+    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression              #infixExpression
     | valueExpression                                                                     #leafExpression
     ;
 

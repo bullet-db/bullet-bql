@@ -13,7 +13,7 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class BinaryExpression extends Expression {
+public class InfixExpression extends Expression {
     private final Expression left;
     private final Expression right;
     private final String op;
@@ -25,7 +25,7 @@ public class BinaryExpression extends Expression {
      * @param right An {@link Expression}.
      * @param op    A {@link String}.
      */
-    public BinaryExpression(Expression left, Expression right, String op) {
+    public InfixExpression(Expression left, Expression right, String op) {
         this(Optional.empty(), left, right, op);
     }
 
@@ -37,11 +37,11 @@ public class BinaryExpression extends Expression {
      * @param right    An {@link Expression}.
      * @param op       A {@link String}.
      */
-    public BinaryExpression(NodeLocation location, Expression left, Expression right, String op) {
+    public InfixExpression(NodeLocation location, Expression left, Expression right, String op) {
         this(Optional.of(location), left, right, op);
     }
 
-    private BinaryExpression(Optional<NodeLocation> location, Expression left, Expression right, String op) {
+    private InfixExpression(Optional<NodeLocation> location, Expression left, Expression right, String op) {
         super(location);
         checkArgument(left != null, "left is null");
         checkArgument(right != null, "right is null");
@@ -57,7 +57,7 @@ public class BinaryExpression extends Expression {
     }
 
     /**
-     * Get the {@link #left} of this BinaryExpression.
+     * Get the {@link #left} of this InfixExpression.
      *
      * @return An {@link Expression}.
      */
@@ -66,7 +66,7 @@ public class BinaryExpression extends Expression {
     }
 
     /**
-     * Get the {@link #right} of this BinaryExpression.
+     * Get the {@link #right} of this InfixExpression.
      *
      * @return An {@link Expression}.
      */
@@ -75,7 +75,7 @@ public class BinaryExpression extends Expression {
     }
 
     /**
-     * Get the {@link #op} of this BinaryExpression.
+     * Get the {@link #op} of this InfixExpression.
      *
      * @return A {@link String}.
      */
@@ -106,7 +106,7 @@ public class BinaryExpression extends Expression {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        BinaryExpression that = (BinaryExpression) obj;
+        InfixExpression that = (InfixExpression) obj;
         return Objects.equals(left, that.left) &&
                 Objects.equals(right, that.right) &&
                 Objects.equals(op, that.op);

@@ -165,8 +165,17 @@ public class QueryExtractor {
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
             }
+            if (!computations.isEmpty()) {
+                postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
+            }
             if (type != TOP_K) {
-                extractOrderBy(node);
+                node.getOrderBy().ifPresent(value -> {
+                        if (postAggregations != null) {
+                            postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                        } else {
+                            postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                        }
+                    });
             }
             node.getFrom().ifPresent(this::process);
             node.getWhere().ifPresent(value -> {
@@ -347,19 +356,6 @@ public class QueryExtractor {
             if (type == SELECT_FIELDS) {
                 projection = new ProjectionExtractor(selectFields, aliases).extractProjection();
             }
-            if (!computations.isEmpty()) {
-                postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
-            }
-        }
-
-        private void extractOrderBy(QuerySpecification node) {
-            node.getOrderBy().ifPresent(value -> {
-                    if (postAggregations != null) {
-                        postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                    } else {
-                        postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
-                    }
-                });
         }
     }
 }

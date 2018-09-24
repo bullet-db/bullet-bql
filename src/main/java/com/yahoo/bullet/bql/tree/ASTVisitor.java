@@ -563,13 +563,13 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
-     * Visit a {@link BinaryExpression} with passed in context.
+     * Visit a {@link InfixExpression} with passed in context.
      *
-     * @param node    A {@link BinaryExpression}.
+     * @param node    A {@link InfixExpression}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
-    protected R visitBinaryExpression(BinaryExpression node, C context) {
+    protected R visitBinaryExpression(InfixExpression node, C context) {
         return visitNode(node, context);
     }
 

@@ -16,7 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
-import com.yahoo.bullet.bql.tree.BinaryExpression;
+import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
 import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
@@ -381,13 +381,13 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitBinaryExpression(BinaryExpression node, Void context) {
+        protected String visitBinaryExpression(InfixExpression node, Void context) {
             return process(node.getLeft(), context) + " " + node.getOp() + " " + process(node.getRight(), context);
         }
 
         @Override
         protected String visitParensExpression(ParensExpression node, Void context) {
-            if (node.getValue() instanceof BinaryExpression) {
+            if (node.getValue() instanceof InfixExpression) {
                 return "(" + node.getValue().toFormatlessString() + ")";
             }
             return node.getValue().toFormatlessString();

@@ -333,12 +333,12 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitBinaryExpression() {
-        BinaryExpression binaryExpression = new BinaryExpression(identifier("aaa"), new DoubleLiteral("5.0"), "+");
+        InfixExpression infixExpression = new InfixExpression(identifier("aaa"), new DoubleLiteral("5.0"), "+");
 
         ASTTestVisitor spy = spy(visitor);
-        spy.process(binaryExpression);
-        verify(spy).visitBinaryExpression(binaryExpression, null);
-        verify(spy).visitNode(binaryExpression, null);
+        spy.process(infixExpression);
+        verify(spy).visitBinaryExpression(infixExpression, null);
+        verify(spy).visitNode(infixExpression, null);
     }
 
     @Test
