@@ -53,6 +53,7 @@ import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperati
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.SUM;
 import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.GROUP;
 import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.SELECT_FIELDS;
+import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.TOP_K;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.ALL;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.COMPUTATION;
 import static java.util.Objects.requireNonNull;
@@ -164,7 +165,9 @@ public class QueryExtractor {
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
             }
-
+            if (type != TOP_K) {
+                extractOrderBy(node);
+            }
             node.getFrom().ifPresent(this::process);
             node.getWhere().ifPresent(value -> {
                     process(value);
@@ -310,27 +313,12 @@ public class QueryExtractor {
             }
 
             aggregation = new AggregationExtractor(aliases).extractTopKFunction(topK);
-
-            node.getOrderBy().ifPresent(value -> {
-                if (postAggregations != null) {
-                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                } else {
-                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
-                }
-            });
         }
 
         private void extractDistribution(QuerySpecification node) {
             SelectItem item = node.getSelect().getSelectItems().get(0);
             Distribution distribution = (Distribution) item.getValue();
             aggregation = new AggregationExtractor(aliases).extractDistribution(distribution, size);
-            node.getOrderBy().ifPresent(value -> {
-                if (postAggregations != null) {
-                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                } else {
-                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
-                }
-            });
         }
 
         private void extractCountDistinct(QuerySpecification node) throws ParsingException {
@@ -341,14 +329,6 @@ public class QueryExtractor {
 
             FunctionCall countDistinct = (FunctionCall) item.getValue();
             aggregation = new AggregationExtractor(aliases).extractCountDistinct(countDistinct);
-
-            node.getOrderBy().ifPresent(value -> {
-                if (postAggregations != null) {
-                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                } else {
-                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
-                }
-            });
         }
 
         private void extractGroup(QuerySpecification node) {
@@ -360,13 +340,6 @@ public class QueryExtractor {
                 groupByFields = selectFields;
             }
             aggregation = new AggregationExtractor(aliases).extractGroup(selectFields, groupByFields, size);
-            node.getOrderBy().ifPresent(value -> {
-                if (postAggregations != null) {
-                    postAggregations.add(new OrderByExtractor(value).extractOrderBy());
-                } else {
-                    postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
-                }
-            });
         }
 
         private void extractRaw(QuerySpecification node) {
@@ -377,6 +350,9 @@ public class QueryExtractor {
             if (!computations.isEmpty()) {
                 postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
             }
+        }
+
+        private void extractOrderBy(QuerySpecification node) {
             node.getOrderBy().ifPresent(value -> {
                     if (postAggregations != null) {
                         postAggregations.add(new OrderByExtractor(value).extractOrderBy());

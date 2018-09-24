@@ -42,7 +42,6 @@ import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
-import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.bql.tree.TopK;

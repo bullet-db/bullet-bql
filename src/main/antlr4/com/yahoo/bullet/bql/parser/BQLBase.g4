@@ -167,11 +167,11 @@ primaryExpression
     ;
 
 arithmeticExpression
-    : '(' arithmeticExpression ')'                                                                    #parensExpression
-    | CAST '(' arithmeticExpression ',' castType ')'                                                    #castExpression
-    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression                            #binaryExpression
-    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression                            #binaryExpression
-    | valueExpression                                                                                 #leafExpression
+    : '(' arithmeticExpression ')'                                                        #parensExpression
+    | CAST '(' arithmeticExpression ',' castType ')'                                      #castExpression
+    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression          #binaryExpression
+    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression              #binaryExpression
+    | valueExpression                                                                     #leafExpression
     ;
 
 castType
