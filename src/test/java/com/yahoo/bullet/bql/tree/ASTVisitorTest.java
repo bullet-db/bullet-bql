@@ -320,4 +320,34 @@ public class ASTVisitorTest {
         verify(spy).visitGroupingElement(simpleGroupBy, null);
         verify(spy).visitNode(simpleGroupBy, null);
     }
+
+    @Test
+    public void testVisitCastExpression() {
+        CastExpression castExpression = new CastExpression(identifier("aaa"), "FLOAT");
+
+        ASTTestVisitor spy = spy(visitor);
+        spy.process(castExpression);
+        verify(spy).visitCastExpression(castExpression, null);
+        verify(spy).visitNode(castExpression, null);
+    }
+
+    @Test
+    public void testVisitBinaryExpression() {
+        BinaryExpression binaryExpression = new BinaryExpression(identifier("aaa"), new DoubleLiteral("5.0"), "+");
+
+        ASTTestVisitor spy = spy(visitor);
+        spy.process(binaryExpression);
+        verify(spy).visitBinaryExpression(binaryExpression, null);
+        verify(spy).visitNode(binaryExpression, null);
+    }
+
+    @Test
+    public void testVisitParensExpression() {
+        ParensExpression parensExpression = new ParensExpression(identifier("aaa"));
+
+        ASTTestVisitor spy = spy(visitor);
+        spy.process(parensExpression);
+        verify(spy).visitParensExpression(parensExpression, null);
+        verify(spy).visitNode(parensExpression, null);
+    }
 }

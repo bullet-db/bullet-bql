@@ -489,7 +489,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         BQLBaseParser.CastTypeContext castTypeContext = context.castType();
         return new CastExpression(getLocation(context),
                                   (Expression) visit(context.arithmeticExpression()),
-                                  castTypeContext != null ? castTypeContext.getText() : null);
+                                  castTypeContext.getText());
     }
 
     @Override

@@ -36,7 +36,7 @@ public class OrderByExtractor {
     public PostAggregation extractOrderBy() {
         List<String> fields = node.getSortItems().stream().map(sortItem -> sortItem.getSortKey().toFormatlessString()).collect(Collectors.toList());
         com.yahoo.bullet.parsing.OrderBy.Direction direction =
-                node.getOrdering() == Ordering.ASCENDING ? Direction.ASC : Direction.DESC;
+                node.getOrdering() == Ordering.DESCENDING ? Direction.DESC : Direction.ASC;
         com.yahoo.bullet.parsing.OrderBy orderBy = new com.yahoo.bullet.parsing.OrderBy();
         orderBy.setType(PostAggregation.Type.ORDER_BY);
         orderBy.setFields(fields);
