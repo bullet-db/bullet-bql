@@ -648,4 +648,62 @@ public class BulletQueryBuilderTest {
         builder.buildJson(
                 "SELECT * FROM STREAM(2000, TIME) LIMIT 1; SELECT * FROM STREAM(4000, TIME);");
     }
+
+    @Test
+    public void testBuildComputation() {
+        assertEquals(builder.buildJson("SELECT a + b FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"a + b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationWithAs() {
+        assertEquals(builder.buildJson("SELECT a + 5 AS b FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationWithAsterisk() {
+        assertEquals(builder.buildJson("SELECT *, a + 5 AS b FROM STREAM()"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationWithDistinct() {
+        //assertEquals(builder.buildJson("SELECT DISTINCT a + 5 AS b FROM STREAM()"), "");
+    }
+
+    @Test
+    public void testBuildComputationWithTopK() {
+        assertEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c, c * 100 FROM STREAM()"),
+                "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
+                        "\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}},\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"100\"}}," +
+                        "\"operation\":\"*\"},\"newName\":\"c * 100\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildCastComputation() {
+        assertEquals(builder.buildJson("SELECT CAST (a, FLOAT) AS b FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":" +
+                        "[{\"expression\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\",\"type\":\"FLOAT\"}},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationPemdas() {
+        assertEquals(builder.buildJson("SELECT CAST ((a) + b * ((c - (d))) / CAST ((g + (((f)))), FLOAT) - h, INTEGER) FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"d\"}},\"operation\":\"-\"},\"operation\":\"*\"},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"g\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"f\"}},\"type\":\"FLOAT\",\"operation\":\"+\"},\"operation\":\"/\"},\"operation\":\"+\"},\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"h\"}}," +
+                        "\"type\":\"INTEGER\",\"operation\":\"-\"},\"newName\":\"CAST (a + b * (c - d) / CAST ((g + f), FLOAT) - h, INTEGER)\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationExtra() {
+        assertEquals(builder.buildJson("SELECT a.b * -5 FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a.b\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5\"}},\"operation\":\"*\"},\"newName\":\"a.b * -5\",\"type\":\"COMPUTATION\"}]}");
+    }
 }
