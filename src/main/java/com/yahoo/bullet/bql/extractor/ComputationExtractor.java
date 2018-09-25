@@ -117,7 +117,7 @@ public class ComputationExtractor {
         @Override
         protected com.yahoo.bullet.parsing.Expression visitParensExpression(ParensExpression node, Void context) {
             if (node.getValue() instanceof CastExpression) {
-                throw new ParsingException("CAST cannot be surrounded in parentheses.");
+                throw new ParsingException("CAST cannot be surrounded in parentheses");
             }
             return process(node.getValue());
         }

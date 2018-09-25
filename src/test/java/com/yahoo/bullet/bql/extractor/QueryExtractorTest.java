@@ -180,4 +180,14 @@ public class QueryExtractorTest {
     public void testGroupBySelectFieldNotInGroupByClause() {
         builder.buildJson("SELECT COUNT(*), aaa FROM STREAM(2000, TIME)");
     }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only casting of binary and leaf expressions supported\\E.*")
+    public void testComputationCastCast() {
+        builder.buildJson("SELECT CAST (CAST (a, FLOAT), FLOAT) FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: CAST cannot be surrounded in parentheses\\E.*")
+    public void testComputationParensCast() {
+        builder.buildJson("SELECT CAST ((CAST (a, FLOAT)), FLOAT) FROM STREAM()");
+    }
 }
