@@ -110,14 +110,12 @@ public class QueryClassifier {
                 validHaving(node);
                 type = QueryType.TOP_K;
                 return null;
-            } else {
-                if (node.getHaving().isPresent()) {
-                    throw new ParsingException("HAVING is only supported for TOP K");
-                }
-                node.getOrderBy().ifPresent(this::process);
             }
-
+            if (node.getHaving().isPresent()) {
+                throw new ParsingException("HAVING is only supported for TOP K");
+            }
             process(node.getSelect());
+            node.getOrderBy().ifPresent(this::process);
             node.getGroupBy().ifPresent(this::process);
             if (type == QueryType.UNKNOWN) {
                 type = QueryType.SELECT_FIELDS;
@@ -217,7 +215,7 @@ public class QueryClassifier {
             if (sortItems.size() != 1) {
                 throw new ParsingException("Only one field is supported in ORDER BY for TOP K");
             }
-            if (orderBy.getOrdering() != OrderBy.Ordering.DESCENDING) {
+            if (sortItems.get(0).getOrdering() != SortItem.Ordering.DESCENDING) {
                 throw new ParsingException("Only DESC is supported in ORDER BY for TOP K");
             }
             Expression expression = sortItems.get(0).getSortKey();

@@ -32,7 +32,7 @@ query
 
 queryNoWith
     : queryTerm
-      (ORDER BY sortItem (',' sortItem)* ordering=(ASC | DESC)?)?
+      (ORDER BY sortItem (',' sortItem)*)?
       (WINDOWING '(' windowOperation ')')?
       (LIMIT limit=(INTEGER_VALUE | ALL))?
     ;
@@ -56,7 +56,7 @@ queryPrimary
     ;
 
 sortItem
-    : expression
+    : expression ordering=(ASC | DESC)?
     ;
 
 querySpecification

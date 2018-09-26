@@ -112,7 +112,7 @@ public class StatementBuilderTest {
 
         assertStatement("SELECT CUMFREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME)");
 
-        assertStatement("SELECT CUMFREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME) ORDER BY bbb");
+        assertStatement("SELECT CUMFREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME) ORDER BY aaa, bbb DESC");
 
         assertStatement("SELECT TOP(3, aaa) AS top3A FROM STREAM(3, TIME)");
 

@@ -165,9 +165,11 @@ public class QueryExtractor {
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
             }
+            // Computations do not go through with DISTINCT/GROUPBY since those only support selecting fields
             if (!computations.isEmpty()) {
                 postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
             }
+            // Only one OrderBy clause is supported, and TopK has a fixed OrderBy clause.
             if (type != TOP_K) {
                 node.getOrderBy().ifPresent(value -> {
                         if (postAggregations != null) {

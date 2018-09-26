@@ -16,6 +16,7 @@ import java.util.Optional;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.MAX;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.MIN;
 import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.FIRST;
+import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
 import static com.yahoo.bullet.bql.util.QueryUtil.equal;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleOrderBy;
@@ -62,7 +63,7 @@ public class FunctionCallTest {
         FunctionCall functionCallDiffFilter = new FunctionCall(type, Optional.of(diffFilter), Optional.of(orderBy), distinct, singletonList(argument));
         assertFalse(functionCall.equals(functionCallDiffFilter));
 
-        SortItem diffSortItem = new SortItem(identifier("ccc"), FIRST);
+        SortItem diffSortItem = new SortItem(identifier("ccc"), ASCENDING, FIRST);
         OrderBy diffOrderBy = new OrderBy(singletonList(diffSortItem));
         FunctionCall functionCallDiffOrderBy = new FunctionCall(type, Optional.of(filter), Optional.of(diffOrderBy), distinct, singletonList(argument));
         assertFalse(functionCall.equals(functionCallDiffOrderBy));

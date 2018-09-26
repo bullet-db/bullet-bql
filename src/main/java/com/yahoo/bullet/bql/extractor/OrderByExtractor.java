@@ -6,12 +6,12 @@
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.tree.OrderBy;
+import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.parsing.PostAggregation;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.yahoo.bullet.bql.tree.OrderBy.Ordering;
 import static com.yahoo.bullet.parsing.OrderBy.Direction;
 import static java.util.Objects.requireNonNull;
 
@@ -34,13 +34,14 @@ public class OrderByExtractor {
      * @return A PostAggregation based on an OrderBy node
      */
     public PostAggregation extractOrderBy() {
-        List<String> fields = node.getSortItems().stream().map(sortItem -> sortItem.getSortKey().toFormatlessString()).collect(Collectors.toList());
-        com.yahoo.bullet.parsing.OrderBy.Direction direction =
-                node.getOrdering() == Ordering.DESCENDING ? Direction.DESC : Direction.ASC;
+        List<com.yahoo.bullet.parsing.OrderBy.SortItem> fields = node.getSortItems().stream().map(sortItem ->
+                new com.yahoo.bullet.parsing.OrderBy.SortItem(
+                        sortItem.getSortKey().toFormatlessString(),
+                        sortItem.getOrdering() == SortItem.Ordering.DESCENDING ? Direction.DESC : Direction.ASC)
+            ).collect(Collectors.toList());
         com.yahoo.bullet.parsing.OrderBy orderBy = new com.yahoo.bullet.parsing.OrderBy();
         orderBy.setType(PostAggregation.Type.ORDER_BY);
         orderBy.setFields(fields);
-        orderBy.setDirection(direction);
         return orderBy;
     }
 }

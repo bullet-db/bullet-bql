@@ -110,11 +110,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         QueryBody term = (QueryBody) visit(context.queryTerm());
         Optional<OrderBy> orderBy = Optional.empty();
         if (context.ORDER() != null) {
-            orderBy = Optional.of(new OrderBy(getLocation(context.ORDER()),
-                                  visit(context.sortItem(), SortItem.class),
-                                  Optional.ofNullable(context.ordering)
-                                          .map(ASTBuilder::getOrderingType)
-                                          .orElse(OrderBy.Ordering.ASCENDING)));
+            orderBy = Optional.of(new OrderBy(getLocation(context.ORDER()), visit(context.sortItem(), SortItem.class)));
         }
         Optional<Windowing> windowing = visitIfPresent(context.windowOperation(), Windowing.class);
         QuerySpecification query = (QuerySpecification) term;
@@ -138,9 +134,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSortItem(BQLBaseParser.SortItemContext context) {
-        return new SortItem(getLocation(context),
-                            (Expression) visit(context.expression()),
-                            SortItem.NullOrdering.UNDEFINED);
+        return new SortItem(
+                getLocation(context),
+                (Expression) visit(context.expression()),
+                Optional.ofNullable(context.ordering)
+                        .map(ASTBuilder::getOrderingType)
+                        .orElse(SortItem.Ordering.ASCENDING),
+                SortItem.NullOrdering.UNDEFINED);
     }
 
     @Override
@@ -570,11 +570,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    private static OrderBy.Ordering getOrderingType(Token token) throws IllegalArgumentException {
+    private static SortItem.Ordering getOrderingType(Token token) throws IllegalArgumentException {
         if (token.getType() == BQLBaseLexer.DESC) {
-            return OrderBy.Ordering.DESCENDING;
+            return SortItem.Ordering.DESCENDING;
         } else if (token.getType() == BQLBaseLexer.ASC) {
-            return OrderBy.Ordering.ASCENDING;
+            return SortItem.Ordering.ASCENDING;
         }
         throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }

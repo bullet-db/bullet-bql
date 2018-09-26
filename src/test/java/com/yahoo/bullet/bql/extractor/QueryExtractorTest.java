@@ -190,4 +190,25 @@ public class QueryExtractorTest {
     public void testComputationParensCast() {
         builder.buildJson("SELECT CAST ((CAST (a, FLOAT)), FLOAT) FROM STREAM()");
     }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subField or field.*\\E.*")
+    public void testComputationDistinct() {
+        builder.buildJson("SELECT DISTINCT a + 5 FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subField or field.*\\E.*")
+    public void testComputationDistinctWithField() {
+        builder.buildJson("SELECT DISTINCT a, a + 5 FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: GROUP BY element (, element)* only supports grouping elements or grouping functions as selectItems\\E.*")
+    public void testComputationGroupBy() {
+        builder.buildJson("SELECT a + 5 FROM STREAM() GROUP BY a");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: GROUP BY element (, element)* only supports grouping elements or grouping functions as selectItems\\E.*")
+    public void testComputationGroupByWithField() {
+        builder.buildJson("SELECT a, a + 5 FROM STREAM() GROUP BY a");
+    }
+
 }

@@ -10,14 +10,12 @@
  */
 package com.yahoo.bullet.bql.util;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.bql.tree.Relation;
@@ -35,8 +33,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatExpression;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatStream;
+import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatOrderBy;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatWindowing;
-import static java.lang.String.format;
 
 public final class BQLFormatter {
     private static final String INDENT = "   ";
@@ -114,9 +112,7 @@ public final class BQLFormatter {
             }
 
             if (node.getOrderBy().isPresent()) {
-                append(indent, "ORDER BY " +
-                               format("%s", Joiner.on(", ").join(node.getOrderBy().get().getSortItems().stream().map(sortItem -> sortItem.getSortKey().toFormatlessString()).collect(Collectors.toList())))
-                               + (node.getOrderBy().get().getOrdering() == OrderBy.Ordering.DESCENDING ? " DESC" : " ASC") + '\n');
+                append(indent, formatOrderBy(node.getOrderBy().get()) + '\n');
             }
 
             if (node.getWindowing().isPresent()) {

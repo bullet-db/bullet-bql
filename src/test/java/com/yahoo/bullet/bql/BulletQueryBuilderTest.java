@@ -705,26 +705,28 @@ public class BulletQueryBuilderTest {
     @Test
     public void testBuildOrderBy() {
         assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[\"a\"],\"direction\":\"ASC\",\"type\":\"ORDERBY\"}]}");
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
         assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[\"a\"],\"direction\":\"ASC\",\"type\":\"ORDERBY\"}]}");
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
         assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a DESC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[\"a\"],\"direction\":\"DESC\",\"type\":\"ORDERBY\"}]}");
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
         assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a, b, c DESC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[\"a\",\"b\",\"c\"],\"direction\":\"DESC\",\"type\":\"ORDERBY\"}]}");
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
+        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC, b, c DESC"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
     }
 
     @Test
     public void testBuildOrderByWithTopK() {
         assertEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c FROM STREAM() ORDER BY c DESC"),
                 "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
-                        "\"postAggregations\":[{\"fields\":[\"c\"],\"direction\":\"DESC\",\"type\":\"ORDERBY\"}]}");
+                        "\"postAggregations\":[{\"fields\":[{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
     }
 
     @Test
     public void testBuildOrderByWithComputation() {
         assertEquals(builder.buildJson("SELECT a + b AS c FROM STREAM() ORDER BY c"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"c\",\"type\":\"COMPUTATION\"},{\"fields\":[\"c\"],\"direction\":\"ASC\",\"type\":\"ORDERBY\"}]}");
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"c\",\"type\":\"COMPUTATION\"},{\"fields\":[{\"field\":\"c\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
     }
 }

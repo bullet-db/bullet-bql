@@ -12,6 +12,8 @@ import java.util.List;
 
 import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.FIRST;
 import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.LAST;
+import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
+import static com.yahoo.bullet.bql.tree.SortItem.Ordering.DESCENDING;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static java.util.Collections.singletonList;
 import static org.testng.Assert.assertEquals;
@@ -25,7 +27,7 @@ public class SortItemTest {
     @BeforeClass
     public void setUp() {
         sortKey = identifier("aaa");
-        sortItem = new SortItem(sortKey, FIRST);
+        sortItem = new SortItem(sortKey, ASCENDING, FIRST);
     }
 
     @Test
@@ -35,7 +37,7 @@ public class SortItemTest {
 
     @Test
     public void testGetOrdering() {
-        //assertEquals(sortItem.getOrdering(), ASCENDING);
+        assertEquals(sortItem.getOrdering(), ASCENDING);
     }
 
     @Test
@@ -55,13 +57,16 @@ public class SortItemTest {
         assertFalse(sortItem.equals(sortKey));
 
         Expression diffSortKey = identifier("bbb");
-        SortItem sortItemDiffSortKey = new SortItem(diffSortKey, FIRST);
+        SortItem sortItemDiffSortKey = new SortItem(diffSortKey, ASCENDING, FIRST);
         assertFalse(sortItem.equals(sortItemDiffSortKey));
 
-        SortItem sortItemDiffNullOrdering = new SortItem(sortKey, LAST);
+        SortItem sortItemDiffOrdering = new SortItem(sortKey, DESCENDING, FIRST);
+        assertFalse(sortItem.equals(sortItemDiffOrdering));
+
+        SortItem sortItemDiffNullOrdering = new SortItem(sortKey, ASCENDING, LAST);
         assertFalse(sortItem.equals(sortItemDiffNullOrdering));
 
-        SortItem same = new SortItem(identifier("aaa"), FIRST);
+        SortItem same = new SortItem(identifier("aaa"), ASCENDING, FIRST);
         assertTrue(sortItem.equals(same));
     }
 }

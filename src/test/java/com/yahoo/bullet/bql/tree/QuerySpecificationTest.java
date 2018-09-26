@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.LAST;
+import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
 import static com.yahoo.bullet.bql.util.QueryUtil.equal;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
@@ -64,7 +65,7 @@ public class QuerySpecificationTest {
                 "from=Optional[Stream{timeDuration=Optional[10], recordDuration=Optional[20]}], " +
                 "where=(bbb = ccc), " +
                 "groupBy=Optional[GroupBy{isDistinct=true, groupingElements=[SimpleGroupBy{columns=[ddd]}]}], " +
-                "having=(eee = fff), orderBy=Optional[OrderBy{sortItems=[SortItem{sortKey=aaa, nullOrdering=FIRST}], ordering=ASCENDING}], " +
+                "having=(eee = fff), orderBy=Optional[OrderBy{sortItems=[SortItem{sortKey=aaa, ordering=ASCENDING, nullOrdering=FIRST}]}], " +
                 "limit=10, " +
                 "windowing=Windowing{emitEvery=100, emitType=TIME, include=WindowInclude{type=Optional[LAST], unit=TIME, number=Optional[100]}}}";
         assertEquals(querySpecification.toString(), expected);
@@ -143,7 +144,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffHaving));
 
-        SortItem sortItem2 = new SortItem(identifier("aaa"), LAST);
+        SortItem sortItem2 = new SortItem(identifier("aaa"), ASCENDING, LAST);
         OrderBy orderBy2 = new OrderBy(singletonList(sortItem2));
         QuerySpecification querySpecificationDiffOrderBy = new QuerySpecification(
                 select,

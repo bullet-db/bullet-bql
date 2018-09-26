@@ -42,6 +42,7 @@ import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
+import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.bql.tree.TopK;
@@ -196,8 +197,9 @@ public final class ExpressionFormatter {
         @Override
         protected String visitOrderBy(OrderBy node, Void context) {
             return "ORDER BY " +
-                   format("%s", Joiner.on(", ").join(node.getSortItems().stream().map(sortItem -> sortItem.getSortKey().toFormatlessString()).collect(Collectors.toList()))) +
-                   (node.getOrdering() == OrderBy.Ordering.DESCENDING ? " DESC" : " ASC");
+                    format("%s", Joiner.on(", ").join(node.getSortItems().stream().map(sortItem ->
+                            sortItem.getSortKey().toFormatlessString() + (sortItem.getOrdering() == SortItem.Ordering.DESCENDING ? " DESC" : " ASC")
+                        ).collect(Collectors.toList())));
         }
 
         @Override
@@ -435,6 +437,10 @@ public final class ExpressionFormatter {
     }
 
     static String formatStream(Stream node) {
+        return new Formatter(Optional.empty()).process(node);
+    }
+
+    static String formatOrderBy(OrderBy node) {
         return new Formatter(Optional.empty()).process(node);
     }
 
