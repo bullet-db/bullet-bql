@@ -158,15 +158,24 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
     
 where `select_clause` is one of
     
-    *
-    COUNT( DISTINCT reference_expr ( , reference_expr )? )
-    group_function ( AS? ColumnReference )? ( , group_function ( AS? ColumnReference )? )? ( , reference_expr ( AS? ColumnReference )? )?
-    reference_expr ( AS? ColumnReference )? ( , reference_expr ( AS? ColumnReference )? )?
-    distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )?
-    TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )?
+    * ( , arithmetic_expr (AS? ColumnReference )? )*
+    COUNT( DISTINCT reference_expr ( , reference_expr )* )
+    group_function ( AS? ColumnReference )? ( , group_function ( AS? ColumnReference )? )* ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
+    reference_expr ( AS? ColumnReference )? ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
+    arithmetic_expr ( AS? ColumnReference )? ( , arithmetic_expr ( AS? ColumnReference )? )*
+    distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
+    TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
     
 
 `reference_expr` is one of `ColumnReference` or `Dereference`.
+
+`arithmetic_expr` is one of
+    
+    ( arithmetic_expr )
+    arithmetic_expr ( * | / | + | - ) arithmetic_expr
+    CAST ( arithmetic_expr , ( Integer | Long | Float | Double | Boolean | String ) )
+    reference_expr
+    literal
     
 and `group_function` is one of `SUM(reference_expr)`, `MIN(reference_expr)`, `MAX(reference_expr)`, `AVG(reference_expr)` and `COUNT(*)`. `reference_expr` is one of ColumnReference and Dereference. `distribution_type` is one of `QUANTILE`, `FREQ` and `CUMFREQ`. The 1st number in `TOP` is K, and the 2nd number is an optional threshold.  The `input_mode` is one of 
 
@@ -206,15 +215,19 @@ and `groupBy_clause` is one of
 
     ()                                                                group all
     reference_expr ( , reference_expr )*                              group by
-    ( reference_expr ( , reference_expr )* )                          group by
-    
-and `HAVING` and `ORDER BY` are only supported for TopK. In which case, `having_clause` is 
+    ( reference_expr ( , reference_expr )* )                          group by    
+
+and `HAVING` and `ORDER BY` together is only supported for TopK. In which case, `having_clause` is 
 
     COUNT(*) >= Integer
     
 and `orderBy_clause` is
 
-    COUNT(*)
+    COUNT(*) DESC
+    
+If not TopK, `HAVING` is not supported, and `orderBy_clause` is
+
+    reference_expr (ASC | DESC)? ( , reference_expr (ASC | DESC)? )*
 
 and `windowing_clause` is one of 
 
