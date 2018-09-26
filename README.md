@@ -815,6 +815,83 @@ Or
         },
         "duration":10000
     }
+    
+### Computation
+
+**BQL**
+
+    SELECT TOP(500, 100, demographics.country, browser_name) AS numEvents, numEvents * 100 AS inflatedNumEvents
+    FROM STREAM(10000, TIME);
+    
+**Bullet Query**
+
+    {
+        "aggregation":{
+            "size":500,
+            "type":"TOP K",
+            "attributes":{
+                "newName":"numEvents",
+                "threshold":100
+            },
+            "fields":{
+                "browser_name":"browser_name",
+                "demographics.country":"demographics.country"
+            }
+        },
+        "duration":10000,
+        "postAggregations":[
+            {
+                "expression":{
+                    "left":{
+                        "value":{
+                            "kind":"FIELD","
+                            value":"numEvents"
+                        }
+                    },
+                    "right":{
+                        "value":{
+                            "kind":"VALUE",
+                            "value":"100"
+                        }
+                    },
+                    "operation":"*"
+                },
+                "newName":"inflatedNumEvents",
+                "type":"COMPUTATION"
+            }
+        ]
+    }
+
+### Order By
+
+**BQL**
+
+    SELECT DISTINCT browser_name
+    FROM STREAM(30000, TIME)
+    ORDER BY browser_name;
+    
+**Bullet Query**
+
+    {
+        "aggregation":{
+            "type":"GROUP",
+            "fields":{
+                "browser_name":"browser_name"
+            }
+        },
+        "duration":30000,
+        "postAggregations":[
+            {
+                "fields":[
+                    {
+                        "field":"browser_name",
+                        "direction":"ASC"
+                    }
+                ],
+                "type":"ORDERBY"
+            }
+        ]
+    }
 
 ## Useful links
 
