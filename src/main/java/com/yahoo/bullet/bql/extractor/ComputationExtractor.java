@@ -75,20 +75,27 @@ public class ComputationExtractor {
         private static final String MUL = "*";
         private static final String DIV = "/";
 
-        protected com.yahoo.bullet.parsing.Expression visitCastExpression(CastExpression node, Void context) throws ParsingException {
-            if (!(node.getExpression() instanceof CastExpression)) {
-                com.yahoo.bullet.parsing.Expression expression = process(node.getExpression());
-                if (expression instanceof BinaryExpression) {
-                    ((BinaryExpression) expression).setType(Type.valueOf(node.getCastType().toUpperCase()));
-                    return expression;
-                }
-                if (expression instanceof LeafExpression) {
-                    Value value = ((LeafExpression) expression).getValue();
-                    ((LeafExpression) expression).setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
-                    return expression;
-                }
+        private static boolean containsCastExpression(Expression node) {
+            while (node instanceof ParensExpression) {
+                node = ((ParensExpression) node).getValue();
             }
-            throw new ParsingException("Only casting of binary and leaf expressions supported");
+            return node instanceof CastExpression;
+        }
+
+        protected com.yahoo.bullet.parsing.Expression visitCastExpression(CastExpression node, Void context) throws ParsingException {
+            if (containsCastExpression(node.getExpression())) {
+                throw new ParsingException("Casting of cast expressions is not supported");
+            }
+            com.yahoo.bullet.parsing.Expression expression = process(node.getExpression());
+            if (expression instanceof BinaryExpression) {
+                ((BinaryExpression) expression).setType(Type.valueOf(node.getCastType().toUpperCase()));
+            } else if (expression instanceof LeafExpression) {
+                Value value = ((LeafExpression) expression).getValue();
+                ((LeafExpression) expression).setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
+            } else {
+                throw new ParsingException("Only casting of binary and leaf expressions supported");
+            }
+            return expression;
         }
 
         protected com.yahoo.bullet.parsing.Expression visitBinaryExpression(InfixExpression node, Void context) throws ParsingException {
@@ -116,9 +123,6 @@ public class ComputationExtractor {
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitParensExpression(ParensExpression node, Void context) {
-            if (node.getValue() instanceof CastExpression) {
-                throw new ParsingException("CAST cannot be surrounded in parentheses");
-            }
             return process(node.getValue());
         }
 

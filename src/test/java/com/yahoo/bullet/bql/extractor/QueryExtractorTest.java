@@ -181,14 +181,14 @@ public class QueryExtractorTest {
         builder.buildJson("SELECT COUNT(*), aaa FROM STREAM(2000, TIME)");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only casting of binary and leaf expressions supported\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Casting of cast expressions is not supported\\E.*")
     public void testComputationCastCast() {
         builder.buildJson("SELECT CAST (CAST (a, FLOAT), FLOAT) FROM STREAM()");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: CAST cannot be surrounded in parentheses\\E.*")
-    public void testComputationParensCast() {
-        builder.buildJson("SELECT CAST ((CAST (a, FLOAT)), FLOAT) FROM STREAM()");
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Casting of cast expressions is not supported\\E.*")
+    public void testComputationCastParensCast() {
+        builder.buildJson("SELECT (CAST ((CAST (a, FLOAT)), FLOAT)) FROM STREAM()");
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subField or field.*\\E.*")
