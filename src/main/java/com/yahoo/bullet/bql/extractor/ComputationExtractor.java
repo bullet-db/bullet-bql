@@ -94,7 +94,7 @@ public class ComputationExtractor {
             com.yahoo.bullet.parsing.Expression expression = process(node.getExpression());
             if (expression instanceof BinaryExpression) {
                 ((BinaryExpression) expression).setType(Type.valueOf(node.getCastType().toUpperCase()));
-            } else if (expression instanceof LeafExpression) {
+            } else {
                 Value value = ((LeafExpression) expression).getValue();
                 ((LeafExpression) expression).setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
             }

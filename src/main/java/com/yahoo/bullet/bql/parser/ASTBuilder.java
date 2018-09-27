@@ -570,13 +570,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    private static SortItem.Ordering getOrderingType(Token token) throws IllegalArgumentException {
+    private static SortItem.Ordering getOrderingType(Token token) {
         if (token.getType() == BQLBaseLexer.DESC) {
             return SortItem.Ordering.DESCENDING;
-        } else if (token.getType() == BQLBaseLexer.ASC) {
-            return SortItem.Ordering.ASCENDING;
         }
-        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
+        return SortItem.Ordering.ASCENDING;
     }
 
     private GroupOperationType getGroupOperationType(BQLBaseParser.FunctionCallContext context) {

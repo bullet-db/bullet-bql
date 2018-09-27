@@ -211,4 +211,8 @@ public class QueryExtractorTest {
         builder.buildJson("SELECT a, a + 5 FROM STREAM() GROUP BY a");
     }
 
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only long, double, decimal, boolean, and string literals supported\\E.*")
+    public void testComputationNull() {
+        builder.buildJson("SELECT a + NULL FROM STREAM()");
+    }
 }
