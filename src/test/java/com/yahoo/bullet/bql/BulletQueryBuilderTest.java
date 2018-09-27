@@ -713,8 +713,8 @@ public class BulletQueryBuilderTest {
     public void testBuildComputationDecimal() {
         BulletConfig config = new BulletConfig();
         config.set(BQLConfig.BQL_DECIMAL_LITERAL_TREATMENT, "AS_DECIMAL");
-        builder = new BulletQueryBuilder(config);
-        assertEquals(builder.buildJson("SELECT a + 5.0 FROM STREAM()"),
+        BulletQueryBuilder decimalBuilder = new BulletQueryBuilder(config);
+        assertEquals(decimalBuilder.buildJson("SELECT a + 5.0 FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
     }
