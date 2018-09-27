@@ -16,9 +16,9 @@ import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.Literal;
 import com.yahoo.bullet.bql.tree.LongLiteral;
 import com.yahoo.bullet.bql.tree.Node;
+import com.yahoo.bullet.bql.tree.NullLiteral;
 import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.parsing.BinaryExpression;
@@ -97,8 +97,6 @@ public class ComputationExtractor {
             } else if (expression instanceof LeafExpression) {
                 Value value = ((LeafExpression) expression).getValue();
                 ((LeafExpression) expression).setValue(new Value(value.getKind(), value.getValue(), Type.valueOf(node.getCastType().toUpperCase())));
-            } else {
-                throw new ParsingException("Only casting of binary and leaf expressions supported");
             }
             return expression;
         }
@@ -120,8 +118,6 @@ public class ComputationExtractor {
                 case DIV:
                     binaryExpression.setOperation(Operation.DIV);
                     break;
-                default:
-                    throw new ParsingException("Only +, -, *, / supported");
             }
             return binaryExpression;
         }
@@ -132,22 +128,43 @@ public class ComputationExtractor {
         }
 
         @Override
-        protected com.yahoo.bullet.parsing.Expression visitLiteral(Literal node, Void context) {
+        protected com.yahoo.bullet.parsing.Expression visitBooleanLiteral(BooleanLiteral node, Void context) {
             LeafExpression leafExpression = new LeafExpression();
-            Type type;
-            if (node instanceof LongLiteral) {
-                type = Type.LONG;
-            } else if (node instanceof DoubleLiteral || node instanceof DecimalLiteral) {
-                type = Type.DOUBLE;
-            } else if (node instanceof BooleanLiteral) {
-                type = Type.BOOLEAN;
-            } else if (node instanceof StringLiteral) {
-                type = Type.STRING;
-            } else {
-                throw new ParsingException("Only long, double, decimal, boolean, and string literals supported");
-            }
-            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), type));
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), Type.BOOLEAN));
             return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitLongLiteral(LongLiteral node, Void context) {
+            LeafExpression leafExpression = new LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), Type.LONG));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitDoubleLiteral(DoubleLiteral node, Void context) {
+            LeafExpression leafExpression = new LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), Type.DOUBLE));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitDecimalLiteral(DecimalLiteral node, Void context) {
+            LeafExpression leafExpression = new LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), Type.DOUBLE));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitStringLiteral(StringLiteral node, Void context) {
+            LeafExpression leafExpression = new LeafExpression();
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), Type.STRING));
+            return leafExpression;
+        }
+
+        @Override
+        protected com.yahoo.bullet.parsing.Expression visitNullLiteral(NullLiteral node, Void context) {
+            throw new ParsingException("Only long, double, decimal, boolean, and string literals supported");
         }
 
         @Override
@@ -156,10 +173,8 @@ public class ComputationExtractor {
             Type type;
             if (node.getValue() instanceof LongLiteral) {
                 type = Type.LONG;
-            } else if (node.getValue() instanceof DoubleLiteral || node.getValue() instanceof DecimalLiteral) {
-                type = Type.DOUBLE;
             } else {
-                throw new ParsingException("Only arithmetic unary of long, double, and decimal literals supported");
+                type = Type.DOUBLE;
             }
             leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), type));
             return leafExpression;
