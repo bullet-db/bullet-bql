@@ -38,6 +38,7 @@ import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,7 +66,7 @@ public class QueryExtractor {
 
     private Set<Expression> groupByFields;
     private Set<Expression> selectFields;
-    private Set<Expression> computations;
+    private List<Expression> computations;
     private Map<Node, Identifier> aliases;
     private Optional<Long> size;
     private Optional<Long> threshold;
@@ -106,7 +107,7 @@ public class QueryExtractor {
     private void reset() {
         groupByFields = new HashSet<>();
         selectFields = new HashSet<>();
-        computations = new HashSet<>();
+        computations = new ArrayList<>();
         aliases = new HashMap<>();
         size = Optional.empty();
         threshold = Optional.empty();

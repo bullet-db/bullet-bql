@@ -31,13 +31,12 @@ import com.yahoo.bullet.typesystem.Type;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
 public class ComputationExtractor {
-    private Set<Expression> computations;
+    private List<Expression> computations;
     private Map<Node, Identifier> aliases;
 
     /**
@@ -46,7 +45,7 @@ public class ComputationExtractor {
      * @param computations The non-null Set of computations.
      * @param aliases      The non-null Map of aliases.
      */
-    public ComputationExtractor(Set<Expression> computations, Map<Node, Identifier> aliases) {
+    public ComputationExtractor(List<Expression> computations, Map<Node, Identifier> aliases) {
         requireNonNull(computations);
         requireNonNull(aliases);
         this.computations = computations;
