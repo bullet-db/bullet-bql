@@ -8,14 +8,19 @@ package com.yahoo.bullet.bql.extractor;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
+import com.yahoo.bullet.bql.tree.BooleanLiteral;
+import com.yahoo.bullet.bql.tree.DecimalLiteral;
+import com.yahoo.bullet.bql.tree.DoubleLiteral;
 import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.Literal;
+import com.yahoo.bullet.bql.tree.LongLiteral;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.ParensExpression;
+import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.parsing.BinaryExpression;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Expression.Operation;
@@ -129,14 +134,34 @@ public class ComputationExtractor {
         @Override
         protected com.yahoo.bullet.parsing.Expression visitLiteral(Literal node, Void context) {
             LeafExpression leafExpression = new LeafExpression();
-            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString()));
+            Type type;
+            if (node instanceof LongLiteral) {
+                type = Type.LONG;
+            } else if (node instanceof DoubleLiteral || node instanceof DecimalLiteral) {
+                type = Type.DOUBLE;
+            } else if (node instanceof BooleanLiteral) {
+                type = Type.BOOLEAN;
+            } else if (node instanceof StringLiteral) {
+                type = Type.STRING;
+            } else {
+                throw new ParsingException("Only long, double, decimal, boolean, and string literals supported");
+            }
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), type));
             return leafExpression;
         }
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitArithmeticUnary(ArithmeticUnaryExpression node, Void context) {
             LeafExpression leafExpression = new LeafExpression();
-            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString()));
+            Type type;
+            if (node.getValue() instanceof LongLiteral) {
+                type = Type.LONG;
+            } else if (node.getValue() instanceof DoubleLiteral || node.getValue() instanceof DecimalLiteral) {
+                type = Type.DOUBLE;
+            } else {
+                throw new ParsingException("Only arithmetic unary of long, double, and decimal literals supported");
+            }
+            leafExpression.setValue(new Value(Value.Kind.VALUE, node.toFormatlessString(), type));
             return leafExpression;
         }
 
