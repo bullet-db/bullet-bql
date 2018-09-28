@@ -161,7 +161,7 @@ public class QueryExtractor {
                     break;
                 case SELECT_FIELDS:
                 case SELECT_ALL:
-                    extractRaw(node);
+                    extractRaw();
                     break;
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
@@ -354,7 +354,7 @@ public class QueryExtractor {
             aggregation = new AggregationExtractor(aliases).extractGroup(selectFields, groupByFields, size);
         }
 
-        private void extractRaw(QuerySpecification node) {
+        private void extractRaw() {
             aggregation = new AggregationExtractor(aliases).extractRaw(size);
             if (type == SELECT_FIELDS) {
                 projection = new ProjectionExtractor(selectFields, aliases).extractProjection();
