@@ -495,9 +495,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitInfixExpression(BQLBaseParser.InfixExpressionContext context) {
         return new InfixExpression(getLocation(context),
-                                    (Expression) visit(context.left),
-                                    (Expression) visit(context.right),
-                                    context.op.getText());
+                                   (Expression) visit(context.left),
+                                   (Expression) visit(context.right),
+                                   context.op.getText());
     }
 
     @Override
