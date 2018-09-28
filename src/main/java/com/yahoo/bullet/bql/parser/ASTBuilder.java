@@ -15,7 +15,9 @@ import com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
 import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
+import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
+import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
@@ -41,6 +43,7 @@ import com.yahoo.bullet.bql.tree.NodeLocation;
 import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.NullLiteral;
 import com.yahoo.bullet.bql.tree.OrderBy;
+import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.QualifiedName;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QueryBody;
@@ -481,6 +484,33 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new TopK(getLocation(context), columns, size, threshold);
     }
 
+    @Override
+    public Node visitCastExpression(BQLBaseParser.CastExpressionContext context) {
+        BQLBaseParser.CastTypeContext castTypeContext = context.castType();
+        return new CastExpression(getLocation(context),
+                                  (Expression) visit(context.arithmeticExpression()),
+                                  castTypeContext.getText());
+    }
+
+    @Override
+    public Node visitInfixExpression(BQLBaseParser.InfixExpressionContext context) {
+        return new InfixExpression(getLocation(context),
+                                   (Expression) visit(context.left),
+                                   (Expression) visit(context.right),
+                                   context.op.getText());
+    }
+
+    @Override
+    public Node visitLeafExpression(BQLBaseParser.LeafExpressionContext context) {
+        return visit(context.valueExpression());
+    }
+
+    @Override
+    public Node visitParensExpression(BQLBaseParser.ParensExpressionContext context) {
+        return new ParensExpression(getLocation(context),
+                                    (Expression) visit(context.arithmeticExpression()));
+    }
+
     // ************** Literals **************
 
     @Override
@@ -534,22 +564,17 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         if (nextResult == null) {
             throw new UnsupportedOperationException("Not yet implemented");
         }
-
         if (aggregate == null) {
             return nextResult;
         }
-
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    private static SortItem.Ordering getOrderingType(Token token) throws IllegalArgumentException {
+    private static SortItem.Ordering getOrderingType(Token token) {
         if (token.getType() == BQLBaseLexer.DESC) {
             return SortItem.Ordering.DESCENDING;
-        } else if (token.getType() == BQLBaseLexer.ASC) {
-            return SortItem.Ordering.ASCENDING;
         }
-
-        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
+        return SortItem.Ordering.ASCENDING;
     }
 
     private GroupOperationType getGroupOperationType(BQLBaseParser.FunctionCallContext context) {

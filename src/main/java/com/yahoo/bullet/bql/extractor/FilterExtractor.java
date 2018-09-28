@@ -28,6 +28,7 @@ import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.FilterClause;
 import com.yahoo.bullet.parsing.LogicalClause;
 import com.yahoo.bullet.parsing.ObjectFilterClause;
+import com.yahoo.bullet.parsing.Value;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -194,7 +195,7 @@ public class FilterExtractor {
             FilterClause filterClause = new ObjectFilterClause();
             filterClause.setOperation(operation);
             filterClause.setField(field);
-            filterClause.setValues(Stream.of(values).map(v -> new ObjectFilterClause.Value(ObjectFilterClause.Value.Kind.VALUE, v)).collect(Collectors.toList()));
+            filterClause.setValues(Stream.of(values).map(v -> new Value(Value.Kind.VALUE, v)).collect(Collectors.toList()));
 
             return filterClause;
         }
@@ -203,7 +204,7 @@ public class FilterExtractor {
             FilterClause filterClause = new ObjectFilterClause();
             filterClause.setOperation(operation);
             filterClause.setField(field);
-            filterClause.setValues(Stream.of(expressions).map(e -> new ObjectFilterClause.Value(e instanceof Identifier ? ObjectFilterClause.Value.Kind.FIELD : ObjectFilterClause.Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
+            filterClause.setValues(Stream.of(expressions).map(e -> new Value(e instanceof Identifier ? Value.Kind.FIELD : Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
 
             return filterClause;
         }

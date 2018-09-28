@@ -16,7 +16,9 @@ import com.google.common.collect.ImmutableSet;
 import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
+import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.BooleanLiteral;
+import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
@@ -36,8 +38,11 @@ import com.yahoo.bullet.bql.tree.LongLiteral;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.NullLiteral;
+import com.yahoo.bullet.bql.tree.OrderBy;
+import com.yahoo.bullet.bql.tree.ParensExpression;
 import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
 import com.yahoo.bullet.bql.tree.SimpleGroupBy;
+import com.yahoo.bullet.bql.tree.SortItem;
 import com.yahoo.bullet.bql.tree.Stream;
 import com.yahoo.bullet.bql.tree.StringLiteral;
 import com.yahoo.bullet.bql.tree.TopK;
@@ -52,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression.Sign.MINUS;
@@ -186,6 +192,14 @@ public final class ExpressionFormatter {
             builder.append(process(node.getColumns().get(0)))
                     .append(")");
             return builder.toString();
+        }
+
+        @Override
+        protected String visitOrderBy(OrderBy node, Void context) {
+            return "ORDER BY " +
+                    format("%s", Joiner.on(", ").join(node.getSortItems().stream().map(sortItem ->
+                            sortItem.getSortKey().toFormatlessString() + (sortItem.getOrdering() == SortItem.Ordering.DESCENDING ? " DESC" : " ASC")
+                        ).collect(Collectors.toList())));
         }
 
         @Override
@@ -364,6 +378,24 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        protected String visitCastExpression(CastExpression node, Void context) {
+            return "CAST (" + process(node.getExpression(), context) + ", " + node.getCastType().toUpperCase() + ")";
+        }
+
+        @Override
+        protected String visitBinaryExpression(InfixExpression node, Void context) {
+            return process(node.getLeft(), context) + " " + node.getOp() + " " + process(node.getRight(), context);
+        }
+
+        @Override
+        protected String visitParensExpression(ParensExpression node, Void context) {
+            if (node.getValue() instanceof InfixExpression) {
+                return "(" + node.getValue().toFormatlessString() + ")";
+            }
+            return node.getValue().toFormatlessString();
+        }
+
+        @Override
         protected String visitValueListExpression(ValueListExpression node, Void context) {
             return "(" + joinExpressions(node.getValues()) + ")";
         }
@@ -405,6 +437,10 @@ public final class ExpressionFormatter {
     }
 
     static String formatStream(Stream node) {
+        return new Formatter(Optional.empty()).process(node);
+    }
+
+    static String formatOrderBy(OrderBy node) {
         return new Formatter(Optional.empty()).process(node);
     }
 

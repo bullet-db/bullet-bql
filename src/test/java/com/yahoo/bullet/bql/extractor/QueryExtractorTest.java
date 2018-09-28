@@ -54,27 +54,27 @@ public class QueryExtractorTest {
         assertEquals(countWithGroup, countWithoutGroup);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subFiled or field.*\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subField or field.*\\E.*")
     public void testInvalidDistinctSelect() {
         builder.buildJson("SELECT DISTINCT aaa, COUNT(*) FROM STREAM(2000, TIME)");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other selectItems\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other non-computation selectItems\\E.*")
     public void testCountDistinctWithOtherSelect() {
         builder.buildJson("SELECT COUNT(DISTINCT aaa, bbb), ccc FROM STREAM(2000, TIME)");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other selectItems\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other non-computation selectItems\\E.*")
     public void testTopKWithOtherSelect() {
         builder.buildJson("SELECT TOP(1, 3, bbb), ccc FROM STREAM(2000, TIME)");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other selectItems\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other non-computation selectItems\\E.*")
     public void testDistributionWithOtherSelect() {
         builder.buildJson("SELECT QUANTILE(aaa, LINEAR, 11), ccc FROM STREAM(2000, TIME)");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other selectItems\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other non-computation selectItems\\E.*")
     public void testSelectAllWithOtherSelect() {
         builder.buildJson("SELECT *, ccc FROM STREAM(2000, TIME)");
     }
@@ -179,5 +179,40 @@ public class QueryExtractorTest {
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Select field aaa should be a grouping function or be in GROUP BY clause\\E.*")
     public void testGroupBySelectFieldNotInGroupByClause() {
         builder.buildJson("SELECT COUNT(*), aaa FROM STREAM(2000, TIME)");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Casting of cast expressions is not supported\\E.*")
+    public void testComputationCastCast() {
+        builder.buildJson("SELECT CAST (CAST (a, FLOAT), FLOAT) FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Casting of cast expressions is not supported\\E.*")
+    public void testComputationCastParensCast() {
+        builder.buildJson("SELECT (CAST ((CAST (a, FLOAT)), FLOAT)) FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subField or field.*\\E.*")
+    public void testComputationDistinct() {
+        builder.buildJson("SELECT DISTINCT a + 5 FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SELECT DISTINCT can only run with field, field.subField or field.*\\E.*")
+    public void testComputationDistinctWithField() {
+        builder.buildJson("SELECT DISTINCT a, a + 5 FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: GROUP BY element (, element)* only supports grouping elements or grouping functions as selectItems\\E.*")
+    public void testComputationGroupBy() {
+        builder.buildJson("SELECT a + 5 FROM STREAM() GROUP BY a");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: GROUP BY element (, element)* only supports grouping elements or grouping functions as selectItems\\E.*")
+    public void testComputationGroupByWithField() {
+        builder.buildJson("SELECT a, a + 5 FROM STREAM() GROUP BY a");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only long, double, decimal, boolean, and string literals supported\\E.*")
+    public void testComputationNull() {
+        builder.buildJson("SELECT a + NULL FROM STREAM()");
     }
 }

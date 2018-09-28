@@ -33,6 +33,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatExpression;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatStream;
+import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatOrderBy;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatWindowing;
 
 public final class BQLFormatter {
@@ -110,6 +111,10 @@ public final class BQLFormatter {
                 append(indent, "GROUP BY " + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "") + ExpressionFormatter.formatGroupBy(node.getGroupBy().get().getGroupingElements())).append('\n');
             }
 
+            if (node.getOrderBy().isPresent()) {
+                append(indent, formatOrderBy(node.getOrderBy().get()) + '\n');
+            }
+
             if (node.getWindowing().isPresent()) {
                 process(node.getWindowing().get(), indent);
                 builder.append('\n');
@@ -169,7 +174,6 @@ public final class BQLFormatter {
 
         @Override
         protected Void visitWindowing(Windowing node, Integer indent) {
-
             builder.append(formatWindowing(node));
 
             return null;

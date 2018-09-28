@@ -104,19 +104,29 @@ public class StatementBuilderTest {
 
         assertStatement("SELECT QUANTILE(aaa, MANUAL, 0, 0.4, 0.8, 0.9) AS quantileA FROM STREAM(3, TIME)");
 
+        assertStatement("SELECT QUANTILE(aaa, MANUAL, 0, 0.4, 0.8, 0.9) AS quantileA FROM STREAM(3, TIME) ORDER BY bbb");
+
         assertStatement("SELECT FREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME)");
 
+        assertStatement("SELECT FREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME) ORDER BY bbb");
+
         assertStatement("SELECT CUMFREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT CUMFREQ(aaa, LINEAR, 11) AS freqA FROM STREAM(3, TIME) ORDER BY aaa, bbb DESC");
 
         assertStatement("SELECT TOP(3, aaa) AS top3A FROM STREAM(3, TIME)");
 
         assertStatement("SELECT TOP(3, 5, aaa) AS top3A FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT TOP(3, 5, aaa) AS top3A FROM STREAM(3, TIME) ORDER BY bbb");
 
         assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WINDOWING(EVERY, 3, TIME, FIRST, 3, TIME)");
 
         assertStatement("SELECT COUNT(*) FROM STREAM(3, TIME) GROUP BY aaa.bbb WINDOWING(EVERY, 3, TIME, FIRST, 3, TIME)");
 
         assertStatement("SELECT COUNT(DISTINCT aaa) AS dstCountA FROM STREAM(3, TIME) WINDOWING(EVERY, 3, TIME, FIRST, 3, TIME)");
+
+        assertStatement("SELECT COUNT(DISTINCT aaa) AS dstCountA FROM STREAM(3, TIME) ORDER BY bbb WINDOWING(EVERY, 3, TIME, FIRST, 3, TIME)");
 
         assertStatement("SELECT QUANTILE(aaa, LINEAR, 11) AS quantileA FROM STREAM(3, TIME) WINDOWING(EVERY, 3, TIME, FIRST, 3, TIME)");
 
@@ -143,6 +153,18 @@ public class StatementBuilderTest {
         assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa) IN (1, 2)");
 
         assertStatement("SELECT aaa AS bbb FROM STREAM(3, TIME) WHERE SIZEOF(aaa) NOT IN (1, 2)");
+
+        assertStatement("SELECT aaa + bbb FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT aaa + bbb AS ccc FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT aaa + 5 AS bbb FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT CAST(aaa, FLOAT) AS bbb FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT CAST(aaa + 5, FLOAT) AS bbb FROM STREAM(3, TIME)");
+
+        assertStatement("SELECT CAST((aaa + CAST(5, FLOAT)), INTEGER) + bbb AS ccc FROM STREAM(3, TIME)");
     }
 
     @Test

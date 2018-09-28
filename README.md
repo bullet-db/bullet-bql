@@ -158,15 +158,23 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
     
 where `select_clause` is one of
     
-    *
-    COUNT( DISTINCT reference_expr ( , reference_expr )? )
-    group_function ( AS? ColumnReference )? ( , group_function ( AS? ColumnReference )? )? ( , reference_expr ( AS? ColumnReference )? )?
-    reference_expr ( AS? ColumnReference )? ( , reference_expr ( AS? ColumnReference )? )?
-    distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )?
-    TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )?
+    * ( , arithmetic_expr (AS? ColumnReference )? )*
+    COUNT( DISTINCT reference_expr ( , reference_expr )* )
+    group_function ( AS? ColumnReference )? ( , group_function ( AS? ColumnReference )? )* ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
+    reference_expr ( AS? ColumnReference )? ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
+    arithmetic_expr ( AS? ColumnReference )? ( , arithmetic_expr ( AS? ColumnReference )? )*
+    distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
+    TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
     
-
 `reference_expr` is one of `ColumnReference` or `Dereference`.
+
+`arithmetic_expr` is one of
+    
+    ( arithmetic_expr )
+    arithmetic_expr ( * | / | + | - ) arithmetic_expr
+    CAST ( arithmetic_expr , ( 'INTEGER' | 'LONG' | 'FLOAT' | 'DOUBLE' | 'BOOLEAN' | 'STRING' ) )
+    reference_expr
+    Integer | Long | Double | Decimal | Boolean | String
     
 and `group_function` is one of `SUM(reference_expr)`, `MIN(reference_expr)`, `MAX(reference_expr)`, `AVG(reference_expr)` and `COUNT(*)`. `reference_expr` is one of ColumnReference and Dereference. `distribution_type` is one of `QUANTILE`, `FREQ` and `CUMFREQ`. The 1st number in `TOP` is K, and the 2nd number is an optional threshold.  The `input_mode` is one of 
 
@@ -206,15 +214,19 @@ and `groupBy_clause` is one of
 
     ()                                                                group all
     reference_expr ( , reference_expr )*                              group by
-    ( reference_expr ( , reference_expr )* )                          group by
-    
-and `HAVING` and `ORDER BY` are only supported for TopK. In which case, `having_clause` is 
+    ( reference_expr ( , reference_expr )* )                          group by    
+
+and `HAVING` and `ORDER BY` together is only supported for TopK. In which case, `having_clause` is 
 
     COUNT(*) >= Integer
     
 and `orderBy_clause` is
 
-    COUNT(*)
+    COUNT(*) DESC
+    
+If not TopK, `HAVING` is not supported, and `orderBy_clause` is
+
+    reference_expr (ASC | DESC)? ( , reference_expr (ASC | DESC)? )*
 
 and `windowing_clause` is one of 
 
@@ -801,6 +813,83 @@ Or
             }
         },
         "duration":10000
+    }
+    
+### Computation
+
+**BQL**
+
+    SELECT TOP(500, 100, demographics.country, browser_name) AS numEvents, numEvents * 100 AS inflatedNumEvents
+    FROM STREAM(10000, TIME);
+    
+**Bullet Query**
+
+    {
+        "aggregation":{
+            "size":500,
+            "type":"TOP K",
+            "attributes":{
+                "newName":"numEvents",
+                "threshold":100
+            },
+            "fields":{
+                "browser_name":"browser_name",
+                "demographics.country":"demographics.country"
+            }
+        },
+        "duration":10000,
+        "postAggregations":[
+            {
+                "expression":{
+                    "left":{
+                        "value":{
+                            "kind":"FIELD",
+                            "value":"numEvents"
+                        }
+                    },
+                    "right":{
+                        "value":{
+                            "kind":"VALUE",
+                            "value":"100"
+                        }
+                    },
+                    "operation":"*"
+                },
+                "newName":"inflatedNumEvents",
+                "type":"COMPUTATION"
+            }
+        ]
+    }
+
+### Order By
+
+**BQL**
+
+    SELECT DISTINCT browser_name
+    FROM STREAM(30000, TIME)
+    ORDER BY browser_name;
+    
+**Bullet Query**
+
+    {
+        "aggregation":{
+            "type":"GROUP",
+            "fields":{
+                "browser_name":"browser_name"
+            }
+        },
+        "duration":30000,
+        "postAggregations":[
+            {
+                "fields":[
+                    {
+                        "field":"browser_name",
+                        "direction":"ASC"
+                    }
+                ],
+                "type":"ORDERBY"
+            }
+        ]
     }
 
 ## Useful links

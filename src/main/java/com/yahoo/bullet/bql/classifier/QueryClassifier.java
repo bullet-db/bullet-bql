@@ -8,10 +8,12 @@ package com.yahoo.bullet.bql.classifier;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
+import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
 import com.yahoo.bullet.bql.tree.GroupingElement;
+import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.OrderBy;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
@@ -29,6 +31,7 @@ import java.util.Set;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.ALL;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.COLUMN;
+import static com.yahoo.bullet.bql.tree.SelectItem.Type.COMPUTATION;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.COUNT_DISTINCT;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.DISTRIBUTION;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.GROUP;
@@ -103,15 +106,16 @@ public class QueryClassifier {
         @Override
         protected Void visitQuerySpecification(QuerySpecification node, Void context) throws ParsingException {
             if (isTopK(node)) {
-                validOrderBy(node);
+                validTopKOrderBy(node);
                 validHaving(node);
                 type = QueryType.TOP_K;
                 return null;
-            } else if (node.getOrderBy().isPresent() || node.getHaving().isPresent()) {
-                throw new ParsingException("ORDER BY or HAVING are only supported for TOP K");
             }
-
+            if (node.getHaving().isPresent()) {
+                throw new ParsingException("HAVING is only supported for TOP K");
+            }
             process(node.getSelect());
+            node.getOrderBy().ifPresent(this::process);
             node.getGroupBy().ifPresent(this::process);
             if (type == QueryType.UNKNOWN) {
                 type = QueryType.SELECT_FIELDS;
@@ -130,12 +134,12 @@ public class QueryClassifier {
                 Type selectType = item.getType();
 
                 if (!isValidSelectDistinct(selectType)) {
-                    throw new ParsingException("SELECT DISTINCT can only run with field, field.subFiled or field.*");
+                    throw new ParsingException("SELECT DISTINCT can only run with field, field.subField or field.*");
                 }
 
                 if ((selectType == COUNT_DISTINCT || selectType == TOP_K || selectType == DISTRIBUTION ||
-                        selectType == ALL) && selectItems.size() > 1) {
-                    throw new ParsingException("SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other selectItems");
+                        selectType == ALL) && selectItems.stream().anyMatch(selectItem -> selectItem != item && selectItem.getType() != COMPUTATION)) {
+                    throw new ParsingException("SELECT *, TOP_K, DISTRIBUTION, COUNT DISTINCT cannot run with other non-computation selectItems");
                 }
                 updateSelectFields(item);
                 updateAggregation(item);
@@ -169,6 +173,18 @@ public class QueryClassifier {
             return null;
         }
 
+        @Override
+        protected Void visitOrderBy(OrderBy node, Void context) throws ParsingException {
+            List<SortItem> sortItems = node.getSortItems();
+            for (SortItem sortItem : sortItems) {
+                Expression sortKey = sortItem.getSortKey();
+                if (!(sortKey instanceof Identifier) && !(sortKey instanceof DereferenceExpression)) {
+                    throw new ParsingException("Only order by fields supported");
+                }
+            }
+            return null;
+        }
+
         private boolean isTopK(QuerySpecification node) {
             if (!hasRequiredTopKClauses(node)) {
                 return false;
@@ -193,7 +209,7 @@ public class QueryClassifier {
             return node.getGroupBy().isPresent() && node.getOrderBy().isPresent() && node.getLimit().isPresent();
         }
 
-        private void validOrderBy(QuerySpecification node) {
+        private void validTopKOrderBy(QuerySpecification node) {
             OrderBy orderBy = node.getOrderBy().get();
             List<SortItem> sortItems = orderBy.getSortItems();
             if (sortItems.size() != 1) {

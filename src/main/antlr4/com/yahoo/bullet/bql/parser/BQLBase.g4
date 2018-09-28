@@ -161,8 +161,21 @@ primaryExpression
     : qualifiedName '(' ASTERISK ')'                                                      #functionCall
     | qualifiedName '(' setQuantifier? referenceExpression (',' referenceExpression)*')'  #functionCall
     | referenceExpression                                                                 #reference
+    | arithmeticExpression                                                                #computation
     | distributionType '(' referenceExpression ',' inputMode ')'                          #distributionOperation
     | TOP '(' topKConfig ')'                                                              #topK
+    ;
+
+arithmeticExpression
+    : '(' arithmeticExpression ')'                                                        #parensExpression
+    | CAST '(' arithmeticExpression ',' castType ')'                                      #castExpression
+    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression          #infixExpression
+    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression              #infixExpression
+    | valueExpression                                                                     #leafExpression
+    ;
+
+castType
+    : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
     ;
 
 distributionType
@@ -235,7 +248,7 @@ nonReserved
     | FILTER | FIRST | FOLLOWING | FORMAT | FUNCTIONS
     | GRANT | GRANTS | GRAPHVIZ
     | HOUR
-    | IF | INCLUDING | INPUT | INTEGER | INTERVAL | ISOLATION
+    | IF | INCLUDING | INPUT | INTERVAL | ISOLATION
     | LAST | LATERAL | LEVEL | LIMIT | LOGICAL
     | MAP | MINUTE | MONTH
     | NFC | NFD | NFKC | NFKD | NO | NULLIF | NULLS
@@ -334,7 +347,6 @@ INCLUDING: 'INCLUDING';
 INNER: 'INNER';
 INPUT: 'INPUT';
 INSERT: 'INSERT';
-INTEGER: 'INTEGER';
 INTERSECT: 'INTERSECT';
 INTERVAL: 'INTERVAL';
 INTO: 'INTO';
@@ -455,6 +467,13 @@ EVERY: 'EVERY';
 EMPTY: 'EMPTY';
 TUMBLING: 'TUMBLING';
 MAX: 'MAX';
+
+INTEGER_TYPE: 'INTEGER';
+LONG_TYPE: 'LONG';
+FLOAT_TYPE: 'FLOAT';
+DOUBLE_TYPE: 'DOUBLE';
+BOOLEAN_TYPE: 'BOOLEAN';
+STRING_TYPE: 'STRING';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

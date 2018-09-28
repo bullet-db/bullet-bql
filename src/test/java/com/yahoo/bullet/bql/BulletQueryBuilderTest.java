@@ -552,7 +552,7 @@ public class BulletQueryBuilderTest {
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only one field is supported in ORDER BY for TOP K\\E.*")
     public void testBuildTopKOrderByMultipleFields() {
         assertEquals(builder.buildJson(
-                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC, top3 DESC LIMIT 3"),
+                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*), top3 DESC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                              "\"duration\":2000}");
     }
@@ -647,5 +647,117 @@ public class BulletQueryBuilderTest {
     public void testBuildMultipleStatement() {
         builder.buildJson(
                 "SELECT * FROM STREAM(2000, TIME) LIMIT 1; SELECT * FROM STREAM(4000, TIME);");
+    }
+
+    @Test
+    public void testBuildComputation() {
+        assertEquals(builder.buildJson("SELECT a + b FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"a + b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationWithAs() {
+        assertEquals(builder.buildJson("SELECT a + 5 AS b FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5\",\"type\":\"LONG\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationWithAsterisk() {
+        assertEquals(builder.buildJson("SELECT *, a + -5.0 AS b FROM STREAM()"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationWithTopK() {
+        assertEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c, c * +100 FROM STREAM()"),
+                "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
+                        "\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}},\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"+100\",\"type\":\"LONG\"}}," +
+                        "\"operation\":\"*\"},\"newName\":\"c * +100\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildCastComputation() {
+        assertEquals(builder.buildJson("SELECT CAST (a, FLOAT) AS b FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":" +
+                        "[{\"expression\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\",\"type\":\"FLOAT\"}},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationPemdas() {
+        assertEquals(builder.buildJson("SELECT CAST ((a) + b * ((c - (d))) / CAST ((g + (((f)))), FLOAT) - h, INTEGER) FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"d\"}},\"operation\":\"-\"},\"operation\":\"*\"},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"g\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"f\"}},\"type\":\"FLOAT\",\"operation\":\"+\"},\"operation\":\"/\"},\"operation\":\"+\"},\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"h\"}}," +
+                        "\"type\":\"INTEGER\",\"operation\":\"-\"},\"newName\":\"CAST (a + b * (c - d) / CAST ((g + f), FLOAT) - h, INTEGER)\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationSubfield() {
+        assertEquals(builder.buildJson("SELECT a.b * -5 FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a.b\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5\",\"type\":\"LONG\"}},\"operation\":\"*\"},\"newName\":\"a.b * -5\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationDouble() {
+        assertEquals(builder.buildJson("SELECT a + 5.0 FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationDecimal() {
+        BulletConfig config = new BulletConfig();
+        config.set(BQLConfig.BQL_DECIMAL_LITERAL_TREATMENT, "AS_DECIMAL");
+        BulletQueryBuilder decimalBuilder = new BulletQueryBuilder(config);
+        assertEquals(decimalBuilder.buildJson("SELECT a + 5.0 FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationBoolean() {
+        assertEquals(builder.buildJson("SELECT a + true FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"true\",\"type\":\"BOOLEAN\"}},\"operation\":\"+\"},\"newName\":\"a + true\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildComputationString() {
+        assertEquals(builder.buildJson("SELECT a + 'hello' FROM STREAM()"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"hello\",\"type\":\"STRING\"}},\"operation\":\"+\"},\"newName\":\"a + hello\",\"type\":\"COMPUTATION\"}]}");
+    }
+
+    @Test
+    public void testBuildOrderBy() {
+        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
+        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
+        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a DESC"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
+        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a, b, c DESC"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
+        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC, b, c DESC"),
+                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
+    }
+
+    @Test
+    public void testBuildOrderByWithTopK() {
+        assertEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c FROM STREAM() ORDER BY c DESC"),
+                "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
+                        "\"postAggregations\":[{\"fields\":[{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
+    }
+
+    @Test
+    public void testBuildOrderByWithComputation() {
+        assertEquals(builder.buildJson("SELECT a + b AS c FROM STREAM() ORDER BY c"),
+                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
+                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"c\",\"type\":\"COMPUTATION\"},{\"fields\":[{\"field\":\"c\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
     }
 }

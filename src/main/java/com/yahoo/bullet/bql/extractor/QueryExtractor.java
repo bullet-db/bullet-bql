@@ -32,11 +32,14 @@ import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Clause;
 import com.yahoo.bullet.parsing.Clause.Operation;
+import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,7 +54,9 @@ import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperati
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.SUM;
 import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.GROUP;
 import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.SELECT_FIELDS;
+import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.TOP_K;
 import static com.yahoo.bullet.bql.tree.SelectItem.Type.ALL;
+import static com.yahoo.bullet.bql.tree.SelectItem.Type.COMPUTATION;
 import static java.util.Objects.requireNonNull;
 
 @Slf4j
@@ -61,6 +66,7 @@ public class QueryExtractor {
 
     private Set<Expression> groupByFields;
     private Set<Expression> selectFields;
+    private List<Expression> computations;
     private Map<Node, Identifier> aliases;
     private Optional<Long> size;
     private Optional<Long> threshold;
@@ -69,8 +75,8 @@ public class QueryExtractor {
     private Window window;
     private Aggregation aggregation;
     private Projection projection;
+    private List<PostAggregation> postAggregations;
     private QueryType type;
-
     /**
      * The constructor with a {@link BQLConfig}.
      *
@@ -101,6 +107,7 @@ public class QueryExtractor {
     private void reset() {
         groupByFields = new HashSet<>();
         selectFields = new HashSet<>();
+        computations = new ArrayList<>();
         aliases = new HashMap<>();
         size = Optional.empty();
         threshold = Optional.empty();
@@ -109,6 +116,7 @@ public class QueryExtractor {
         window = null;
         aggregation = null;
         projection = null;
+        postAggregations = null;
     }
 
     private Query constructQuery() {
@@ -118,6 +126,7 @@ public class QueryExtractor {
         query.setFilters(filters);
         query.setProjection(projection);
         query.setWindow(window);
+        query.setPostAggregations(postAggregations);
         return query;
     }
 
@@ -157,13 +166,25 @@ public class QueryExtractor {
                 case UNKNOWN:
                     throw new ParsingException("BQL cannot be classified");
             }
-
+            // Computations do not go through with DISTINCT/GROUPBY since those only support selecting fields
+            if (!computations.isEmpty()) {
+                postAggregations = new ComputationExtractor(computations, aliases).extractComputations();
+            }
+            // Only one OrderBy clause is supported, and TopK has a fixed OrderBy clause.
+            if (type != TOP_K) {
+                node.getOrderBy().ifPresent(value -> {
+                        if (postAggregations != null) {
+                            postAggregations.add(new OrderByExtractor(value).extractOrderBy());
+                        } else {
+                            postAggregations = Collections.singletonList(new OrderByExtractor(value).extractOrderBy());
+                        }
+                    });
+            }
             node.getFrom().ifPresent(this::process);
             node.getWhere().ifPresent(value -> {
                     process(value);
                     filters = new FilterExtractor().extractFilter(node);
                 });
-
             node.getWindowing().ifPresent(value -> {
                     process(value);
                     window = new WindowExtractor(value).extractWindow();
@@ -212,7 +233,6 @@ public class QueryExtractor {
             groupByFields = new HashSet<>(node.getColumnExpressions());
             return null;
         }
-
 
         @Override
         protected Void visitFunctionCall(FunctionCall node, Void context) throws ParsingException {
@@ -268,9 +288,12 @@ public class QueryExtractor {
             if (item.getType() == ALL) {
                 return;
             }
-
+            if (item.getType() == COMPUTATION) {
+                computations.add(item.getValue());
+            } else {
+                selectFields.add(item.getValue());
+            }
             item.getAlias().ifPresent(alias -> aliases.put(item.getValue(), alias));
-            selectFields.add(item.getValue());
         }
 
         private void validateFunctionField(GroupOperationType type, List<Expression> arguments, boolean isDistinct) throws ParsingException {
@@ -282,7 +305,6 @@ public class QueryExtractor {
                 if (isDistinct) {
                     throw new ParsingException(type + " function doesn't support DISTINCT");
                 }
-
                 if (arguments.size() != 1) {
                     throw new ParsingException(type + " function requires only 1 field");
                 }

@@ -38,6 +38,9 @@ public abstract class SelectItem extends Node {
         // SELECT *
         ALL,
 
+        // COMPUTATION
+        COMPUTATION,
+
         // Unsupported selectItem
         NON_SELECT
     }

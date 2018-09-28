@@ -550,4 +550,37 @@ public abstract class ASTVisitor<R, C> {
     protected R visitSimpleGroupBy(SimpleGroupBy node, C context) {
         return visitGroupingElement(node, context);
     }
+
+    /**
+     * Visit a {@link CastExpression} with passed in context.
+     *
+     * @param node    A {@link CastExpression}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitCastExpression(CastExpression node, C context) {
+        return visitNode(node, context);
+    }
+
+    /**
+     * Visit a {@link InfixExpression} with passed in context.
+     *
+     * @param node    A {@link InfixExpression}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitBinaryExpression(InfixExpression node, C context) {
+        return visitNode(node, context);
+    }
+
+    /**
+     * Visit a {@link ParensExpression} with passed in context.
+     *
+     * @param node    A {@link ParensExpression}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitParensExpression(ParensExpression node, C context) {
+        return visitNode(node, context);
+    }
 }
