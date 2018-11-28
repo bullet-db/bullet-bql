@@ -204,8 +204,12 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitDereferenceExpression(DereferenceExpression node, Void context) {
+            StringBuilder builder = new StringBuilder();
             String baseString = process(node.getBase(), context);
-            return baseString + "." + process(node.getField());
+            String fieldString = process(node.getField(), context);
+            builder.append(baseString).append(".").append(fieldString);
+            node.getSubField().ifPresent(subField -> builder.append(".").append(process(subField, context)));
+            return builder.toString();
         }
 
         @Override

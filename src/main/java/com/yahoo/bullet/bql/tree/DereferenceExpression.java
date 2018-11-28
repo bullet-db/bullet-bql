@@ -13,45 +13,50 @@ package com.yahoo.bullet.bql.tree;
 import com.google.common.collect.ImmutableList;
 import com.yahoo.bullet.bql.tree.SelectItem.Type;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class DereferenceExpression extends Expression {
-    private final Expression base;
+    private final Identifier base;
     private final Identifier field;
+    private final Optional<Identifier> subField;
 
     /**
-     * Constructor that requires an {@link Expression} base and an {@link Identifier} field.
+     * Constructor that requires an {@link Identifier} base, an {@link Identifier} field and an {@link Identifier}
+     * subField.
      *
-     * @param base  An {@link Expression}.
-     * @param field An {@link Identifier}.
+     * @param base     An {@link Identifier}.
+     * @param field    An {@link Identifier}.
+     * @param subField An {@link Identifier}.
      */
-    public DereferenceExpression(Expression base, Identifier field) {
-        this(Optional.empty(), base, field);
+    public DereferenceExpression(Identifier base, Identifier field, Identifier subField) {
+        this(Optional.empty(), base, field, Optional.ofNullable(subField));
     }
 
     /**
-     * Constructor that requires a {@link NodeLocation}, an {@link Expression} base and an {@link Identifier} field.
+     * Constructor that requires a {@link NodeLocation}, an {@link Identifier} base, an {@link Identifier} field, and
+     * an {@link Identifier} subField.
      *
      * @param location A {@link NodeLocation}.
-     * @param base     An {@link Expression}.
+     * @param base     An {@link Identifier}.
      * @param field    An {@link Identifier}.
+     * @param subField An {@link Identifier}.
      */
-    public DereferenceExpression(NodeLocation location, Expression base, Identifier field) {
-        this(Optional.of(location), base, field);
+    public DereferenceExpression(NodeLocation location, Identifier base, Identifier field, Identifier subField) {
+        this(Optional.of(location), base, field, Optional.ofNullable(subField));
     }
 
-    private DereferenceExpression(Optional<NodeLocation> location, Expression base, Identifier field) {
+    private DereferenceExpression(Optional<NodeLocation> location, Identifier base, Identifier field,
+                                  Optional<Identifier> subField) {
         super(location);
         checkArgument(base != null, "base is null");
         checkArgument(field != null, "fieldName is null");
         this.base = base;
         this.field = field;
+        this.subField = subField;
     }
 
     @Override
@@ -61,15 +66,15 @@ public class DereferenceExpression extends Expression {
 
     @Override
     public List<Node> getChildren() {
-        return ImmutableList.of(base);
+        return ImmutableList.of();
     }
 
     /**
      * Get the {@link #base} of this DereferenceExpression.
      *
-     * @return An {@link Expression}.
+     * @return An {@link Identifier}.
      */
-    public Expression getBase() {
+    public Identifier getBase() {
         return base;
     }
 
@@ -83,48 +88,12 @@ public class DereferenceExpression extends Expression {
     }
 
     /**
-     * If this DereferenceExpression looks like a QualifiedName, return QualifiedName. Otherwise return null.
+     * Get the {@link #subField} of this DereferenceExpression.
      *
-     * @param expression An DereferenceExpression.
-     * @return An {@link QualifiedName}.
+     * @return An {@link Optional} {@link Identifier}.
      */
-    public static QualifiedName getQualifiedName(DereferenceExpression expression) {
-        List<String> parts = tryParseParts(expression.base, expression.field.getValue().toLowerCase(Locale.ENGLISH));
-        return parts == null ? null : QualifiedName.of(parts);
-    }
-
-    /**
-     * Convert a {@link QualifiedName} to a DereferenceExpression or a {@link Identifier}.
-     *
-     * @param name A {@link QualifiedName}.
-     * @return A DereferenceExpression or A {@link Identifier}.
-     */
-    public static Expression from(QualifiedName name) {
-        Expression result = null;
-
-        for (String part : name.getParts()) {
-            if (result == null) {
-                result = new Identifier(part);
-            } else {
-                result = new DereferenceExpression(result, new Identifier(part));
-            }
-        }
-
-        return result;
-    }
-
-    private static List<String> tryParseParts(Expression base, String fieldName) {
-        if (base instanceof Identifier) {
-            return ImmutableList.of(((Identifier) base).getValue(), fieldName);
-        } else if (base instanceof DereferenceExpression) {
-            QualifiedName baseQualifiedName = getQualifiedName((DereferenceExpression) base);
-            if (baseQualifiedName != null) {
-                List<String> newList = new ArrayList<>(baseQualifiedName.getParts());
-                newList.add(fieldName);
-                return newList;
-            }
-        }
-        return null;
+    public Optional<Identifier> getSubField() {
+        return subField;
     }
 
     @Override
@@ -141,12 +110,12 @@ public class DereferenceExpression extends Expression {
             return false;
         }
         DereferenceExpression that = (DereferenceExpression) o;
-        return Objects.equals(base, that.base) &&
-                Objects.equals(field, that.field);
+        return Objects.equals(base, that.base) && Objects.equals(field, that.field) &&
+               Objects.equals(subField, that.subField);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(base, field);
+        return Objects.hash(base, field, subField);
     }
 }

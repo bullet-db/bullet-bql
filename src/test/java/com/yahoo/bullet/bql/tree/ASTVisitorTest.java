@@ -180,7 +180,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitDereferenceExpression() {
-        DereferenceExpression dereference = new DereferenceExpression(identifier("aaa"), identifier("bbb"));
+        DereferenceExpression dereference = new DereferenceExpression(identifier("aaa"), identifier("bbb"), null);
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(dereference);

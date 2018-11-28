@@ -8,63 +8,39 @@ package com.yahoo.bullet.bql.tree;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static com.yahoo.bullet.bql.tree.DereferenceExpression.from;
-import static com.yahoo.bullet.bql.tree.DereferenceExpression.getQualifiedName;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.emptyList;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 public class DereferenceExpressionTest {
-    private Expression base;
+    private Identifier base;
     private Identifier field;
+    private Identifier subField;
     private DereferenceExpression dereference;
 
     @BeforeClass
     public void setUp() {
         base = identifier("aaa");
         field = identifier("bbb");
-        dereference = new DereferenceExpression(base, field);
+        subField = identifier("ccc");
+        dereference = new DereferenceExpression(base, field, subField);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "base is null")
     public void testConstructorNullBase() {
-        new DereferenceExpression(null, field);
+        new DereferenceExpression(null, field, null);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "fieldName is null")
     public void testConstructorNullField() {
-        new DereferenceExpression(base, null);
+        new DereferenceExpression(base, null, null);
     }
 
     @Test
     public void testGetChildren() {
-        assertEquals(dereference.getChildren(), singletonList(base));
-    }
-
-    @Test
-    public void testFrom() {
-        QualifiedName qualifiedName = QualifiedName.of("AAA", "BBB");
-        Expression expression = from(qualifiedName);
-        assertEquals(dereference, expression);
-    }
-
-    @Test
-    public void testGetQualifiedName() {
-        QualifiedName qualifiedName = QualifiedName.of("aaa", "bbb");
-        assertEquals(getQualifiedName(dereference), qualifiedName);
-
-        Expression base = new NullLiteral();
-        DereferenceExpression dereferenceNullLiteralBase = new DereferenceExpression(base, field);
-        assertNull(getQualifiedName(dereferenceNullLiteralBase));
-
-        DereferenceExpression dereferenceDereferenceBase = new DereferenceExpression(dereference, field);
-        assertEquals(getQualifiedName(dereferenceDereferenceBase), QualifiedName.of("aaa", "bbb", "bbb"));
-
-        DereferenceExpression dereferenceInvalidDereferenceBase = new DereferenceExpression(dereferenceNullLiteralBase, field);
-        assertNull(getQualifiedName(dereferenceInvalidDereferenceBase));
+        assertEquals(dereference.getChildren(), emptyList());
     }
 
     @Test
@@ -74,13 +50,16 @@ public class DereferenceExpressionTest {
         assertFalse(dereference.equals(null));
         assertFalse(dereference.equals(base));
 
-        DereferenceExpression sameDereference = new DereferenceExpression(identifier("aaa"), field);
+        DereferenceExpression sameDereference = new DereferenceExpression(identifier("aaa"), field, subField);
         assertTrue(dereference.equals(sameDereference));
 
-        DereferenceExpression dereferenceDiffBase = new DereferenceExpression(identifier("bbb"), field);
+        DereferenceExpression dereferenceDiffBase = new DereferenceExpression(identifier("bbb"), field, subField);
         assertFalse(dereference.equals(dereferenceDiffBase));
 
-        DereferenceExpression dereferenceDiffField = new DereferenceExpression(base, identifier("aaa"));
+        DereferenceExpression dereferenceDiffField = new DereferenceExpression(base, identifier("aaa"), subField);
         assertFalse(dereference.equals(dereferenceDiffField));
+
+        DereferenceExpression dereferenceDiffSubField = new DereferenceExpression(base, field, identifier("aaa"));
+        assertFalse(dereference.equals(dereferenceDiffSubField));
     }
 }

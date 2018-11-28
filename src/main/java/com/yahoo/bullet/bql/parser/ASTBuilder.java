@@ -416,13 +416,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitDereference(BQLBaseParser.DereferenceContext context) {
         return new DereferenceExpression(
                 getLocation(context),
-                (Expression) visit(context.base),
-                (Identifier) visit(context.fieldName));
+                (Identifier) visit(context.base),
+                (Identifier) visit(context.fieldName),
+                context.subFieldName == null ? null : (Identifier) visit(context.subFieldName));
     }
 
     @Override
     public Node visitColumnReference(BQLBaseParser.ColumnReferenceContext context) {
-        return visit(context.identifier());
+        return new Identifier(getLocation(context), context.getText(), false);
     }
 
     @Override

@@ -760,4 +760,13 @@ public class BulletQueryBuilderTest {
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"c\",\"type\":\"COMPUTATION\"},{\"fields\":[{\"field\":\"c\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
     }
+
+    @Test
+    public void testBuildGroupByFilterProjectionWithNestedFields() {
+        assertEquals(builder.buildJson(
+                "SELECT ddd.aa.b AS bv, aaa.12.b AS uc FROM STREAM(2000, TIME) WHERE ddd.aa.b IS NOT NULL GROUP BY ddd.aa.b, aaa.12.b LIMIT 10"),
+                "{\"filters\":[{\"field\":\"ddd.aa.b\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
+                        "\"aggregation\":{\"size\":10,\"type\":\"GROUP\",\"fields\":{\"aaa.12.b\":\"uc\",\"ddd.aa.b\":\"bv\"}}," +
+                        "\"duration\":2000}");
+    }
 }

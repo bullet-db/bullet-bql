@@ -202,7 +202,7 @@ public class BQLParserTest {
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: Invalid numeric literal: 12223222232535343423232435343")
     public void testParseErrorInvalidPositiveNumeric() {
-        BQL_PARSER.createStatement("select * from stream(3, time) where time=12223222232535343423232435343", new ParsingOptions());
+        BQL_PARSER.createStatement("select * from stream(3, time) where num=12223222232535343423232435343", new ParsingOptions());
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: Invalid numeric literal: 12223222232535343423232435343")
