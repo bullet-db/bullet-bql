@@ -83,12 +83,6 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     }
 
     @Override
-    protected R visitDereferenceExpression(DereferenceExpression node, C context) {
-        process(node.getBase(), context);
-        return null;
-    }
-
-    @Override
     protected R visitDistribution(Distribution node, C context) {
         for (Expression value : node.getColumns()) {
             process(value, context);

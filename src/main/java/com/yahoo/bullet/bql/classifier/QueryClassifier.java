@@ -8,7 +8,6 @@ package com.yahoo.bullet.bql.classifier;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
-import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupBy;
@@ -178,7 +177,7 @@ public class QueryClassifier {
             List<SortItem> sortItems = node.getSortItems();
             for (SortItem sortItem : sortItems) {
                 Expression sortKey = sortItem.getSortKey();
-                if (!(sortKey instanceof Identifier) && !(sortKey instanceof DereferenceExpression)) {
+                if (!(sortKey instanceof Identifier)) {
                     throw new ParsingException("Only order by fields supported");
                 }
             }

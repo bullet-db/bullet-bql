@@ -321,17 +321,6 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
-     * Visit a {@link DereferenceExpression} with passed in context.
-     *
-     * @param node    A {@link DereferenceExpression}.
-     * @param context A {@link C}.
-     * @return A {@link R}.
-     */
-    protected R visitDereferenceExpression(DereferenceExpression node, C context) {
-        return visitExpression(node, context);
-    }
-
-    /**
      * Visit a {@link NullLiteral} with passed in context.
      *
      * @param node    A {@link NullLiteral}.
