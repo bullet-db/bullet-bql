@@ -179,16 +179,6 @@ public class ASTVisitorTest {
     }
 
     @Test
-    public void testVisitDereferenceExpression() {
-        DereferenceExpression dereference = new DereferenceExpression(identifier("aaa"), identifier("bbb"), null);
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(dereference);
-        verify(spy).visitDereferenceExpression(dereference, null);
-        verify(spy).visitExpression(dereference, null);
-    }
-
-    @Test
     public void testVisitNullLiteral() {
         NullLiteral nullLiteral = new NullLiteral();
 

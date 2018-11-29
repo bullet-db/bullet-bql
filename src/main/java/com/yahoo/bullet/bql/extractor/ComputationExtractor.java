@@ -13,7 +13,6 @@ import com.yahoo.bullet.bql.tree.DecimalLiteral;
 import com.yahoo.bullet.bql.tree.DoubleLiteral;
 import com.yahoo.bullet.bql.tree.InfixExpression;
 import com.yahoo.bullet.bql.tree.CastExpression;
-import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Identifier;
 import com.yahoo.bullet.bql.tree.LongLiteral;
@@ -181,13 +180,6 @@ public class ComputationExtractor {
 
         @Override
         protected com.yahoo.bullet.parsing.Expression visitIdentifier(Identifier node, Void context) {
-            LeafExpression leafExpression = new LeafExpression();
-            leafExpression.setValue(new Value(Value.Kind.FIELD, node.toFormatlessString()));
-            return leafExpression;
-        }
-
-        @Override
-        protected com.yahoo.bullet.parsing.Expression visitDereferenceExpression(DereferenceExpression node, Void context) {
             LeafExpression leafExpression = new LeafExpression();
             leafExpression.setValue(new Value(Value.Kind.FIELD, node.toFormatlessString()));
             return leafExpression;

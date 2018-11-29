@@ -194,7 +194,6 @@ topKConfig
 
 referenceExpression
     : identifier                                                                          #columnReference
-    | base=identifier '.' fieldName=identifier ('.' subFieldName=identifier)?             #dereference
     ;
 
 valueExpression
@@ -225,12 +224,6 @@ booleanValue
 qualifiedName
     : identifier
     ;
-
-//fieldIdentifier
-//    : IDENTIFIER                                                                          #basicFieldIdentifier
-//    | nonReserved                                                                         #basicFieldIdentifier
-//    | INTEGER_VALUE                                                                       #basicFieldIdentifier
-//    ;
 
 identifier
     : IDENTIFIER                                                                          #unquotedIdentifier
@@ -347,7 +340,7 @@ DOUBLE_VALUE
     ;
 
 IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    : (LETTER | '_') ((NAME_LETTER | '.')* NAME_LETTER)?
     ;
 
 DIGIT_IDENTIFIER
@@ -372,6 +365,10 @@ fragment DIGIT
 
 fragment LETTER
     : [A-Z]
+    ;
+
+fragment NAME_LETTER
+    : LETTER | DIGIT | '_' | '@' | ':'
     ;
 
 SIMPLE_COMMENT

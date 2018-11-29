@@ -21,7 +21,6 @@ import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
-import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.DoubleLiteral;
 import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.FunctionCall;
@@ -413,17 +412,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     // ********************* Primary Expressions **********************
 
     @Override
-    public Node visitDereference(BQLBaseParser.DereferenceContext context) {
-        return new DereferenceExpression(
-                getLocation(context),
-                (Identifier) visit(context.base),
-                (Identifier) visit(context.fieldName),
-                context.subFieldName == null ? null : (Identifier) visit(context.subFieldName));
-    }
-
-    @Override
     public Node visitColumnReference(BQLBaseParser.ColumnReferenceContext context) {
-        return new Identifier(getLocation(context), context.getText(), false);
+        // Use true as a way to skip the pattern checks because these have extra characters.
+        return new Identifier(getLocation(context), context.getText(), true);
     }
 
     @Override

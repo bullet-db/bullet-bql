@@ -22,7 +22,6 @@ import com.yahoo.bullet.bql.tree.CastExpression;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
 import com.yahoo.bullet.bql.tree.DecimalLiteral;
-import com.yahoo.bullet.bql.tree.DereferenceExpression;
 import com.yahoo.bullet.bql.tree.Distribution;
 import com.yahoo.bullet.bql.tree.DoubleLiteral;
 import com.yahoo.bullet.bql.tree.Expression;
@@ -200,16 +199,6 @@ public final class ExpressionFormatter {
                     format("%s", Joiner.on(", ").join(node.getSortItems().stream().map(sortItem ->
                             sortItem.getSortKey().toFormatlessString() + (sortItem.getOrdering() == SortItem.Ordering.DESCENDING ? " DESC" : " ASC")
                         ).collect(Collectors.toList())));
-        }
-
-        @Override
-        protected String visitDereferenceExpression(DereferenceExpression node, Void context) {
-            StringBuilder builder = new StringBuilder();
-            String baseString = process(node.getBase(), context);
-            String fieldString = process(node.getField(), context);
-            builder.append(baseString).append(".").append(fieldString);
-            node.getSubField().ifPresent(subField -> builder.append(".").append(process(subField, context)));
-            return builder.toString();
         }
 
         @Override

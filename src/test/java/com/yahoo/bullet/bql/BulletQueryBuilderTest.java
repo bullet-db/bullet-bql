@@ -10,7 +10,7 @@ import com.yahoo.bullet.common.BulletConfig;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertEquals;
+import static com.yahoo.bullet.TestHelpers.assertJSONEquals;
 
 public class BulletQueryBuilderTest {
     private BulletQueryBuilder builder;
@@ -22,7 +22,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawAll() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT * FROM STREAM(2000, TIME) LIMIT 1"),
                 "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
@@ -30,14 +30,14 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawAllWithDefaultDuration() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT * FROM STREAM() LIMIT 1"),
                 "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}}");
     }
 
     @Test
     public void testBuildRawAllWithMaxDuration() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT * FROM STREAM(MAX, TIME) LIMIT 1"),
                 "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
                         "\"duration\":" + (long) Double.POSITIVE_INFINITY + "}");
@@ -45,7 +45,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjection() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT bbb AS b, aaa AS a FROM STREAM(2000, TIME) LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"a\",\"bbb\":\"b\"}}," +
                         "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
@@ -54,7 +54,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildFilterWithFields() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=bbb LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"FIELD\",\"value\":\"bbb\"}],\"operation\":\"\\u003d\\u003d\"}]," +
@@ -64,7 +64,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildSizeOfFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa)=4 LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}]," +
@@ -74,7 +74,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildInSizeOfFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) IN(1, 4) LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}]," +
@@ -84,13 +84,13 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildNotSizeOfFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) != 4 LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}],\"operation\":\"NOT\"}]," +
                              "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
                              "\"duration\":2000}");
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is distinct from 4 LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}],\"operation\":\"NOT\"}]," +
@@ -121,7 +121,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildContainsKeyFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa CONTAINSKEY(1, 4) LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSKEY\"}]," +
@@ -131,7 +131,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildContainsValueFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa CONTAINSVALUE(1, 4) LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSVALUE\"}]," +
@@ -141,7 +141,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildNotContainsKeyFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa NOT CONTAINSKEY(1, 4) LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSKEY\"}],\"operation\":\"NOT\"}]," +
@@ -151,7 +151,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildNotContainsValueFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa NOT CONTAINSVALUE(1, 4) LIMIT 3"),
                      "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                              "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSVALUE\"}],\"operation\":\"NOT\"}]," +
@@ -161,7 +161,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionEqual() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=5.12 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"5.12\"}],\"operation\":\"\\u003d\\u003d\"}]," +
@@ -171,7 +171,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionNotEqual() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa!='ccc' LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}]," +
@@ -181,7 +181,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionDistinctFrom() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa IS DISTINCT FROM 'ccc' LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}]," +
@@ -191,7 +191,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionNotDistinctFrom() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa IS NOT DISTINCT FROM 'ccc' LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"NOT\"}]," +
@@ -201,7 +201,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionBetween() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd BETWEEN 2 AND 3 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\\u003d\"}],\"operation\":\"AND\"}]," +
@@ -211,7 +211,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionLess() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd<3 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\"}]," +
@@ -221,7 +221,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionLessEqual() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd<=3 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\\u003d\"}]," +
@@ -231,7 +231,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionGreater() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd>2 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\"}]," +
@@ -241,7 +241,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionGreaterEqual() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd>=2 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\\u003d\"}]," +
@@ -251,7 +251,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionIn() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IN (2, 3) LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"},{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003d\\u003d\"}]," +
@@ -261,7 +261,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionNotIn() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd NOT IN (1, 3, 4) LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"3\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"NOT\"}]," +
@@ -271,7 +271,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionIsEmpty() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS EMPTY LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"\\u003d\\u003d\"}]," +
@@ -281,7 +281,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionIsNotEmpty() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NOT EMPTY LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"!\\u003d\"}]," +
@@ -291,7 +291,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionIsNull() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"\\u003d\\u003d\"}]," +
@@ -301,7 +301,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionIsNotNull() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NOT NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
@@ -311,7 +311,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionRLike() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa LIKE ('ccc[^*]', 'test') LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc[^*]\"},{\"kind\":\"VALUE\",\"value\":\"test\"}],\"operation\":\"RLIKE\"}]," +
@@ -321,7 +321,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionAnd() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa='ccc' AND ddd IS NOT NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"AND\"}]," +
@@ -331,7 +331,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionOr() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa='ccc' OR ddd IS NOT NULL LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"OR\"}]," +
@@ -341,7 +341,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawProjectionNestedFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT * FROM STREAM(2000, TIME) WHERE (bbb='eee' AND ggg IS NULL) AND (browser_version<='test2' OR fff IS EMPTY OR hhh LIKE ('jjj', 'kkk', 'mmm')) AND (bbb IN ('test6', 'test7')) LIMIT 1"),
                 "{\"filters\":[{\"clauses\":[{\"clauses\":[{\"clauses\":[{\"field\":\"bbb\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"eee\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ggg\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"},{\"clauses\":[{\"clauses\":[{\"field\":\"browser_version\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"test2\"}],\"operation\":\"\\u003c\\u003d\"},{\"field\":\"fff\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"OR\"},{\"field\":\"hhh\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"jjj\"},{\"kind\":\"VALUE\",\"value\":\"kkk\"},{\"kind\":\"VALUE\",\"value\":\"mmm\"}],\"operation\":\"RLIKE\"}],\"operation\":\"OR\"}],\"operation\":\"AND\"},{\"field\":\"bbb\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"test6\"},{\"kind\":\"VALUE\",\"value\":\"test7\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"}]," +
                         "\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
@@ -350,7 +350,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildGroupByFilter() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd AS bv, aaa AS uc FROM STREAM(2000, TIME) WHERE ddd IS NOT NULL GROUP BY ddd, aaa LIMIT 10"),
                 "{\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":10,\"type\":\"GROUP\",\"fields\":{\"aaa\":\"uc\",\"ddd\":\"bv\"}}," +
@@ -359,7 +359,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildSelectDistinct() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT DISTINCT aaa AS a, bb.cc AS bc, dd.* AS d FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"GROUP\",\"fields\":{\"aaa\":\"a\",\"dd\":\"d\",\"bb.cc\":\"bc\"}}," +
                         "\"duration\":2000}");
@@ -367,7 +367,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildSelectDistinctWithGroupBy() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT DISTINCT aaa AS a, bb.cc AS bc, dd.* AS d FROM STREAM(2000, TIME) GROUP BY aaa, bb.cc, dd"),
                 "{\"aggregation\":{\"type\":\"GROUP\",\"fields\":{\"aaa\":\"a\",\"dd\":\"d\",\"bb.cc\":\"bc\"}}," +
                         "\"duration\":2000}");
@@ -375,7 +375,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildGroupByAggregation() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd AS bv, COUNT(*) AS count, MIN(ddd) AS min, MAX(ddd) AS max, SUM(ddd) AS sum, AVG(ddd) AS avg FROM STREAM(2000, TIME) GROUP BY ddd"),
                 "{\"aggregation\":{\"type\":\"GROUP\",\"attributes\":{\"operations\":[{\"newName\":\"count\",\"type\":\"COUNT\"},{\"newName\":\"min\",\"field\":\"ddd\",\"type\":\"MIN\"},{\"newName\":\"max\",\"field\":\"ddd\",\"type\":\"MAX\"},{\"newName\":\"sum\",\"field\":\"ddd\",\"type\":\"SUM\"},{\"newName\":\"avg\",\"field\":\"ddd\",\"type\":\"AVG\"}]},\"fields\":{\"ddd\":\"bv\"}}," +
                         "\"duration\":2000}");
@@ -383,7 +383,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildGroupAllAggregation() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT COUNT(*) AS count, MIN(ddd) AS min, MAX(ddd) AS max, SUM(ddd) AS sum, AVG(ddd) AS avg FROM STREAM(2000, TIME) GROUP BY ()"),
                 "{\"aggregation\":{\"type\":\"GROUP\",\"attributes\":{\"operations\":[{\"newName\":\"count\",\"type\":\"COUNT\"},{\"newName\":\"min\",\"field\":\"ddd\",\"type\":\"MIN\"},{\"newName\":\"max\",\"field\":\"ddd\",\"type\":\"MAX\"},{\"newName\":\"sum\",\"field\":\"ddd\",\"type\":\"SUM\"},{\"newName\":\"avg\",\"field\":\"ddd\",\"type\":\"AVG\"}]}}," +
                         "\"duration\":2000}");
@@ -391,7 +391,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildGroupAggregationWithoutAlias() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT COUNT(*), MIN(ddd), MAX(ddd), SUM(ddd), AVG(ddd) FROM STREAM(2000, TIME) GROUP BY ()"),
                 "{\"aggregation\":{\"type\":\"GROUP\",\"attributes\":{\"operations\":[{\"type\":\"COUNT\"},{\"field\":\"ddd\",\"type\":\"MIN\"},{\"field\":\"ddd\",\"type\":\"MAX\"},{\"field\":\"ddd\",\"type\":\"SUM\"},{\"field\":\"ddd\",\"type\":\"AVG\"}]}}," +
                         "\"duration\":2000}");
@@ -399,7 +399,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildCountDistinct() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT COUNT(DISTINCT ddd, aaa) FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"COUNT DISTINCT\",\"fields\":{\"aaa\":\"aaa\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -407,7 +407,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildCountDistinctWithAlias() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT COUNT(DISTINCT ddd, aaa) AS countD FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"COUNT DISTINCT\",\"attributes\":{\"newName\":\"countD\"},\"fields\":{\"aaa\":\"aaa\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -415,7 +415,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildQuantilesLinear() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT QUANTILE(ddd, LINEAR, 11) AS Q11 FROM STREAM(2000, TIME) LIMIT 4"),
                 "{\"aggregation\":{\"size\":4,\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"numberOfPoints\":11,\"type\":\"QUANTILE\"},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -423,7 +423,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildQuantilesRegion() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT QUANTILE(ddd, REGION, 0, 0.9, +0.3) AS Q11 FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"start\":0.0,\"increment\":0.3,\"end\":0.9,\"type\":\"QUANTILE\"},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -431,7 +431,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildQuantilesManual() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT QUANTILE(ddd, MANUAL, 0, 0.3, 0.5, 0.8, 1.0) AS Q11 FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"type\":\"QUANTILE\",\"points\":[0.0,0.3,0.5,0.8,1.0]},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -439,7 +439,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildFrequenciesLinear() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT FREQ(ddd, LINEAR, 11) AS Q11 FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"numberOfPoints\":11,\"type\":\"PMF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -447,7 +447,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildFrequenciesRegionNegative() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT FREQ(ddd, REGION, -100, 100, 40) AS Q11 FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"start\":-100.0,\"increment\":40.0,\"end\":100.0,\"type\":\"PMF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -455,7 +455,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildFrequenciesManualNegativeDouble() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT FREQ(ddd, MANUAL, -100, -4e1, 40) AS Q11 FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"type\":\"PMF\",\"points\":[-100.0,-40.0,40.0]},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -463,7 +463,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildCumFrequenciesLinear() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT CUMFREQ(ddd, LINEAR, 11) AS Q11 FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"numberOfPoints\":11,\"type\":\"CDF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -471,7 +471,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildDistributionWithoutAlias() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT CUMFREQ(ddd, LINEAR, 11) FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"numberOfPoints\":11,\"type\":\"CDF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -479,7 +479,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopK() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd, aaa.cc, COUNT(*) FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -487,7 +487,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKAlias() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd.*, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -495,7 +495,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKWithOrderByAlias() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd.*, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY top3 DESC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                              "\"duration\":2000}");
@@ -503,7 +503,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKThreshold() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
                         "\"duration\":2000}");
@@ -511,7 +511,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKThresholdWithGreaterThan() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":2},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
                              "\"duration\":2000}");
@@ -519,7 +519,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKThresholdWithAlias() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING top3 >= 1 ORDER BY COUNT(*) DESC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
                              "\"duration\":2000}");
@@ -527,7 +527,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKFunction() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT TOP(3, ddd, aaa.cc) FROM STREAM(2000, TIME)"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -535,7 +535,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildTopKFunctionThresholdLimit() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT TOP(3, 1, ddd, aaa.cc) AS top3 FROM STREAM(2000, TIME) LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -543,7 +543,7 @@ public class BulletQueryBuilderTest {
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its alias name is supported in ORDER BY clause now\\E.*")
     public void testBuildTopKInvalidOrderBy() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY AVG(*) DESC LIMIT 3"),
                 "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                         "\"duration\":2000}");
@@ -551,7 +551,7 @@ public class BulletQueryBuilderTest {
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only one field is supported in ORDER BY for TOP K\\E.*")
     public void testBuildTopKOrderByMultipleFields() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*), top3 DESC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                              "\"duration\":2000}");
@@ -559,7 +559,7 @@ public class BulletQueryBuilderTest {
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only DESC is supported in ORDER BY for TOP K\\E.*")
     public void testBuildTopKOrderByASCOrder() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) ASC LIMIT 3"),
                      "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
                              "\"duration\":2000}");
@@ -579,7 +579,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawWindowEveryTime() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, FIRST, 3000, TIME) LIMIT 5 "),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
                         "\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}}," +
@@ -588,7 +588,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawWindowEveryRecord() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 1, RECORD, FIRST, 1, RECORD) LIMIT 5 "),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
                         "\"window\":{\"emit\":{\"type\":\"RECORD\",\"every\":1},\"include\":{\"type\":\"RECORD\",\"first\":1}}," +
@@ -597,7 +597,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawTumblingTime() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(TUMBLING, 3000, TIME) LIMIT 5 "),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
@@ -607,7 +607,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawTumblingRecord() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(TUMBLING, 3000, RECORD) LIMIT 5 "),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
                         "\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
@@ -617,7 +617,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildRawEveryWindowIncludeAll() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, ALL) LIMIT 5 "),
                 "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
                         "\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"ALL\"}}," +
@@ -627,7 +627,7 @@ public class BulletQueryBuilderTest {
     @Test
     public void testBuildRawProjectionEqualDecimal() {
         BulletQueryBuilder decimalBuilder = new BulletQueryBuilder(new BQLConfig("bullet_bql_for_test_decimal.yaml"));
-        assertEquals(decimalBuilder.buildJson(
+        assertJSONEquals(decimalBuilder.buildJson(
                 "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=5.12 LIMIT 3"),
                 "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
                         "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"5.12\"}],\"operation\":\"\\u003d\\u003d\"}]," +
@@ -637,7 +637,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildSingleStatement() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT * FROM STREAM(2000, TIME) LIMIT 1;  SELECT *"),
                 "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
                         "\"duration\":2000}");
@@ -651,28 +651,28 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildComputation() {
-        assertEquals(builder.buildJson("SELECT a + b FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT a + b FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"a + b\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationWithAs() {
-        assertEquals(builder.buildJson("SELECT a + 5 AS b FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT a + 5 AS b FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5\",\"type\":\"LONG\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationWithAsterisk() {
-        assertEquals(builder.buildJson("SELECT *, a + -5.0 AS b FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT *, a + -5.0 AS b FROM STREAM()"),
                 "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationWithTopK() {
-        assertEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c, c * +100 FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c, c * +100 FROM STREAM()"),
                 "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
                         "\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}},\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"+100\",\"type\":\"LONG\"}}," +
                         "\"operation\":\"*\"},\"newName\":\"c * +100\",\"type\":\"COMPUTATION\"}]}");
@@ -680,14 +680,14 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildCastComputation() {
-        assertEquals(builder.buildJson("SELECT CAST (a, FLOAT) AS b FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT CAST (a, FLOAT) AS b FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":" +
                         "[{\"expression\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\",\"type\":\"FLOAT\"}},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationPemdas() {
-        assertEquals(builder.buildJson("SELECT CAST ((a) + b * ((c - (d))) / CAST ((g + (((f)))), FLOAT) - h, INTEGER) FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT CAST ((a) + b * ((c - (d))) / CAST ((g + (((f)))), FLOAT) - h, INTEGER) FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"d\"}},\"operation\":\"-\"},\"operation\":\"*\"},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"g\"}}," +
@@ -697,14 +697,14 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testBuildComputationSubfield() {
-        assertEquals(builder.buildJson("SELECT a.b * -5 FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT a.b * -5 FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a.b\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5\",\"type\":\"LONG\"}},\"operation\":\"*\"},\"newName\":\"a.b * -5\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationDouble() {
-        assertEquals(builder.buildJson("SELECT a + 5.0 FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT a + 5.0 FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
     }
@@ -714,56 +714,56 @@ public class BulletQueryBuilderTest {
         BulletConfig config = new BulletConfig();
         config.set(BQLConfig.BQL_DECIMAL_LITERAL_TREATMENT, "AS_DECIMAL");
         BulletQueryBuilder decimalBuilder = new BulletQueryBuilder(config);
-        assertEquals(decimalBuilder.buildJson("SELECT a + 5.0 FROM STREAM()"),
+        assertJSONEquals(decimalBuilder.buildJson("SELECT a + 5.0 FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationBoolean() {
-        assertEquals(builder.buildJson("SELECT a + true FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT a + true FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"true\",\"type\":\"BOOLEAN\"}},\"operation\":\"+\"},\"newName\":\"a + true\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildComputationString() {
-        assertEquals(builder.buildJson("SELECT a + 'hello' FROM STREAM()"),
+        assertJSONEquals(builder.buildJson("SELECT a + 'hello' FROM STREAM()"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"hello\",\"type\":\"STRING\"}},\"operation\":\"+\"},\"newName\":\"a + hello\",\"type\":\"COMPUTATION\"}]}");
     }
 
     @Test
     public void testBuildOrderBy() {
-        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a"),
+        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a"),
                 "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
-        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC"),
+        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC"),
                 "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
-        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a DESC"),
+        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a DESC"),
                 "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
-        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a, b, c DESC"),
+        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a, b, c DESC"),
                 "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
-        assertEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC, b, c DESC"),
+        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC, b, c DESC"),
                 "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
     }
 
     @Test
     public void testBuildOrderByWithTopK() {
-        assertEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c FROM STREAM() ORDER BY c DESC"),
+        assertJSONEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c FROM STREAM() ORDER BY c DESC"),
                 "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
                         "\"postAggregations\":[{\"fields\":[{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
     }
 
     @Test
     public void testBuildOrderByWithComputation() {
-        assertEquals(builder.buildJson("SELECT a + b AS c FROM STREAM() ORDER BY c"),
+        assertJSONEquals(builder.buildJson("SELECT a + b AS c FROM STREAM() ORDER BY c"),
                 "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
                         "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"c\",\"type\":\"COMPUTATION\"},{\"fields\":[{\"field\":\"c\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
     }
 
     @Test
     public void testBuildGroupByFilterProjectionWithNestedFields() {
-        assertEquals(builder.buildJson(
+        assertJSONEquals(builder.buildJson(
                 "SELECT ddd.aa.b AS bv, aaa.12.b AS uc FROM STREAM(2000, TIME) WHERE ddd.aa.b IS NOT NULL GROUP BY ddd.aa.b, aaa.12.b LIMIT 10"),
                 "{\"filters\":[{\"field\":\"ddd.aa.b\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
                         "\"aggregation\":{\"size\":10,\"type\":\"GROUP\",\"fields\":{\"aaa.12.b\":\"uc\",\"ddd.aa.b\":\"bv\"}}," +
