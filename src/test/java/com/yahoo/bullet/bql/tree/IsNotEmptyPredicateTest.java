@@ -17,7 +17,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class IsNotEmptyPredicateTest {
-    private Expression value;
+    private ExpressionNode value;
     private IsNotEmptyPredicate isNotEmptyPredicate;
 
     @BeforeClass

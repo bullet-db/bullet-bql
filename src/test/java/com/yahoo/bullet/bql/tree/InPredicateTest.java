@@ -19,13 +19,13 @@ import static org.testng.Assert.assertTrue;
 
 public class InPredicateTest {
     private InPredicate inPredicate;
-    private Expression value;
-    private Expression valueList;
+    private ExpressionNode value;
+    private ExpressionNode valueList;
 
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        valueList = new ValueListExpression(singletonList(identifier("bbb")));
+        valueList = new ListExpressionNode(singletonList(identifier("bbb")));
         inPredicate = new InPredicate(value, valueList);
     }
 
@@ -42,11 +42,11 @@ public class InPredicateTest {
         assertFalse(inPredicate.equals(null));
         assertFalse(inPredicate.equals(value));
 
-        Expression diffValue = identifier("ccc");
+        ExpressionNode diffValue = identifier("ccc");
         InPredicate inPredicateDiffValue = new InPredicate(diffValue, valueList);
         assertFalse(inPredicate.equals(inPredicateDiffValue));
 
-        Expression diffValueList = new ValueListExpression(singletonList(identifier("ddd")));
+        ExpressionNode diffValueList = new ListExpressionNode(singletonList(identifier("ddd")));
         InPredicate inPredicateDiffValueList = new InPredicate(value, diffValueList);
         assertFalse(inPredicate.equals(inPredicateDiffValueList));
     }

@@ -19,7 +19,7 @@ import static org.testng.Assert.assertTrue;
 
 public class ReferenceWithFunctionTest {
     private ReferenceWithFunction referenceWithFunction;
-    private Expression value;
+    private ExpressionNode value;
     private Operation op;
 
     @BeforeClass
@@ -42,7 +42,7 @@ public class ReferenceWithFunctionTest {
         assertFalse(referenceWithFunction.equals(null));
         assertFalse(referenceWithFunction.equals(value));
 
-        Expression diffValue = identifier("ccc");
+        ExpressionNode diffValue = identifier("ccc");
         ReferenceWithFunction referenceWithFunctionDiffValue = new ReferenceWithFunction(op, diffValue);
         assertFalse(referenceWithFunction.equals(referenceWithFunctionDiffValue));
     }

@@ -93,7 +93,7 @@ public class WithTest {
                 "name=aaa, " +
                 "query=Query{" +
                 "queryBody=QuerySpecification{" +
-                "select=Select{distinct=false, selectItems=[bbb]}, " +
+                "select=SelectNode{distinct=false, selectItems=[bbb]}, " +
                 "from=Optional.empty, " +
                 "where=null, " +
                 "groupBy=Optional.empty, " +

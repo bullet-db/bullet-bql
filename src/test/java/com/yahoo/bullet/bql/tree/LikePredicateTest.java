@@ -23,14 +23,14 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class LikePredicateTest {
-    private Expression value;
-    private Expression patterns;
+    private ExpressionNode value;
+    private ExpressionNode patterns;
     private LikePredicate likePredicate;
 
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        patterns = new ValueListExpression(singletonList(identifier("bbb")));
+        patterns = new ListExpressionNode(singletonList(identifier("bbb")));
         likePredicate = new LikePredicate(value, patterns);
     }
 
@@ -41,11 +41,11 @@ public class LikePredicateTest {
         assertFalse(likePredicate.equals(null));
         assertFalse(likePredicate.equals(value));
 
-        Expression diffValue = identifier("ccc");
+        ExpressionNode diffValue = identifier("ccc");
         LikePredicate likePredicateDiffValue = new LikePredicate(diffValue, patterns);
         assertFalse(likePredicate.equals(likePredicateDiffValue));
 
-        Expression diffPatterns = new ValueListExpression(singletonList(identifier("ddd")));
+        ExpressionNode diffPatterns = new ListExpressionNode(singletonList(identifier("ddd")));
         LikePredicate likePredicateDiffPatterns = new LikePredicate(value, diffPatterns);
         assertFalse(likePredicate.equals(likePredicateDiffPatterns));
 
@@ -61,9 +61,9 @@ public class LikePredicateTest {
 
     @Test
     public void testGetChildren() {
-        StringLiteral value = new StringLiteral("a");
-        StringLiteral pattern = new StringLiteral("b");
-        Optional<Expression> escape = Optional.of(new StringLiteral("c"));
+        StringLiteralNode value = new StringLiteralNode("a");
+        StringLiteralNode pattern = new StringLiteralNode("b");
+        Optional<ExpressionNode> escape = Optional.of(new StringLiteralNode("c"));
 
         assertEquals(new LikePredicate(value, pattern, escape).getChildren(), ImmutableList.of(value, pattern, escape.get()));
         assertEquals(new LikePredicate(value, pattern, Optional.empty()).getChildren(), ImmutableList.of(value, pattern));

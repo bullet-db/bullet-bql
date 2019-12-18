@@ -37,7 +37,7 @@ public class ExpressionTest {
 
     @Test
     public void testGetType() {
-        assertEquals(expression.getType(SelectItem.Type.class), SelectItem.Type.NON_SELECT);
+        assertEquals(expression.getType(SelectItemNode.Type.class), SelectItemNode.Type.NON_SELECT);
     }
 
     @Test
@@ -53,7 +53,7 @@ public class ExpressionTest {
         assertEquals(expression.compareTo(new ExpressionImpl(diffColumn)), -1);
     }
 
-    private class ExpressionImpl extends Expression {
+    private class ExpressionImpl extends ExpressionNode {
         public ExpressionImpl(NodeLocation location) {
             this(Optional.of(location));
         }
@@ -78,7 +78,7 @@ public class ExpressionTest {
         }
     }
 
-    private Expression noLocationExpression() {
+    private ExpressionNode noLocationExpression() {
         return new ExpressionImpl(Optional.empty());
     }
 }

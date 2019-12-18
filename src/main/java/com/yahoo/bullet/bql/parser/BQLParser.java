@@ -10,9 +10,8 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.yahoo.bullet.bql.tree.Expression;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.Statement;
+import com.yahoo.bullet.bql.tree.QueryNode;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonToken;
@@ -63,41 +62,22 @@ public class BQLParser {
     }
 
     /**
-     * Create a {@link Statement} which is a {@link Node} Tree from given BQL String and {@link ParsingOptions}.
+     * Create a {@link QueryNode} which is a {@link Node} Tree from given BQL String and {@link ParsingOptions}.
      *
      * @param bql            A BQL String.
      * @param parsingOptions A {@link ParsingOptions} that defines how to treat decimal number.
-     * @return A {@link Statement} which is a {@link Node} Tree.
+     * @return A {@link QueryNode} which is a {@link Node} Tree.
      * @throws ParsingException              when statement is not valid.
      * @throws IllegalArgumentException      when statement argument is not valid.
      * @throws UnsupportedOperationException when statement operation is not valid.
      * @throws NullPointerException          when parsingOptions is null.
      * @throws AssertionError                when {@link ParsingOptions#decimalLiteralTreatment} is not valid.
      */
-    public Statement createStatement(String bql, ParsingOptions parsingOptions) throws ParsingException, IllegalArgumentException,
-            UnsupportedOperationException, NullPointerException, AssertionError {
-        return (Statement) invokeParser("statement", bql, BQLBaseParser::singleStatement, parsingOptions);
+    public QueryNode createQueryNode(String bql, ParsingOptions parsingOptions) {
+        return (QueryNode) invokeParser(bql, BQLBaseParser::query, parsingOptions);
     }
 
-    /**
-     * Create a {@link Expression} which is a {@link Node} Tree from given BQL String and {@link ParsingOptions}.
-     *
-     * @param expression     A BQL expression String.
-     * @param parsingOptions A {@link ParsingOptions} that defines how to treat decimal number.
-     * @return An {@link Expression}.
-     * @throws ParsingException              when expression is not valid.
-     * @throws IllegalArgumentException      when expression argument is not valid.
-     * @throws UnsupportedOperationException when expression operation is not valid.
-     * @throws NullPointerException          when parsingOptions is null.
-     * @throws AssertionError                when {@link ParsingOptions#decimalLiteralTreatment} is not valid.
-     */
-    public Expression createExpression(String expression, ParsingOptions parsingOptions) throws ParsingException, IllegalArgumentException,
-            UnsupportedOperationException, NullPointerException, AssertionError {
-        return (Expression) invokeParser("expression", expression, BQLBaseParser::singleExpression, parsingOptions);
-    }
-
-    private Node invokeParser(String name, String bql, Function<BQLBaseParser, ParserRuleContext> parseFunction, ParsingOptions parsingOptions)
-            throws ParsingException, IllegalArgumentException, UnsupportedOperationException, NullPointerException, AssertionError {
+    private Node invokeParser(String bql, Function<BQLBaseParser, ParserRuleContext> parseFunction, ParsingOptions parsingOptions) {
         try {
             BQLBaseLexer lexer = new BQLBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(bql)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -120,14 +100,12 @@ public class BQLParser {
                 // If we fail, parse with LL mode.
                 tokenStream.reset(); // rewind input stream.
                 parser.reset();
-
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
                 tree = parseFunction.apply(parser);
             }
-
             return new ASTBuilder(parsingOptions).visit(tree);
         } catch (StackOverflowError e) {
-            throw new ParsingException(name + " is too large (stack overflow while parsing)");
+            throw new ParsingException("Stack overflow while parsing.");
         }
     }
 
@@ -144,8 +122,7 @@ public class BQLParser {
             for (IdentifierSymbol identifierSymbol : EnumSet.complementOf(allowedIdentifierSymbols)) {
                 char symbol = identifierSymbol.getSymbol();
                 if (identifier.indexOf(symbol) >= 0) {
-                    throw new ParsingException("Identifiers must not contain '" + identifierSymbol.getSymbol() +
-                            "'", null, context.IDENTIFIER().getSymbol().getLine(), context.IDENTIFIER().getSymbol().getCharPositionInLine());
+                    throw new ParsingException("Identifiers must not contain '" + identifierSymbol.getSymbol() + "'", null, context.IDENTIFIER().getSymbol().getLine(), context.IDENTIFIER().getSymbol().getCharPositionInLine());
                 }
             }
         }
@@ -153,17 +130,13 @@ public class BQLParser {
         @Override
         public void exitDigitIdentifier(BQLBaseParser.DigitIdentifierContext context) throws ParsingException {
             Token token = context.DIGIT_IDENTIFIER().getSymbol();
-            throw new ParsingException(
-                    "Identifiers must not start with a digit; surround the identifier with double quotes",
-                    null,
-                    token.getLine(),
-                    token.getCharPositionInLine());
+            throw new ParsingException("Identifiers must not start with a digit; surround the identifier with double quotes", null, token.getLine(), token.getCharPositionInLine());
         }
 
         @Override
         public void exitNonReserved(BQLBaseParser.NonReservedContext context) {
             // We can't modify the tree during rule enter/exit event handling unless we're dealing with a terminal.
-            // Otherwise, ANTLR gets confused an fires spurious notifications.
+            // Otherwise, ANTLR gets confused and fires spurious notifications.
             if (!(context.getChild(0) instanceof TerminalNode)) {
                 int rule = ((ParserRuleContext) context.getChild(0)).getRuleIndex();
                 throw new AssertionError("NonReserved can only contain tokens. Found nested rule: " + ruleNames.get(rule));
@@ -173,12 +146,7 @@ public class BQLParser {
             context.getParent().removeLastChild();
 
             Token token = (Token) context.getChild(0).getPayload();
-            context.getParent().addChild(new CommonToken(
-                    new Pair<>(token.getTokenSource(), token.getInputStream()),
-                    BQLBaseLexer.IDENTIFIER,
-                    token.getChannel(),
-                    token.getStartIndex(),
-                    token.getStopIndex()));
+            context.getParent().addChild(new CommonToken(new Pair<>(token.getTokenSource(), token.getInputStream()), BQLBaseLexer.IDENTIFIER, token.getChannel(), token.getStartIndex(), token.getStopIndex()));
         }
     }
 }

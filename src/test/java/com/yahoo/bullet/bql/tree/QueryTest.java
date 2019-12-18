@@ -46,7 +46,7 @@ public class QueryTest {
         Query queryDiffWith = new Query(Optional.of(diffWith), body, Optional.empty(), Optional.empty());
         assertFalse(query.equals(queryDiffWith));
 
-        OrderBy diffOrderBy = simpleOrderBy();
+        OrderByNode diffOrderBy = simpleOrderBy();
         Query queryDiffOrderBy = new Query(Optional.empty(), body, Optional.of(diffOrderBy), Optional.empty());
         assertFalse(query.equals(queryDiffOrderBy));
 

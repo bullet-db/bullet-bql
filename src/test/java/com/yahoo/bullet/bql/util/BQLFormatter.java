@@ -13,17 +13,17 @@ package com.yahoo.bullet.bql.util;
 import com.google.common.base.Strings;
 import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
-import com.yahoo.bullet.bql.tree.Expression;
-import com.yahoo.bullet.bql.tree.Identifier;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.bql.tree.Relation;
-import com.yahoo.bullet.bql.tree.Select;
-import com.yahoo.bullet.bql.tree.SelectItem;
+import com.yahoo.bullet.bql.tree.SelectNode;
+import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SingleColumn;
-import com.yahoo.bullet.bql.tree.Stream;
-import com.yahoo.bullet.bql.tree.Windowing;
+import com.yahoo.bullet.bql.tree.StreamNode;
+import com.yahoo.bullet.bql.tree.WindowNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,10 +46,10 @@ public final class BQLFormatter {
      * Parse a {@link Node} tree to a formatted BQL String. This is used to check if two {@link Node} tree are same.
      *
      * @param root       The root of the {@link Node} tree
-     * @param parameters The List of {@link Expression} to tune parsing process. Currently, we pass in {@link Optional#empty()}
+     * @param parameters The List of {@link ExpressionNode} to tune parsing process. Currently, we pass in {@link Optional#empty()}
      * @return A formatted string representation of BQL statement
      */
-    public static String formatBQL(Node root, Optional<List<Expression>> parameters) {
+    public static String formatBQL(Node root, Optional<List<ExpressionNode>> parameters) {
         StringBuilder builder = new StringBuilder();
         new Formatter(builder, parameters).process(root, 0);
         return builder.toString();
@@ -57,9 +57,9 @@ public final class BQLFormatter {
 
     private static class Formatter extends ASTVisitor<Void, Integer> {
         private final StringBuilder builder;
-        private final Optional<List<Expression>> parameters;
+        private final Optional<List<ExpressionNode>> parameters;
 
-        public Formatter(StringBuilder builder, Optional<List<Expression>> parameters) {
+        public Formatter(StringBuilder builder, Optional<List<ExpressionNode>> parameters) {
             this.builder = builder;
             this.parameters = parameters;
         }
@@ -70,7 +70,7 @@ public final class BQLFormatter {
         }
 
         @Override
-        protected Void visitExpression(Expression node, Integer indent) {
+        protected Void visitExpression(ExpressionNode node, Integer indent) {
             checkArgument(indent == 0, "visitExpression should only be called at root");
             builder.append(formatExpression(node, parameters));
             return null;
@@ -128,7 +128,7 @@ public final class BQLFormatter {
         }
 
         @Override
-        protected Void visitSelect(Select node, Integer indent) {
+        protected Void visitSelect(SelectNode node, Integer indent) {
             append(indent, "SELECT");
             if (node.isDistinct()) {
                 builder.append(" DISTINCT");
@@ -136,7 +136,7 @@ public final class BQLFormatter {
 
             if (node.getSelectItems().size() > 1) {
                 boolean first = true;
-                for (SelectItem item : node.getSelectItems()) {
+                for (SelectItemNode item : node.getSelectItems()) {
                     builder.append("\n")
                             .append(indentString(indent))
                             .append(first ? "  " : ", ");
@@ -173,14 +173,14 @@ public final class BQLFormatter {
         }
 
         @Override
-        protected Void visitWindowing(Windowing node, Integer indent) {
+        protected Void visitWindow(WindowNode node, Integer indent) {
             builder.append(formatWindowing(node));
 
             return null;
         }
 
         @Override
-        protected Void visitStream(Stream node, Integer indent) {
+        protected Void visitStream(StreamNode node, Integer indent) {
             builder.append(formatStream(node));
 
             return null;
@@ -200,7 +200,7 @@ public final class BQLFormatter {
         }
     }
 
-    private static void appendAliasColumns(StringBuilder builder, List<Identifier> columns) {
+    private static void appendAliasColumns(StringBuilder builder, List<IdentifierNode> columns) {
         if ((columns != null) && (!columns.isEmpty())) {
             String formattedColumns = columns.stream()
                     .map(name -> formatExpression(name, Optional.empty()))

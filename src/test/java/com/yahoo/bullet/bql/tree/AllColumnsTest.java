@@ -21,7 +21,7 @@ import static org.testng.Assert.assertTrue;
 public class AllColumnsTest {
     private AllColumns allColumns;
     private QualifiedName prefix;
-    private Identifier alias;
+    private IdentifierNode alias;
 
     @BeforeClass
     public void setUp() {
@@ -58,7 +58,7 @@ public class AllColumnsTest {
         AllColumns allColumnsDiffPrefix = new AllColumns(diffPrefix, Optional.of(alias));
         assertFalse(allColumns.equals(allColumnsDiffPrefix));
 
-        Identifier diffAlias = identifier("ddd");
+        IdentifierNode diffAlias = identifier("ddd");
         AllColumns allColumnsDiffAlias = new AllColumns(prefix, Optional.of(diffAlias));
         assertFalse(allColumns.equals(allColumnsDiffAlias));
     }

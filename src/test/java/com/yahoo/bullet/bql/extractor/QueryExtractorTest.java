@@ -27,7 +27,7 @@ public class QueryExtractorTest {
         builder = new BulletQueryBuilder(new BulletConfig());
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Stream duration control based on record is not supported yet\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: StreamNode duration control based on record is not supported yet\\E.*")
     public void testStreamRecord() {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME, 2000, RECORD)");
     }
@@ -129,7 +129,7 @@ public class QueryExtractorTest {
         builder.buildJson("SELECT SUM(aaa, bbb.ccc) FROM STREAM(2000, TIME) GROUP BY ()");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: LIMIT must be same as the k of TopK aggregation\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: LIMIT must be same as the k of TopKNode aggregation\\E.*")
     public void testTopKUnequalLimit() {
         builder.buildJson("SELECT TOP(3, 3, aaa.bbb, ccc) FROM STREAM(2000, TIME) LIMIT 10");
     }
@@ -173,10 +173,10 @@ public class QueryExtractorTest {
     public void testExtractNotKnownType() {
         QueryExtractor extractor = new QueryExtractor(new BQLConfig(""));
         QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
-        extractor.validateAndExtract(querySpecification, UNKNOWN);
+        extractor.extractQuery(querySpecification, UNKNOWN);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Select field aaa should be a grouping function or be in GROUP BY clause\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SelectNode field aaa should be a grouping function or be in GROUP BY clause\\E.*")
     public void testGroupBySelectFieldNotInGroupByClause() {
         builder.buildJson("SELECT COUNT(*), aaa FROM STREAM(2000, TIME)");
     }

@@ -20,7 +20,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class SimpleGroupByTest {
-    private List<Expression> columns;
+    private List<ExpressionNode> columns;
     private SimpleGroupBy simpleGroupBy;
 
     @BeforeClass
@@ -31,7 +31,7 @@ public class SimpleGroupByTest {
 
     @Test
     public void testEnumerateGroupingSets() {
-        List<Set<Expression>> expected = ImmutableList.of(ImmutableSet.copyOf(columns));
+        List<Set<ExpressionNode>> expected = ImmutableList.of(ImmutableSet.copyOf(columns));
         assertEquals(simpleGroupBy.enumerateGroupingSets(), expected);
     }
 

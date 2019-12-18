@@ -21,9 +21,9 @@ import static org.testng.Assert.assertTrue;
 
 public class WithQueryTest {
     private WithQuery withQuery;
-    private Identifier name;
+    private IdentifierNode name;
     private Query query;
-    private List<Identifier> columnNames;
+    private List<IdentifierNode> columnNames;
 
     @BeforeClass
     public void setUp() {
@@ -61,7 +61,7 @@ public class WithQueryTest {
                 "name=aaa, " +
                 "query=Query{" +
                 "queryBody=QuerySpecification{" +
-                "select=Select{distinct=false, selectItems=[bbb]}, " +
+                "select=SelectNode{distinct=false, selectItems=[bbb]}, " +
                 "from=Optional.empty, " +
                 "where=null, " +
                 "groupBy=Optional.empty, " +
@@ -92,7 +92,7 @@ public class WithQueryTest {
         WithQuery sameWithQuery = new WithQuery(sameLocation, name, query, Optional.of(columnNames));
         assertTrue(withQueryCopy.equals(sameWithQuery));
 
-        Identifier diffName = identifier("bbb");
+        IdentifierNode diffName = identifier("bbb");
         WithQuery withQueryDiffName = new WithQuery(sameLocation, diffName, query, Optional.of(columnNames));
         assertFalse(withQuery.equals(withQueryDiffName));
 
@@ -100,7 +100,7 @@ public class WithQueryTest {
         WithQuery withQueryDiffQuery = new WithQuery(sameLocation, name, diffQuery, Optional.of(columnNames));
         assertFalse(withQuery.equals(withQueryDiffQuery));
 
-        List<Identifier> diffColumnNames = singletonList(identifier("ddd"));
+        List<IdentifierNode> diffColumnNames = singletonList(identifier("ddd"));
         WithQuery withQueryDiffColumnNames = new WithQuery(sameLocation, name, query, Optional.of(diffColumnNames));
         assertFalse(withQuery.equals(withQueryDiffColumnNames));
     }

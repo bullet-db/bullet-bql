@@ -13,30 +13,30 @@ package com.yahoo.bullet.bql.util;
 import com.google.common.collect.ImmutableList;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
-import com.yahoo.bullet.bql.tree.DoubleLiteral;
-import com.yahoo.bullet.bql.tree.Expression;
+import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FunctionCall;
-import com.yahoo.bullet.bql.tree.GroupBy;
-import com.yahoo.bullet.bql.tree.Identifier;
+import com.yahoo.bullet.bql.tree.GroupByNode;
+import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.LikePredicate;
-import com.yahoo.bullet.bql.tree.LinearDistribution;
-import com.yahoo.bullet.bql.tree.ManualDistribution;
+import com.yahoo.bullet.bql.tree.LinearDistributionNode;
+import com.yahoo.bullet.bql.tree.ManualDistributionNode;
 import com.yahoo.bullet.bql.tree.NotExpression;
-import com.yahoo.bullet.bql.tree.OrderBy;
+import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.QueryBody;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
-import com.yahoo.bullet.bql.tree.RegionDistribution;
+import com.yahoo.bullet.bql.tree.RegionDistributionNode;
 import com.yahoo.bullet.bql.tree.Relation;
-import com.yahoo.bullet.bql.tree.Select;
-import com.yahoo.bullet.bql.tree.SelectItem;
+import com.yahoo.bullet.bql.tree.SelectNode;
+import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SingleColumn;
-import com.yahoo.bullet.bql.tree.SortItem;
-import com.yahoo.bullet.bql.tree.Stream;
-import com.yahoo.bullet.bql.tree.TopK;
-import com.yahoo.bullet.bql.tree.ValueListExpression;
-import com.yahoo.bullet.bql.tree.WindowInclude;
-import com.yahoo.bullet.bql.tree.Windowing;
+import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.bql.tree.StreamNode;
+import com.yahoo.bullet.bql.tree.TopKNode;
+import com.yahoo.bullet.bql.tree.ListExpressionNode;
+import com.yahoo.bullet.bql.tree.WindowIncludeNode;
+import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.bql.tree.With;
 import com.yahoo.bullet.bql.tree.WithQuery;
 
@@ -45,9 +45,9 @@ import java.util.Optional;
 
 import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
-import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.FIRST;
-import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
-import static com.yahoo.bullet.bql.tree.WindowInclude.IncludeType.LAST;
+import static com.yahoo.bullet.bql.tree.SortItemNode.NullOrdering.FIRST;
+import static com.yahoo.bullet.bql.tree.SortItemNode.Ordering.ASCENDING;
+import static com.yahoo.bullet.bql.tree.WindowIncludeNode.IncludeType.LAST;
 import static com.yahoo.bullet.parsing.Clause.Operation.EQUALS;
 import static com.yahoo.bullet.parsing.Window.Unit.TIME;
 import static java.util.Arrays.asList;
@@ -57,59 +57,59 @@ public final class QueryUtil {
     private QueryUtil() {
     }
 
-    public static Identifier identifier(String name) {
-        return new Identifier(name);
+    public static IdentifierNode identifier(String name) {
+        return new IdentifierNode(name);
     }
 
-    public static Identifier quotedIdentifier(String name) {
-        return new Identifier(name, true);
+    public static IdentifierNode quotedIdentifier(String name) {
+        return new IdentifierNode(name, true);
     }
 
-    public static SelectItem unaliasedName(String name) {
+    public static SelectItemNode unaliasedName(String name) {
         return new SingleColumn(identifier(name));
     }
 
-    public static SelectItem aliasedName(String name, String alias) {
+    public static SelectItemNode aliasedName(String name, String alias) {
         return new SingleColumn(identifier(name), identifier(alias));
     }
 
-    public static Select selectList(Expression... expressions) {
+    public static SelectNode selectList(ExpressionNode... expressions) {
         return selectList(asList(expressions));
     }
 
-    public static Select selectList(List<Expression> expressions) {
-        ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
-        for (Expression expression : expressions) {
+    public static SelectNode selectList(List<ExpressionNode> expressions) {
+        ImmutableList.Builder<SelectItemNode> items = ImmutableList.builder();
+        for (ExpressionNode expression : expressions) {
             items.add(new SingleColumn(expression));
         }
-        return new Select(false, items.build());
+        return new SelectNode(false, items.build());
     }
 
-    public static Select selectList(SelectItem... items) {
-        return new Select(false, ImmutableList.copyOf(items));
+    public static SelectNode selectList(SelectItemNode... items) {
+        return new SelectNode(false, ImmutableList.copyOf(items));
     }
 
-    public static Select selectAll(List<SelectItem> items) {
-        return new Select(false, items);
+    public static SelectNode selectAll(List<SelectItemNode> items) {
+        return new SelectNode(false, items);
     }
 
     public static Relation simpleStream(String duration) {
-        return new Stream(Optional.of(duration), Optional.empty());
+        return new StreamNode(Optional.of(duration), Optional.empty());
     }
 
-    public static Expression logicalNot(Expression value) {
+    public static ExpressionNode logicalNot(ExpressionNode value) {
         return new NotExpression(value);
     }
 
-    public static Expression equal(Expression left, Expression right) {
+    public static ExpressionNode equal(ExpressionNode left, ExpressionNode right) {
         return new ComparisonExpression(EQUALS, left, right, false);
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select) {
         return simpleQuery(simpleQuerySpecification(select));
     }
 
-    public static QuerySpecification simpleQuerySpecification(Select select) {
+    public static QuerySpecification simpleQuerySpecification(SelectNode select) {
         return new QuerySpecification(
                 select,
                 Optional.empty(),
@@ -121,32 +121,32 @@ public final class QueryUtil {
                 Optional.empty());
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from) {
         return simpleQuery(select, from, Optional.empty(), Optional.empty());
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from, OrderBy orderBy) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from, OrderByNode orderBy) {
         return simpleQuery(select, from, Optional.empty(), Optional.of(orderBy));
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from, GroupBy groupBy) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from, GroupByNode groupBy) {
         return simpleQuery(select, from, Optional.empty(), Optional.of(groupBy), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from, Expression where) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from, ExpressionNode where) {
         return simpleQuery(select, from, Optional.of(where), Optional.empty());
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from, Expression where, OrderBy orderBy) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from, ExpressionNode where, OrderByNode orderBy) {
         return simpleQuery(select, from, Optional.of(where), Optional.of(orderBy));
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from, Optional<Expression> where, Optional<OrderBy> orderBy) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from, Optional<ExpressionNode> where, Optional<OrderByNode> orderBy) {
         return simpleQuery(select, from, where, Optional.empty(), Optional.empty(), orderBy, Optional.empty(), Optional.empty());
     }
 
-    public static com.yahoo.bullet.bql.tree.Query simpleQuery(Select select, Relation from, Optional<Expression> where, Optional<GroupBy> groupBy,
-                                                              Optional<Expression> having, Optional<OrderBy> orderBy, Optional<String> limit, Optional<Windowing> windowing) {
+    public static com.yahoo.bullet.bql.tree.Query simpleQuery(SelectNode select, Relation from, Optional<ExpressionNode> where, Optional<GroupByNode> groupBy,
+                                                              Optional<ExpressionNode> having, Optional<OrderByNode> orderBy, Optional<String> limit, Optional<WindowNode> windowing) {
 
         return simpleQuery(new QuerySpecification(
                 select,
@@ -167,25 +167,25 @@ public final class QueryUtil {
                 Optional.empty());
     }
 
-    public static RegionDistribution regionQuantile(Double start, Double end, Double increment) {
-        return new RegionDistribution(singletonList(
-                new Identifier("a")),
+    public static RegionDistributionNode regionQuantile(Double start, Double end, Double increment) {
+        return new RegionDistributionNode(singletonList(
+                new IdentifierNode("a")),
                 QUANTILE,
                 start,
                 end,
                 increment);
     }
 
-    public static LinearDistribution linearQuantile(Long numberOfPoints) {
-        return new LinearDistribution(singletonList(
-                new Identifier("a")),
+    public static LinearDistributionNode linearQuantile(Long numberOfPoints) {
+        return new LinearDistributionNode(singletonList(
+                new IdentifierNode("a")),
                 QUANTILE,
                 numberOfPoints);
     }
 
-    public static ManualDistribution manualQuantile(List<Double> points) {
-        return new ManualDistribution(
-                singletonList(new Identifier("a")),
+    public static ManualDistributionNode manualQuantile(List<Double> points) {
+        return new ManualDistributionNode(
+                singletonList(new IdentifierNode("a")),
                 QUANTILE,
                 points);
     }
@@ -198,31 +198,31 @@ public final class QueryUtil {
         return new With(false, singletonList(simpleWithQuery()));
     }
 
-    public static SortItem simpleSortItem() {
-        return new SortItem(identifier("aaa"), ASCENDING, FIRST);
+    public static SortItemNode simpleSortItem() {
+        return new SortItemNode(identifier("aaa"), ASCENDING, FIRST);
     }
 
-    public static OrderBy simpleOrderBy() {
-        return new OrderBy(singletonList(simpleSortItem()));
+    public static OrderByNode simpleOrderBy() {
+        return new OrderByNode(singletonList(simpleSortItem()));
     }
 
     public static FunctionCall simpleFunctionCall() {
         return new FunctionCall(COUNT, singletonList(identifier("aaa")));
     }
 
-    public static WindowInclude simpleWindowInclude() {
-        return new WindowInclude(TIME, Optional.of(LAST), Optional.of((long) 100));
+    public static WindowIncludeNode simpleWindowInclude() {
+        return new WindowIncludeNode(TIME, Optional.of(LAST), Optional.of((long) 100));
     }
 
-    public static Windowing simpleWindowing() {
-        WindowInclude include = simpleWindowInclude();
-        return new Windowing((long) 100, TIME, include);
+    public static WindowNode simpleWindowing() {
+        WindowIncludeNode include = simpleWindowInclude();
+        return new WindowNode((long) 100, TIME, include);
     }
 
     public static BetweenPredicate simpleBetween() {
-        Expression value = identifier("aaa");
-        DoubleLiteral min = new DoubleLiteral("5.5");
-        DoubleLiteral max = new DoubleLiteral("10");
+        ExpressionNode value = identifier("aaa");
+        DoubleLiteralNode min = new DoubleLiteralNode("5.5");
+        DoubleLiteralNode max = new DoubleLiteralNode("10");
         return new BetweenPredicate(value, min, max);
     }
 
@@ -230,8 +230,8 @@ public final class QueryUtil {
         return new InPredicate(identifier("bbb"), simpleValueList());
     }
 
-    public static ValueListExpression simpleValueList() {
-        return new ValueListExpression(singletonList(identifier("aaa")));
+    public static ListExpressionNode simpleValueList() {
+        return new ListExpressionNode(singletonList(identifier("aaa")));
     }
 
     public static LikePredicate simpleLikePredicate() {
@@ -239,7 +239,7 @@ public final class QueryUtil {
     }
 
 
-    public static TopK simpleTopK(long k) {
-        return new TopK(singletonList(identifier("aaa")), k, Optional.empty());
+    public static TopKNode simpleTopK(long k) {
+        return new TopKNode(singletonList(identifier("aaa")), k, Optional.empty());
     }
 }

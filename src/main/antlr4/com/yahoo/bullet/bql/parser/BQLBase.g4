@@ -10,172 +10,111 @@
  */
 grammar BQLBase;
 
-tokens {
-    DELIMITER
-}
-
-singleStatement
-    : statement EOF
-    ;
-
-singleExpression
-    : expression EOF
-    ;
-
-statement
-    : query                                                                               #statementDefault
-    ;
-
 query
-    : queryNoWith
+    : SELECT select FROM stream
+      (WHERE where=expression)?
+      (GROUP BY groupBy)?
+      (HAVING having=expression)?
+      (ORDER BY orderBy)?
+      (WINDOWING window)?
+      (LIMIT limit=INTEGER_VALUE)?
+      EOF
     ;
 
-queryNoWith
-    : queryTerm
-      (ORDER BY sortItem (',' sortItem)*)?
-      (WINDOWING '(' windowOperation ')')?
-      (LIMIT limit=(INTEGER_VALUE | ALL))?
+select
+    : DISTINCT? selectItem (',' selectItem)*
     ;
 
-windowOperation
-    : EVERY ',' emitEvery=INTEGER_VALUE ',' emitType=(TIME | RECORD) ',' include          #emitEvery
-    | TUMBLING ',' emitEvery=INTEGER_VALUE ',' emitType=(TIME | RECORD)                   #tumbling
+selectItem
+    : expression (AS? identifier)?
+    | ASTERISK
     ;
 
-include
-    : includeUnit=ALL
-    | includeType=(FIRST | LAST) ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
+stream
+    : STREAM '(' (timeDuration=(INTEGER_VALUE | MAX) ',' TIME (',' recordDuration=(INTEGER_VALUE | MAX) ',' RECORD)?)? ')'
     ;
 
-queryTerm
-    : queryPrimary                                                                        #queryTermDefault
+groupBy
+    : expression (',' expression)*
     ;
 
-queryPrimary
-    : querySpecification                                                                  #queryPrimaryDefault
+orderBy
+    : sortItem (',' sortItem)*
     ;
 
 sortItem
     : expression ordering=(ASC | DESC)?
     ;
 
-querySpecification
-    : SELECT setQuantifier? selectItem (',' selectItem)*
-      FROM relation
-      (WHERE where=booleanExpression)?
-      (GROUP BY groupBy)?
-      (HAVING having=topKThreshold)?
+window
+    : EVERY '(' emitEvery=INTEGER_VALUE ',' emitType=(TIME | RECORD) ',' include ')'
+    | TUMBLING '(' emitEvery=INTEGER_VALUE ',' emitType=(TIME | RECORD) ')'
     ;
 
-topKThreshold
-    : expression comparisonOperator right=INTEGER_VALUE
-    ;
-
-groupBy
-    : groupingElement
-    ;
-
-groupingElement
-    : groupingExpressions                                                                 #singleGroupingSet
-    ;
-
-groupingExpressions
-    : '(' (referenceExpression (',' referenceExpression)*)? ')'
-    | referenceExpression (',' referenceExpression)*
-    ;
-
-setQuantifier
-    : DISTINCT
-    ;
-
-selectItem
-    : primaryExpression (AS? identifier)?                                                 #selectSingle
-    | qualifiedName '.' ASTERISK (AS? identifier)?                                        #selectAll
-    | ASTERISK                                                                            #selectAll
-    ;
-
-relation
-    : sampledRelation                                                                     #relationDefault
-    ;
-
-sampledRelation
-    : aliasedRelation
-    ;
-
-aliasedRelation
-    : relationPrimary
-    ;
-
-relationPrimary
-    : STREAM '(' (timeDuration=(INTEGER_VALUE | MAX) ',' TIME
-        (',' recordDuration=(INTEGER_VALUE | MAX) ',' RECORD)?)? ')'                      #stream
+include
+    : includeUnit=ALL
+    //| includeType=(FIRST | LAST) ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
+    | includeType=FIRST ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
     ;
 
 expression
-    : booleanExpression
-    | primaryExpression
-    | valueExpression
+    : valueExpression                                                                       #value
+    | identifier                                                                            #field
+    | listExpression                                                                        #list
+    | expression IS NULL                                                                    #nullPredicate
+    | expression IS NOT NULL                                                                #nullPredicate
+    | unaryExpression                                                                       #unary
+    | functionExpression                                                                    #function
+    | left=expression op=(ASTERISK | SLASH) right=expression                                #infix
+    | left=expression op=(PLUS | MINUS) right=expression                                    #infix
+    | left=expression op=(LT | LTE | GT | GTE) right=expression                             #infix
+    | left=expression op=(EQ | NEQ) right=expression                                        #infix
+    | left=expression op=(AND | XOR) right=expression                                       #infix
+    | left=expression op=OR right=expression                                                #infix
+    | '(' expression ')'                                                                    #parentheses
     ;
 
-booleanExpression
-    : predicated                                                                          #booleanDefault
-    | NOT booleanExpression                                                               #logicalNot
-    | left=booleanExpression operator=AND right=booleanExpression                         #logicalBinary
-    | left=booleanExpression operator=OR right=booleanExpression                          #logicalBinary
-    | '(' booleanExpression ')'                                                           #parenthesizedExpression
+valueExpression
+    : NULL                                                                                  #nullLiteral
+    | signedNumber                                                                          #numericLiteral
+    | booleanValue                                                                          #booleanLiteral
+    | string                                                                                #stringLiteral
     ;
 
-predicated
-    : predicatedReferenceExpression predicate[$predicatedReferenceExpression.ctx]
+listExpression
+    : '[' ']'
+    | '[' expression (',' expression)* ']'
     ;
 
-predicatedReferenceExpression
-    : referenceExpression                                                                 #referenceWithoutFunction
-    | functionName '(' referenceExpression ')'                                            #referenceWithFunction
+unaryExpression
+    : op=(NOT | SIZEOF) operand=expression
+    ;
+/*
+binaryExpression
+    : op=('RLIKE' | 'SIZEIS' | CONTAINSKEY | CONTAINSVALUE | XOR | 'FILTER') '(' left=expression ',' right=expression ')'
     ;
 
-functionName
-    : SIZEOF
+nAryExpression
+    : op=(AND | OR | 'IF') '(' (expression? | (expression (',' expression)*)) ')'
+    ;
+*/
+functionExpression
+    : binaryFunction '(' left=expression ',' right=expression ')'                           #binary
+    | op=(AND | OR | IF) '(' expression (',' expression)* ')'                               #nAry
+    | aggregateExpression                                                                   #aggregate
+    | CAST '(' expression AS castType ')'                                                   #cast
     ;
 
-predicate[ParserRuleContext value]
-    : comparisonOperator right=valueExpression                                            #comparison
-    | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                        #between
-    | NOT? IN valueExpressionList                                                         #inList
-    | NOT? LIKE valueExpressionList                                                       #likeList
-    | IS NOT? NULL                                                                        #nullPredicate
-    | IS NOT? DISTINCT FROM right=valueExpression                                         #distinctFrom
-    | IS NOT? EMPTY                                                                       #emptyPredicate
-    | NOT? containsOperator valueExpressionList                                           #containsList
+binaryFunction
+    : op=(RLIKE | SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
     ;
 
-valueExpressionList
-    : '(' valueExpression (',' valueExpression)* ')'
-    ;
-
-containsOperator
-    : CONTAINSKEY | CONTAINSVALUE
-    ;
-
-primaryExpression
-    : qualifiedName '(' ASTERISK ')'                                                      #functionCall
-    | qualifiedName '(' setQuantifier? referenceExpression (',' referenceExpression)*')'  #functionCall
-    | referenceExpression                                                                 #reference
-    | arithmeticExpression                                                                #computation
-    | distributionType '(' referenceExpression ',' inputMode ')'                          #distributionOperation
-    | TOP '(' topKConfig ')'                                                              #topK
-    ;
-
-arithmeticExpression
-    : '(' arithmeticExpression ')'                                                        #parensExpression
-    | CAST '(' arithmeticExpression ',' castType ')'                                      #castExpression
-    | left=arithmeticExpression op=(ASTERISK | SLASH) right=arithmeticExpression          #infixExpression
-    | left=arithmeticExpression op=(PLUS | MINUS) right=arithmeticExpression              #infixExpression
-    | valueExpression                                                                     #leafExpression
-    ;
-
-castType
-    : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
+aggregateExpression
+    : op=COUNT '(' ASTERISK ')'                                                             #groupOperation
+    | op=(SUM | AVG | MIN | MAX) '(' expression ')'                                         #groupOperation
+    | COUNT '(' DISTINCT expression ( ',' expression )* ')'                                 #countDistinct
+    | distributionType '(' expression ',' inputMode ')'                                     #distribution
+    | TOP '(' topKConfig ')'                                                                #topK
     ;
 
 distributionType
@@ -189,40 +128,15 @@ inputMode
     ;
 
 topKConfig
-    : size=INTEGER_VALUE (',' threshold=INTEGER_VALUE)? ',' referenceExpression (',' referenceExpression)*
+    : size=INTEGER_VALUE (',' threshold=INTEGER_VALUE)? ',' expression (',' expression)*
     ;
 
-referenceExpression
-    : identifier                                                                          #columnReference
-    ;
-
-valueExpression
-    : NULL                                                                                #nullLiteral
-    | number                                                                              #numericLiteral
-    | booleanValue                                                                        #booleanLiteral
-    | string                                                                              #stringLiteral
-    | operator=(MINUS | PLUS) number                                                      #arithmeticUnary
-    | referenceExpression                                                                 #fieldReference
-    ;
-
-signedNumber
-    : operator=(MINUS | PLUS)? number
-    ;
-
-string
-    : STRING                                                                              #basicStringLiteral
-    ;
-
-comparisonOperator
-    : EQ | NEQ | LT | LTE | GT | GTE
+castType
+    : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
     ;
 
 booleanValue
     : TRUE | FALSE
-    ;
-
-qualifiedName
-    : identifier
     ;
 
 identifier
@@ -237,6 +151,14 @@ number
     | INTEGER_VALUE                                                                       #integerLiteral
     ;
 
+signedNumber
+    : operator=(MINUS | PLUS)? number
+    ;
+
+string
+    : STRING                                                                              #basicStringLiteral
+    ;
+
 nonReserved
     // IMPORTANT: this rule must only contain tokens. Nested rules are not supported. See BQLParser.exitNonReserved
     : ALL | ASC | DESC
@@ -244,7 +166,7 @@ nonReserved
     | EMPTY
     | STREAM
     | TIME | RECORD | MAX
-    | TUMBLING | WINDOWING | EVERY
+    | WINDOWING | EVERY | TUMBLING
     | MANUAL | REGION | LINEAR
     | QUANTILE | FREQ | CUMFREQ
     | TOP
@@ -291,6 +213,16 @@ EVERY: 'EVERY';
 EMPTY: 'EMPTY';
 TUMBLING: 'TUMBLING';
 MAX: 'MAX';
+XOR: 'XOR';
+
+COUNT: 'COUNT';
+SUM: 'SUM';
+AVG: 'AVG';
+MIN: 'MIN';
+RLIKE: 'RLIKE';
+SIZEIS: 'SIZEIS';
+FILTER: 'FILTER';
+IF: 'IF';
 
 INTEGER_TYPE: 'INTEGER';
 LONG_TYPE: 'LONG';

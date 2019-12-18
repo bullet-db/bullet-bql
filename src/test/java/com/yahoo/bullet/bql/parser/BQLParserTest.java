@@ -14,10 +14,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
-import com.yahoo.bullet.bql.tree.DoubleLiteral;
-import com.yahoo.bullet.bql.tree.Expression;
-import com.yahoo.bullet.bql.tree.GroupBy;
-import com.yahoo.bullet.bql.tree.LongLiteral;
+import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.GroupByNode;
+import com.yahoo.bullet.bql.tree.LongLiteralNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NodeLocation;
 import com.yahoo.bullet.bql.tree.QualifiedName;
@@ -74,30 +74,30 @@ public class BQLParserTest {
 
     @Test
     public void testDouble() {
-        assertExpression("123E7", new DoubleLiteral("123E7"));
-        assertExpression("123.E7", new DoubleLiteral("123E7"));
-        assertExpression("123.0E7", new DoubleLiteral("123E7"));
-        assertExpression("123E+7", new DoubleLiteral("123E7"));
-        assertExpression("123E-7", new DoubleLiteral("123E-7"));
+        assertExpression("123E7", new DoubleLiteralNode("123E7"));
+        assertExpression("123.E7", new DoubleLiteralNode("123E7"));
+        assertExpression("123.0E7", new DoubleLiteralNode("123E7"));
+        assertExpression("123E+7", new DoubleLiteralNode("123E7"));
+        assertExpression("123E-7", new DoubleLiteralNode("123E-7"));
 
-        assertExpression("123.456E7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E+7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E-7", new DoubleLiteral("123.456E-7"));
+        assertExpression("123.456E7", new DoubleLiteralNode("123.456E7"));
+        assertExpression("123.456E+7", new DoubleLiteralNode("123.456E7"));
+        assertExpression("123.456E-7", new DoubleLiteralNode("123.456E-7"));
 
-        assertExpression(".4E42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E+42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E-42", new DoubleLiteral(".4E-42"));
+        assertExpression(".4E42", new DoubleLiteralNode(".4E42"));
+        assertExpression(".4E+42", new DoubleLiteralNode(".4E42"));
+        assertExpression(".4E-42", new DoubleLiteralNode(".4E-42"));
     }
 
     @Test
     public void testArithmeticUnary() {
-        assertExpression("9", new LongLiteral("9"));
+        assertExpression("9", new LongLiteralNode("9"));
 
-        assertExpression("+9", positive(new LongLiteral("9")));
-        assertExpression("+ 9", positive(new LongLiteral("9")));
+        assertExpression("+9", positive(new LongLiteralNode("9")));
+        assertExpression("+ 9", positive(new LongLiteralNode("9")));
 
-        assertExpression("-9", negative(new LongLiteral("9")));
-        assertExpression("- 9", negative(new LongLiteral("9")));
+        assertExpression("-9", negative(new LongLiteralNode("9")));
+        assertExpression("- 9", negative(new LongLiteralNode("9")));
     }
 
     @Test
@@ -106,33 +106,33 @@ public class BQLParserTest {
                 simpleQuery(
                         selectList(identifier("a")),
                         simpleStream("6000"),
-                        equal(identifier("b"), new DoubleLiteral("123.456E7"))));
+                        equal(identifier("b"), new DoubleLiteralNode("123.456E7"))));
     }
 
     @Test
     public void testBetween() {
-        assertExpression("a BETWEEN 2 AND 3", new BetweenPredicate(identifier("a"), new LongLiteral("2"), new LongLiteral("3")));
-        assertExpression("a NOT BETWEEN 2 AND 3", logicalNot(new BetweenPredicate(identifier("a"), new LongLiteral("2"), new LongLiteral("3"))));
+        assertExpression("a BETWEEN 2 AND 3", new BetweenPredicate(identifier("a"), new LongLiteralNode("2"), new LongLiteralNode("3")));
+        assertExpression("a NOT BETWEEN 2 AND 3", logicalNot(new BetweenPredicate(identifier("a"), new LongLiteralNode("2"), new LongLiteralNode("3"))));
     }
 
     @Test
     public void testPrecedenceAndAssociativity() {
         assertExpression("a=1 AND b=2 OR b=3", or(
-                and(equal(identifier("a"), new LongLiteral("1")), equal(identifier("b"), new LongLiteral("2"))),
-                equal(identifier("b"), new LongLiteral("3"))));
+                and(equal(identifier("a"), new LongLiteralNode("1")), equal(identifier("b"), new LongLiteralNode("2"))),
+                equal(identifier("b"), new LongLiteralNode("3"))));
 
 
         assertExpression("a=1 OR a=2 AND b=3", or(
-                equal(identifier("a"), new LongLiteral("1")),
-                and(equal(identifier("a"), new LongLiteral("2")), equal(identifier("b"), new LongLiteral("3")))));
+                equal(identifier("a"), new LongLiteralNode("1")),
+                and(equal(identifier("a"), new LongLiteralNode("2")), equal(identifier("b"), new LongLiteralNode("3")))));
 
         assertExpression("NOT a=1 AND b=2", and(
-                logicalNot(equal(identifier("a"), new LongLiteral("1"))),
-                equal(identifier("b"), new LongLiteral("2"))));
+                logicalNot(equal(identifier("a"), new LongLiteralNode("1"))),
+                equal(identifier("b"), new LongLiteralNode("2"))));
 
         assertExpression("NOT a=1 OR b=2", or(
-                logicalNot(equal(identifier("a"), new LongLiteral("1"))),
-                equal(identifier("b"), new LongLiteral("2"))));
+                logicalNot(equal(identifier("a"), new LongLiteralNode("1"))),
+                equal(identifier("b"), new LongLiteralNode("2"))));
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: no viable alternative at input '<EOF>'")
@@ -273,19 +273,19 @@ public class BQLParserTest {
                 simpleQuery(
                         selectList(new AllColumns()),
                         simpleStream("3"),
-                        new GroupBy(false, ImmutableList.of(new SimpleGroupBy(ImmutableList.of(identifier("a")))))));
+                        new GroupByNode(false, ImmutableList.of(new SimpleGroupBy(ImmutableList.of(identifier("a")))))));
 
         assertStatement("SELECT * FROM STREAM(3, TIME) GROUP BY a, b",
                 simpleQuery(
                         selectList(new AllColumns()),
                         simpleStream("3"),
-                        new GroupBy(false, ImmutableList.of(new SimpleGroupBy(ImmutableList.of(identifier("a"), identifier("b")))))));
+                        new GroupByNode(false, ImmutableList.of(new SimpleGroupBy(ImmutableList.of(identifier("a"), identifier("b")))))));
 
         assertStatement("SELECT * FROM STREAM(3, TIME) GROUP BY ()",
                 simpleQuery(
                         selectList(new AllColumns()),
                         simpleStream("3"),
-                        new GroupBy(false, ImmutableList.of(new SimpleGroupBy(ImmutableList.of())))));
+                        new GroupByNode(false, ImmutableList.of(new SimpleGroupBy(ImmutableList.of())))));
     }
 
     @Test
@@ -359,7 +359,7 @@ public class BQLParserTest {
         assertFormattedBQL(BQL_PARSER, expected);
     }
 
-    private static void assertExpression(String expression, Expression expected) {
+    private static void assertExpression(String expression, ExpressionNode expected) {
         assertParsed(expression, expected, BQL_PARSER.createExpression(expression, new ParsingOptions()));
     }
 

@@ -5,7 +5,7 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.yahoo.bullet.bql.tree.Expression;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.Statement;
 import com.yahoo.bullet.bql.util.BQLFormatter;
 import org.testng.annotations.Test;
@@ -185,7 +185,7 @@ public class StatementBuilderTest {
     }
 
     private static void assertBQLFormatter(String expression, String formatted) {
-        Expression originalExpression = BQL_PARSER.createExpression(expression, new ParsingOptions());
+        ExpressionNode originalExpression = BQL_PARSER.createExpression(expression, new ParsingOptions());
         String real = BQLFormatter.formatBQL(originalExpression, Optional.empty());
         assertTrue(real.equals(formatted));
     }

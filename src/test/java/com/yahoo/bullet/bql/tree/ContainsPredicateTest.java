@@ -20,14 +20,14 @@ import static org.testng.Assert.assertTrue;
 
 public class ContainsPredicateTest {
     private ContainsPredicate containsPredicate;
-    private Expression value;
-    private Expression valueList;
+    private ExpressionNode value;
+    private ExpressionNode valueList;
     private Operation op;
 
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        valueList = new ValueListExpression(singletonList(identifier("bbb")));
+        valueList = new ListExpressionNode(singletonList(identifier("bbb")));
         op = Operation.EQUALS;
         containsPredicate = new ContainsPredicate(op, value, valueList);
     }
@@ -45,11 +45,11 @@ public class ContainsPredicateTest {
         assertFalse(containsPredicate.equals(null));
         assertFalse(containsPredicate.equals(value));
 
-        Expression diffValue = identifier("ccc");
+        ExpressionNode diffValue = identifier("ccc");
         ContainsPredicate conatainsPredicateDiffValue = new ContainsPredicate(op, diffValue, valueList);
         assertFalse(containsPredicate.equals(conatainsPredicateDiffValue));
 
-        Expression diffValueList = new ValueListExpression(singletonList(identifier("ddd")));
+        ExpressionNode diffValueList = new ListExpressionNode(singletonList(identifier("ddd")));
         ContainsPredicate containsPredicateDiffValueList = new ContainsPredicate(op, value, diffValueList);
         assertFalse(containsPredicate.equals(containsPredicateDiffValueList));
     }

@@ -43,7 +43,7 @@ public class DefaultTraversalVisitorTest {
     public void testVisitQuery() {
         With with = simpleWith();
         QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
-        OrderBy orderBy = simpleOrderBy();
+        OrderByNode orderBy = simpleOrderBy();
         Query query = new Query(Optional.of(with), querySpecification, Optional.of(orderBy), Optional.empty());
 
         TraversalTestVisitor spy = spy(visitor);
@@ -65,14 +65,14 @@ public class DefaultTraversalVisitorTest {
         verify(spy).visitQuery(query, null);
         verify(spy, never()).visitWith(any(With.class), any(Void.class));
         verify(spy).visitQuerySpecification(querySpecification, null);
-        verify(spy, never()).visitOrderBy(any(OrderBy.class), any(Void.class));
+        verify(spy, never()).visitOrderBy(any(OrderByNode.class), any(Void.class));
     }
 
     @Test
     public void testVisitFunctionCall() {
-        Expression filter = equal(identifier("aaa"), identifier("bbb"));
-        OrderBy orderBy = simpleOrderBy();
-        Expression argument = identifier("ccc");
+        ExpressionNode filter = equal(identifier("aaa"), identifier("bbb"));
+        OrderByNode orderBy = simpleOrderBy();
+        ExpressionNode argument = identifier("ccc");
 
         FunctionCall functionCall = new FunctionCall(
                 COUNT,
@@ -95,14 +95,14 @@ public class DefaultTraversalVisitorTest {
 
         TraversalTestVisitor spy = spy(visitor);
         spy.process(functionCall);
-        verify(spy, times(2)).process(any(Expression.class), any(Void.class));
+        verify(spy, times(2)).process(any(ExpressionNode.class), any(Void.class));
         verify(spy).visitFunctionCall(functionCall, null);
-        verify(spy, never()).visitOrderBy(any(OrderBy.class), any(Void.class));
+        verify(spy, never()).visitOrderBy(any(OrderByNode.class), any(Void.class));
     }
 
     @Test
     public void testVisitArithmeticUnary() {
-        DecimalLiteral value = new DecimalLiteral("10.5");
+        DecimalLiteralNode value = new DecimalLiteralNode("10.5");
         ArithmeticUnaryExpression arithmeticUnaryExpression = new ArithmeticUnaryExpression(PLUS, value);
 
         TraversalTestVisitor spy = spy(visitor);
@@ -113,7 +113,7 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitNotExpression() {
-        Expression value = equal(identifier("aaa"), identifier("bbb"));
+        ExpressionNode value = equal(identifier("aaa"), identifier("bbb"));
         NotExpression notExpression = new NotExpression(value);
 
         TraversalTestVisitor spy = spy(visitor);
@@ -124,9 +124,9 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitLikePredicateWithEscape() {
-        Expression value = identifier("aaa");
-        ValueListExpression patterns = new ValueListExpression(singletonList(identifier("bbb")));
-        Expression escape = identifier("``");
+        ExpressionNode value = identifier("aaa");
+        ListExpressionNode patterns = new ListExpressionNode(singletonList(identifier("bbb")));
+        ExpressionNode escape = identifier("``");
         LikePredicate likePredicate = new LikePredicate(value, patterns, Optional.of(escape));
 
         TraversalTestVisitor spy = spy(visitor);
@@ -137,8 +137,8 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitLogicalBinaryExpression() {
-        Expression left = equal(identifier("aaa"), identifier("bbb"));
-        Expression right = equal(identifier("ccc"), identifier("ddd"));
+        ExpressionNode left = equal(identifier("aaa"), identifier("bbb"));
+        ExpressionNode right = equal(identifier("ccc"), identifier("ddd"));
         LogicalBinaryExpression logicalBinaryExpression = new LogicalBinaryExpression(AND, left, right);
 
         TraversalTestVisitor spy = spy(visitor);
@@ -149,15 +149,15 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitQuerySpecification() {
-        Select select = selectList(identifier("aaa"));
-        Stream stream = new Stream(Optional.of("10"), Optional.of("20"));
-        Expression where = equal(identifier("bbb"), identifier("ccc"));
+        SelectNode select = selectList(identifier("aaa"));
+        StreamNode stream = new StreamNode(Optional.of("10"), Optional.of("20"));
+        ExpressionNode where = equal(identifier("bbb"), identifier("ccc"));
         SimpleGroupBy simpleGroupBy = new SimpleGroupBy(singletonList(identifier("ddd")));
-        GroupBy groupBy = new GroupBy(true, singletonList(simpleGroupBy));
-        Expression having = equal(identifier("eee"), identifier("fff"));
-        OrderBy orderBy = simpleOrderBy();
-        WindowInclude include = simpleWindowInclude();
-        Windowing windowing = new Windowing((long) 100, TIME, include);
+        GroupByNode groupBy = new GroupByNode(true, singletonList(simpleGroupBy));
+        ExpressionNode having = equal(identifier("eee"), identifier("fff"));
+        OrderByNode orderBy = simpleOrderBy();
+        WindowIncludeNode include = simpleWindowInclude();
+        WindowNode windowing = new WindowNode((long) 100, TIME, include);
         QuerySpecification querySpecification = new QuerySpecification(
                 select,
                 Optional.of(stream),
@@ -177,7 +177,7 @@ public class DefaultTraversalVisitorTest {
         verify(spy).visitSimpleGroupBy(simpleGroupBy, null);
         verify(spy).process(having, null);
         verify(spy).visitOrderBy(orderBy, null);
-        verify(spy).visitWindowing(windowing, null);
+        verify(spy).visitWindow(windowing, null);
         verify(spy).visitWindowInclude(include, null);
     }
 }

@@ -15,8 +15,8 @@ import java.util.Optional;
 
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.MAX;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.MIN;
-import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.FIRST;
-import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
+import static com.yahoo.bullet.bql.tree.SortItemNode.NullOrdering.FIRST;
+import static com.yahoo.bullet.bql.tree.SortItemNode.Ordering.ASCENDING;
 import static com.yahoo.bullet.bql.util.QueryUtil.equal;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static com.yahoo.bullet.bql.util.QueryUtil.simpleOrderBy;
@@ -27,10 +27,10 @@ import static org.testng.Assert.assertTrue;
 
 public class FunctionCallTest {
     private GroupOperationType type;
-    private Expression filter;
-    private OrderBy orderBy;
+    private ExpressionNode filter;
+    private OrderByNode orderBy;
     private boolean distinct;
-    private Expression argument;
+    private ExpressionNode argument;
     private FunctionCall functionCall;
 
     @BeforeClass
@@ -59,16 +59,16 @@ public class FunctionCallTest {
         FunctionCall functionCallDiffType = new FunctionCall(MAX, Optional.of(filter), Optional.of(orderBy), distinct, singletonList(argument));
         assertFalse(functionCall.equals(functionCallDiffType));
 
-        Expression diffFilter = equal(identifier("ccc"), identifier("bbb"));
+        ExpressionNode diffFilter = equal(identifier("ccc"), identifier("bbb"));
         FunctionCall functionCallDiffFilter = new FunctionCall(type, Optional.of(diffFilter), Optional.of(orderBy), distinct, singletonList(argument));
         assertFalse(functionCall.equals(functionCallDiffFilter));
 
-        SortItem diffSortItem = new SortItem(identifier("ccc"), ASCENDING, FIRST);
-        OrderBy diffOrderBy = new OrderBy(singletonList(diffSortItem));
+        SortItemNode diffSortItem = new SortItemNode(identifier("ccc"), ASCENDING, FIRST);
+        OrderByNode diffOrderBy = new OrderByNode(singletonList(diffSortItem));
         FunctionCall functionCallDiffOrderBy = new FunctionCall(type, Optional.of(filter), Optional.of(diffOrderBy), distinct, singletonList(argument));
         assertFalse(functionCall.equals(functionCallDiffOrderBy));
 
-        Expression diffArgument = identifier("fff");
+        ExpressionNode diffArgument = identifier("fff");
         FunctionCall functionCallDiffArg = new FunctionCall(type, Optional.of(filter), Optional.of(orderBy), distinct, singletonList(diffArgument));
         assertFalse(functionCall.equals(functionCallDiffArg));
 

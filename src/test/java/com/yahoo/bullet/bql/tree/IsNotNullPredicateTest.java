@@ -17,7 +17,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class IsNotNullPredicateTest {
-    private Expression value;
+    private ExpressionNode value;
     private IsNotNullPredicate isNotNullPredicate;
 
     @BeforeClass

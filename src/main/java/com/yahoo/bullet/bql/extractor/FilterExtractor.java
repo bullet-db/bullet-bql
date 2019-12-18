@@ -9,9 +9,9 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BetweenPredicate;
 import com.yahoo.bullet.bql.tree.ComparisonExpression;
-import com.yahoo.bullet.bql.tree.Expression;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.ContainsPredicate;
-import com.yahoo.bullet.bql.tree.Identifier;
+import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.InPredicate;
 import com.yahoo.bullet.bql.tree.IsEmptyPredicate;
 import com.yahoo.bullet.bql.tree.IsNotEmptyPredicate;
@@ -24,24 +24,12 @@ import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.Query;
 import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
-import com.yahoo.bullet.parsing.Clause;
-import com.yahoo.bullet.parsing.FilterClause;
-import com.yahoo.bullet.parsing.LogicalClause;
-import com.yahoo.bullet.parsing.ObjectFilterClause;
 import com.yahoo.bullet.parsing.Value;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.yahoo.bullet.parsing.Clause.Operation;
-import static com.yahoo.bullet.parsing.Clause.Operation.AND;
-import static com.yahoo.bullet.parsing.Clause.Operation.EQUALS;
-import static com.yahoo.bullet.parsing.Clause.Operation.GREATER_EQUALS;
-import static com.yahoo.bullet.parsing.Clause.Operation.LESS_EQUALS;
-import static com.yahoo.bullet.parsing.Clause.Operation.NOT;
-import static com.yahoo.bullet.parsing.Clause.Operation.NOT_EQUALS;
-import static com.yahoo.bullet.parsing.Clause.Operation.REGEX_LIKE;
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
@@ -93,7 +81,7 @@ public class FilterExtractor {
 
         @Override
         protected Clause visitComparisonExpression(ComparisonExpression node, Void context) {
-            Expression left = node.getLeft();
+            ExpressionNode left = node.getLeft();
             Operation op = node.getOperation();
             boolean isNotExpression = false;
             if (left instanceof ReferenceWithFunction) {
@@ -120,7 +108,7 @@ public class FilterExtractor {
         // BetweenPredicate generates a AND clause that contains two comparison clauses.
         @Override
         protected Clause visitBetweenPredicate(BetweenPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
 
             LogicalClause binaryClause = new LogicalClause();
@@ -136,57 +124,57 @@ public class FilterExtractor {
 
         @Override
         protected Clause visitInPredicate(InPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             Operation op = EQUALS;
             if (value instanceof ReferenceWithFunction) {
                 op = ((ReferenceWithFunction) value).getOperation();
                 value = ((ReferenceWithFunction) value).getValue();
             }
 
-            List<Expression> inList = node.getInList();
-            return createFilterClause(op, value.toFormatlessString(), inList.toArray(new Expression[0]));
+            List<ExpressionNode> inList = node.getInList();
+            return createFilterClause(op, value.toFormatlessString(), inList.toArray(new ExpressionNode[0]));
         }
 
         @Override
         protected Clause visitContainsPredicate(ContainsPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
-            List<Expression> valueList = node.getContainsList();
-            return createFilterClause(node.getOperation(), value.toFormatlessString(), valueList.toArray(new Expression[0]));
+            List<ExpressionNode> valueList = node.getContainsList();
+            return createFilterClause(node.getOperation(), value.toFormatlessString(), valueList.toArray(new ExpressionNode[0]));
         }
 
         @Override
         protected Clause visitLikePredicate(LikePredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
-            List<Expression> likeList = node.getLikeList();
-            return createFilterClause(REGEX_LIKE, value.toFormatlessString(), likeList.toArray(new Expression[0]));
+            List<ExpressionNode> likeList = node.getLikeList();
+            return createFilterClause(REGEX_LIKE, value.toFormatlessString(), likeList.toArray(new ExpressionNode[0]));
         }
 
         @Override
         protected Clause visitIsNullPredicate(IsNullPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
             return createFilterClause(EQUALS, value.toFormatlessString(), "NULL");
         }
 
         @Override
         protected Clause visitIsNotNullPredicate(IsNotNullPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
             return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "NULL");
         }
 
         @Override
         protected Clause visitIsEmptyPredicate(IsEmptyPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
             return createFilterClause(EQUALS, value.toFormatlessString(), "");
         }
 
         @Override
         protected Clause visitIsNotEmptyPredicate(IsNotEmptyPredicate node, Void context) {
-            Expression value = node.getValue();
+            ExpressionNode value = node.getValue();
             failIfReferenceWithFunction(value);
             return createFilterClause(NOT_EQUALS, value.toFormatlessString(), "");
         }
@@ -200,16 +188,16 @@ public class FilterExtractor {
             return filterClause;
         }
 
-        private Clause createFilterClause(Operation operation, String field, Expression... expressions) {
+        private Clause createFilterClause(Operation operation, String field, ExpressionNode... expressions) {
             FilterClause filterClause = new ObjectFilterClause();
             filterClause.setOperation(operation);
             filterClause.setField(field);
-            filterClause.setValues(Stream.of(expressions).map(e -> new Value(e instanceof Identifier ? Value.Kind.FIELD : Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
+            filterClause.setValues(Stream.of(expressions).map(e -> new Value(e instanceof IdentifierNode ? Value.Kind.FIELD : Value.Kind.VALUE, e.toFormatlessString())).collect(Collectors.toList()));
 
             return filterClause;
         }
 
-        private void failIfReferenceWithFunction(Expression expression) {
+        private void failIfReferenceWithFunction(ExpressionNode expression) {
             if (expression instanceof ReferenceWithFunction) {
                 throw unsupportedReferenceWithFunction(((ReferenceWithFunction) expression).getOperation());
             }

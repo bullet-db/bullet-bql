@@ -17,8 +17,8 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class SingleColumnTest {
-    private Identifier alias;
-    private Identifier expression;
+    private IdentifierNode alias;
+    private IdentifierNode expression;
     private SingleColumn singleColumn;
 
     @BeforeClass
@@ -35,7 +35,7 @@ public class SingleColumnTest {
         assertFalse(singleColumn.equals(null));
         assertFalse(singleColumn.equals(alias));
 
-        Identifier diff = identifier("ccc");
+        IdentifierNode diff = identifier("ccc");
         SingleColumn singleColumnDiffAlias = new SingleColumn(expression, diff);
         assertFalse(singleColumn.equals(singleColumnDiffAlias));
 

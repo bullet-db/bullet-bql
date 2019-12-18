@@ -18,8 +18,8 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 public class ComparisonExpressionTest {
-    Expression left;
-    Expression right;
+    ExpressionNode left;
+    ExpressionNode right;
     private ComparisonExpression comparisonExpression;
 
     @BeforeClass

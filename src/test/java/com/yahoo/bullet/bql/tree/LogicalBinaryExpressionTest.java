@@ -20,8 +20,8 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class LogicalBinaryExpressionTest {
-    private Expression left;
-    private Expression right;
+    private ExpressionNode left;
+    private ExpressionNode right;
     private LogicalBinaryExpression and;
 
     @BeforeClass
@@ -47,7 +47,7 @@ public class LogicalBinaryExpressionTest {
         LogicalBinaryExpression or = or(left, right);
         assertFalse(and.equals(or));
 
-        Expression diffHalf = equal(identifier("aaa"), identifier("ccc"));
+        ExpressionNode diffHalf = equal(identifier("aaa"), identifier("ccc"));
         LogicalBinaryExpression andDiffLeft = and(diffHalf, right);
         assertFalse(and.equals(andDiffLeft));
 
@@ -57,7 +57,7 @@ public class LogicalBinaryExpressionTest {
 
     @Test
     public void testHashCode() {
-        Expression sameLeft = equal(identifier("aaa"), identifier("bbb"));
+        ExpressionNode sameLeft = equal(identifier("aaa"), identifier("bbb"));
         LogicalBinaryExpression sameAnd = and(sameLeft, right);
         assertEquals(and.hashCode(), sameAnd.hashCode());
     }

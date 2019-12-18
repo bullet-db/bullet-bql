@@ -16,11 +16,11 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 public class StreamTest {
-    private Stream stream;
+    private StreamNode stream;
 
     @BeforeClass
     public void setUp() {
-        stream = new Stream(Optional.of("10"), Optional.of("20"));
+        stream = new StreamNode(Optional.of("10"), Optional.of("20"));
     }
 
     @Test
@@ -33,7 +33,7 @@ public class StreamTest {
         assertFalse(stream.equals(null));
         assertFalse(stream.equals(identifier("aaa")));
 
-        Stream streamDiffTimeDuration = new Stream(Optional.of("20"), Optional.of("20"));
+        StreamNode streamDiffTimeDuration = new StreamNode(Optional.of("20"), Optional.of("20"));
         assertFalse(stream.equals(streamDiffTimeDuration));
     }
 }

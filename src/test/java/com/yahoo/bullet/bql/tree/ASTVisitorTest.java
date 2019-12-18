@@ -9,8 +9,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression.Sign.PLUS;
-import static com.yahoo.bullet.bql.tree.BooleanLiteral.FALSE_LITERAL;
-import static com.yahoo.bullet.bql.tree.BooleanLiteral.TRUE_LITERAL;
+import static com.yahoo.bullet.bql.tree.BooleanLiteralNode.FALSE_LITERAL;
+import static com.yahoo.bullet.bql.tree.BooleanLiteralNode.TRUE_LITERAL;
 import static com.yahoo.bullet.bql.tree.LogicalBinaryExpression.and;
 import static com.yahoo.bullet.bql.util.QueryUtil.equal;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
@@ -86,7 +86,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitSelect() {
-        Select select = selectList(identifier("aaa"));
+        SelectNode select = selectList(identifier("aaa"));
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(select);
@@ -116,11 +116,11 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitValueListExpression() {
-        ValueListExpression valueListExpression = simpleValueList();
+        ListExpressionNode valueListExpression = simpleValueList();
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(valueListExpression);
-        verify(spy).visitValueListExpression(valueListExpression, null);
+        verify(spy).visitListExpression(valueListExpression, null);
         verify(spy).visitExpression(valueListExpression, null);
     }
 
@@ -146,7 +146,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitBooleanLiteral() {
-        BooleanLiteral booleanLiteral = new BooleanLiteral("TRUE");
+        BooleanLiteralNode booleanLiteral = new BooleanLiteralNode("TRUE");
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(TRUE_LITERAL);
@@ -160,7 +160,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitDistribution() {
-        Distribution linearDistribution = linearQuantile((long) 10);
+        DistributionNode linearDistribution = linearQuantile((long) 10);
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(linearDistribution);
@@ -170,7 +170,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitTopK() {
-        TopK topK = simpleTopK((long) 10);
+        TopKNode topK = simpleTopK((long) 10);
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(topK);
@@ -180,7 +180,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitNullLiteral() {
-        NullLiteral nullLiteral = new NullLiteral();
+        NullLiteralNode nullLiteral = new NullLiteralNode();
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(nullLiteral);
@@ -190,7 +190,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitArithmeticUnary() {
-        ArithmeticUnaryExpression arithmeticUnary = new ArithmeticUnaryExpression(PLUS, new DoubleLiteral("5.5"));
+        ArithmeticUnaryExpression arithmeticUnary = new ArithmeticUnaryExpression(PLUS, new DoubleLiteralNode("5.5"));
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(arithmeticUnary);
@@ -271,7 +271,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitSortItem() {
-        SortItem sortItem = simpleSortItem();
+        SortItemNode sortItem = simpleSortItem();
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(sortItem);
@@ -281,18 +281,18 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitWindowing() {
-        Windowing windowing = simpleWindowing();
+        WindowNode windowing = simpleWindowing();
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(windowing);
-        verify(spy).visitWindowing(windowing, null);
+        verify(spy).visitWindow(windowing, null);
         verify(spy).visitNode(windowing, null);
     }
 
     @Test
     public void testVisitGroupBy() {
         SimpleGroupBy simpleGroupBy = new SimpleGroupBy(singletonList(identifier("aaa")));
-        GroupBy groupBy = new GroupBy(true, singletonList(simpleGroupBy));
+        GroupByNode groupBy = new GroupByNode(true, singletonList(simpleGroupBy));
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(groupBy);
@@ -313,7 +313,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitCastExpression() {
-        CastExpression castExpression = new CastExpression(identifier("aaa"), "FLOAT");
+        CastExpressionNode castExpression = new CastExpressionNode(identifier("aaa"), "FLOAT");
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(castExpression);
@@ -323,7 +323,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitBinaryExpression() {
-        InfixExpression infixExpression = new InfixExpression(identifier("aaa"), new DoubleLiteral("5.0"), "+");
+        BinaryExpressionNode infixExpression = new BinaryExpressionNode(identifier("aaa"), new DoubleLiteralNode("5.0"), "+");
 
         ASTTestVisitor spy = spy(visitor);
         spy.process(infixExpression);

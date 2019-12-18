@@ -18,11 +18,9 @@ import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment
 public class BQLConfig extends BulletConfig {
     // Common BQLParser properties.
     public static final String BQL_DECIMAL_LITERAL_TREATMENT = "bullet.bql.decimal.literal.treatment";
-    public static final String BQL_DELIMITER = "bullet.bql.delimiter";
 
     // Defaults.
     public static final String DEFAULT_BQL_DECIMAL_LITERAL_TREATMENT = "AS_DOUBLE";
-    public static final String DEFAULT_BQL_DELIMITER = ";";
     public static final String DEFAULT_BQL_CONFIGURATION = "bullet_bql_defaults.yaml";
 
     // Validator definitions for the configs in this class.
@@ -34,9 +32,6 @@ public class BQLConfig extends BulletConfig {
                  .defaultTo(DEFAULT_BQL_DECIMAL_LITERAL_TREATMENT)
                  .checkIf(Validator::isString)
                  .checkIf(Validator.isIn(AS_DOUBLE.name(), AS_DECIMAL.name(), REJECT.name()));
-        VALIDATOR.define(BQL_DELIMITER)
-                 .defaultTo(DEFAULT_BQL_DELIMITER)
-                 .checkIf(Validator::isString);
     }
 
     /**

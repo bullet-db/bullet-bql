@@ -11,8 +11,8 @@ import org.testng.annotations.Test;
 import java.util.List;
 import java.util.Optional;
 
-import static com.yahoo.bullet.bql.tree.SortItem.NullOrdering.LAST;
-import static com.yahoo.bullet.bql.tree.SortItem.Ordering.ASCENDING;
+import static com.yahoo.bullet.bql.tree.SortItemNode.NullOrdering.LAST;
+import static com.yahoo.bullet.bql.tree.SortItemNode.Ordering.ASCENDING;
 import static com.yahoo.bullet.bql.util.QueryUtil.equal;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
@@ -27,27 +27,27 @@ import static org.testng.Assert.assertTrue;
 
 public class QuerySpecificationTest {
     private QuerySpecification querySpecification;
-    private Select select;
-    private Stream stream;
-    private Expression where;
+    private SelectNode select;
+    private StreamNode stream;
+    private ExpressionNode where;
     private SimpleGroupBy simpleGroupBy;
-    private GroupBy groupBy;
-    private Expression having;
-    private OrderBy orderBy;
-    private WindowInclude include;
-    private Windowing windowing;
+    private GroupByNode groupBy;
+    private ExpressionNode having;
+    private OrderByNode orderBy;
+    private WindowIncludeNode include;
+    private WindowNode windowing;
 
     @BeforeClass
     public void setUp() {
         select = selectList(identifier("aaa"));
-        stream = new Stream(Optional.of("10"), Optional.of("20"));
+        stream = new StreamNode(Optional.of("10"), Optional.of("20"));
         where = equal(identifier("bbb"), identifier("ccc"));
         simpleGroupBy = new SimpleGroupBy(singletonList(identifier("ddd")));
-        groupBy = new GroupBy(true, singletonList(simpleGroupBy));
+        groupBy = new GroupByNode(true, singletonList(simpleGroupBy));
         having = equal(identifier("eee"), identifier("fff"));
         orderBy = simpleOrderBy();
         include = simpleWindowInclude();
-        windowing = new Windowing((long) 100, TIME, include);
+        windowing = new WindowNode((long) 100, TIME, include);
         querySpecification = new QuerySpecification(
                 select,
                 Optional.of(stream),
@@ -61,13 +61,13 @@ public class QuerySpecificationTest {
 
     @Test
     public void testToString() {
-        String expected = "QuerySpecification{select=Select{distinct=false, selectItems=[aaa]}, " +
-                "from=Optional[Stream{timeDuration=Optional[10], recordDuration=Optional[20]}], " +
+        String expected = "QuerySpecification{select=SelectNode{distinct=false, selectItems=[aaa]}, " +
+                "from=Optional[StreamNode{timeDuration=Optional[10], recordDuration=Optional[20]}], " +
                 "where=(bbb = ccc), " +
-                "groupBy=Optional[GroupBy{isDistinct=true, groupingElements=[SimpleGroupBy{columns=[ddd]}]}], " +
-                "having=(eee = fff), orderBy=Optional[OrderBy{sortItems=[SortItem{sortKey=aaa, ordering=ASCENDING, nullOrdering=FIRST}]}], " +
+                "groupBy=Optional[GroupByNode{isDistinct=true, groupingElements=[SimpleGroupBy{columns=[ddd]}]}], " +
+                "having=(eee = fff), orderBy=Optional[OrderByNode{sortItems=[SortItemNode{sortKey=aaa, ordering=ASCENDING, nullOrdering=FIRST}]}], " +
                 "limit=10, " +
-                "windowing=Windowing{emitEvery=100, emitType=TIME, include=WindowInclude{type=Optional[LAST], unit=TIME, number=Optional[100]}}}";
+                "windowing=WindowNode{emitEvery=100, emitType=TIME, include=WindowIncludeNode{type=Optional[LAST], unit=TIME, number=Optional[100]}}}";
         assertEquals(querySpecification.toString(), expected);
     }
 
@@ -84,7 +84,7 @@ public class QuerySpecificationTest {
         assertFalse(querySpecification.equals(null));
         assertFalse(querySpecification.equals(select));
 
-        Select select2 = selectList(identifier("bbb"));
+        SelectNode select2 = selectList(identifier("bbb"));
         QuerySpecification querySpecificationDiffSelect = new QuerySpecification(
                 select2,
                 Optional.of(stream),
@@ -96,7 +96,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffSelect));
 
-        Stream stream2 = new Stream(Optional.of("10"), Optional.of("30"));
+        StreamNode stream2 = new StreamNode(Optional.of("10"), Optional.of("30"));
         QuerySpecification querySpecificationDiffStream = new QuerySpecification(
                 select,
                 Optional.of(stream2),
@@ -108,7 +108,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffStream));
 
-        Expression where2 = equal(identifier("bbb"), identifier("aaa"));
+        ExpressionNode where2 = equal(identifier("bbb"), identifier("aaa"));
         QuerySpecification querySpecificationDiffWhere = new QuerySpecification(
                 select,
                 Optional.of(stream),
@@ -120,7 +120,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffWhere));
 
-        GroupBy groupBy2 = new GroupBy(false, singletonList(simpleGroupBy));
+        GroupByNode groupBy2 = new GroupByNode(false, singletonList(simpleGroupBy));
         QuerySpecification querySpecificationDiffGroupBy = new QuerySpecification(
                 select,
                 Optional.of(stream),
@@ -132,7 +132,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffGroupBy));
 
-        Expression having2 = equal(identifier("eee"), identifier("ggg"));
+        ExpressionNode having2 = equal(identifier("eee"), identifier("ggg"));
         QuerySpecification querySpecificationDiffHaving = new QuerySpecification(
                 select,
                 Optional.of(stream),
@@ -144,8 +144,8 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffHaving));
 
-        SortItem sortItem2 = new SortItem(identifier("aaa"), ASCENDING, LAST);
-        OrderBy orderBy2 = new OrderBy(singletonList(sortItem2));
+        SortItemNode sortItem2 = new SortItemNode(identifier("aaa"), ASCENDING, LAST);
+        OrderByNode orderBy2 = new OrderByNode(singletonList(sortItem2));
         QuerySpecification querySpecificationDiffOrderBy = new QuerySpecification(
                 select,
                 Optional.of(stream),
@@ -168,7 +168,7 @@ public class QuerySpecificationTest {
                 Optional.of(windowing));
         assertFalse(querySpecification.equals(querySpecificationDiffLimit));
 
-        Windowing windowing2 = new Windowing((long) 200, TIME, include);
+        WindowNode windowing2 = new WindowNode((long) 200, TIME, include);
         QuerySpecification querySpecificationDiffWindowing = new QuerySpecification(
                 select,
                 Optional.of(stream),

@@ -17,16 +17,16 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class BetweenPredicateTest {
-    private Expression value;
-    private Expression min;
-    private Expression max;
+    private ExpressionNode value;
+    private ExpressionNode min;
+    private ExpressionNode max;
     private BetweenPredicate betweenPredicate;
 
     @BeforeClass
     public void setUp() {
         value = identifier("aaa");
-        min = new DoubleLiteral("5.5");
-        max = new DoubleLiteral("10.0");
+        min = new DoubleLiteralNode("5.5");
+        max = new DoubleLiteralNode("10.0");
         betweenPredicate = new BetweenPredicate(value, min, max);
     }
 
@@ -46,10 +46,10 @@ public class BetweenPredicateTest {
         BetweenPredicate betweenPredicateDiffValue = new BetweenPredicate(identifier("bbb"), min, max);
         assertFalse(betweenPredicate.equals(betweenPredicateDiffValue));
 
-        BetweenPredicate betweenPredicateDiffMin = new BetweenPredicate(value, new DoubleLiteral("4.5"), max);
+        BetweenPredicate betweenPredicateDiffMin = new BetweenPredicate(value, new DoubleLiteralNode("4.5"), max);
         assertFalse(betweenPredicate.equals(betweenPredicateDiffMin));
 
-        BetweenPredicate betweenPredicateDiffMax = new BetweenPredicate(value, min, new DoubleLiteral("10.5"));
+        BetweenPredicate betweenPredicateDiffMax = new BetweenPredicate(value, min, new DoubleLiteralNode("10.5"));
         assertFalse(betweenPredicate.equals(betweenPredicateDiffMax));
     }
 

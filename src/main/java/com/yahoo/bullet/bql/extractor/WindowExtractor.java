@@ -5,8 +5,8 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.tree.WindowInclude;
-import com.yahoo.bullet.bql.tree.Windowing;
+import com.yahoo.bullet.bql.tree.WindowIncludeNode;
+import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.Window;
 import com.yahoo.bullet.parsing.Window.Unit;
 
@@ -20,22 +20,22 @@ import static com.yahoo.bullet.parsing.Window.Unit.ALL;
 import static java.util.Objects.requireNonNull;
 
 public class WindowExtractor {
-    private Windowing node;
+    private WindowNode node;
 
     /**
-     * Constructor that requires a {@link Windowing}.
+     * Constructor that requires a {@link WindowNode}.
      *
-     * @param node A non-null {@link Windowing}.
+     * @param node A non-null {@link WindowNode}.
      * @throws NullPointerException when node is null.
      */
-    public WindowExtractor(Windowing node) throws NullPointerException {
+    public WindowExtractor(WindowNode node) throws NullPointerException {
         requireNonNull(node);
 
         this.node = node;
     }
 
     /**
-     * Extract {@link Window} from a {@link Windowing} node.
+     * Extract {@link Window} from a {@link WindowNode} node.
      *
      * @return A {@link Window}.
      */
@@ -46,14 +46,14 @@ public class WindowExtractor {
         return window;
     }
 
-    private Map<String, Object> extractEmit(Windowing node) {
+    private Map<String, Object> extractEmit(WindowNode node) {
         Map<String, Object> emit = new HashMap<>();
         emit.put(EMIT_EVERY_FIELD, node.getEmitEvery());
         emit.put(TYPE_FIELD, node.getEmitType());
         return emit;
     }
 
-    private Map<String, Object> extractInclude(WindowInclude node) {
+    private Map<String, Object> extractInclude(WindowIncludeNode node) {
         Map<String, Object> include = new HashMap<>();
         Unit unit = node.getUnit();
         include.put(TYPE_FIELD, unit);

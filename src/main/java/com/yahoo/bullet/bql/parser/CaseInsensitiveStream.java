@@ -39,7 +39,6 @@ public class CaseInsensitiveStream implements CharStream {
     @Override
     public int LA(int i) {
         int result = stream.LA(i);
-
         switch (result) {
             case 0:
             case IntStream.EOF:

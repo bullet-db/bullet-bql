@@ -20,7 +20,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class ArithmeticUnaryExpressionTest {
-    private Expression value;
+    private ExpressionNode value;
     private Sign sign;
     private NodeLocation location;
     private ArithmeticUnaryExpression arithmeticUnaryExpression;
