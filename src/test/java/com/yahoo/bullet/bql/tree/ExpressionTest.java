@@ -17,7 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.testng.Assert.assertEquals;
 
 public class ExpressionTest {
-    private ExpressionImpl expression;
+    /*private ExpressionImpl expression;
 
     @BeforeClass
     public void setUp() {
@@ -80,5 +80,5 @@ public class ExpressionTest {
 
     private ExpressionNode noLocationExpression() {
         return new ExpressionImpl(Optional.empty());
-    }
+    }*/
 }

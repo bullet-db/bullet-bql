@@ -5,24 +5,11 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.Statement;
-import com.yahoo.bullet.bql.util.BQLFormatter;
-import org.testng.annotations.Test;
-
-import java.util.Optional;
-
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DECIMAL;
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
-import static com.yahoo.bullet.bql.util.TreeAssertions.assertFormattedBQL;
-import static com.yahoo.bullet.bql.util.TreeAssertions.assertFormattedBQLDecimal;
-import static org.testng.Assert.assertTrue;
-
 // Test bql can be parsed into node tree, and node tree can be parsed into same formatted bql.
 public class StatementBuilderTest {
     private static final BQLParser BQL_PARSER = new BQLParser();
 
-    @Test
+    /*@Test
     public void testStatementBuilder() {
         assertStatement("SELECT * FROM STREAM(3, TIME)");
 
@@ -188,5 +175,5 @@ public class StatementBuilderTest {
         ExpressionNode originalExpression = BQL_PARSER.createExpression(expression, new ParsingOptions());
         String real = BQLFormatter.formatBQL(originalExpression, Optional.empty());
         assertTrue(real.equals(formatted));
-    }
+    }*/
 }

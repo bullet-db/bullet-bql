@@ -11,44 +11,29 @@
 package com.yahoo.bullet.bql.util;
 
 import com.google.common.collect.ImmutableList;
-import com.yahoo.bullet.bql.tree.BetweenPredicate;
-import com.yahoo.bullet.bql.tree.ComparisonExpression;
 import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.FunctionCall;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
-import com.yahoo.bullet.bql.tree.InPredicate;
-import com.yahoo.bullet.bql.tree.LikePredicate;
 import com.yahoo.bullet.bql.tree.LinearDistributionNode;
 import com.yahoo.bullet.bql.tree.ManualDistributionNode;
-import com.yahoo.bullet.bql.tree.NotExpression;
 import com.yahoo.bullet.bql.tree.OrderByNode;
-import com.yahoo.bullet.bql.tree.QueryBody;
-import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.bql.tree.RegionDistributionNode;
-import com.yahoo.bullet.bql.tree.Relation;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
-import com.yahoo.bullet.bql.tree.SingleColumn;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
-import com.yahoo.bullet.bql.tree.With;
-import com.yahoo.bullet.bql.tree.WithQuery;
 
 import java.util.List;
 import java.util.Optional;
 
 import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
-import static com.yahoo.bullet.bql.tree.SortItemNode.NullOrdering.FIRST;
 import static com.yahoo.bullet.bql.tree.SortItemNode.Ordering.ASCENDING;
-import static com.yahoo.bullet.bql.tree.WindowIncludeNode.IncludeType.LAST;
-import static com.yahoo.bullet.parsing.Clause.Operation.EQUALS;
 import static com.yahoo.bullet.parsing.Window.Unit.TIME;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -61,7 +46,7 @@ public final class QueryUtil {
         return new IdentifierNode(name);
     }
 
-    public static IdentifierNode quotedIdentifier(String name) {
+    /*public static IdentifierNode quotedIdentifier(String name) {
         return new IdentifierNode(name, true);
     }
 
@@ -71,19 +56,19 @@ public final class QueryUtil {
 
     public static SelectItemNode aliasedName(String name, String alias) {
         return new SingleColumn(identifier(name), identifier(alias));
-    }
+    }*/
 
-    public static SelectNode selectList(ExpressionNode... expressions) {
+    /*public static SelectNode selectList(ExpressionNode... expressions) {
         return selectList(asList(expressions));
-    }
+    }*/
 
-    public static SelectNode selectList(List<ExpressionNode> expressions) {
+    /*public static SelectNode selectList(List<ExpressionNode> expressions) {
         ImmutableList.Builder<SelectItemNode> items = ImmutableList.builder();
         for (ExpressionNode expression : expressions) {
             items.add(new SingleColumn(expression));
         }
         return new SelectNode(false, items.build());
-    }
+    }*/
 
     public static SelectNode selectList(SelectItemNode... items) {
         return new SelectNode(false, ImmutableList.copyOf(items));
@@ -93,7 +78,7 @@ public final class QueryUtil {
         return new SelectNode(false, items);
     }
 
-    public static Relation simpleStream(String duration) {
+    /*public static Relation simpleStream(String duration) {
         return new StreamNode(Optional.of(duration), Optional.empty());
     }
 
@@ -241,5 +226,5 @@ public final class QueryUtil {
 
     public static TopKNode simpleTopK(long k) {
         return new TopKNode(singletonList(identifier("aaa")), k, Optional.empty());
-    }
+    }*/
 }

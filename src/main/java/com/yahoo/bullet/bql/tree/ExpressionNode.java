@@ -12,8 +12,6 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 
-import java.util.Optional;
-
 public abstract class ExpressionNode extends Node {
     /**
      * Accessible for {@link ASTVisitor}, use {@link ASTVisitor#process(Node, Object)} instead.
@@ -38,6 +36,6 @@ public abstract class ExpressionNode extends Node {
     }
 
     private String toString(boolean withFormat) {
-        return ExpressionFormatter.formatExpression(this, Optional.empty(), withFormat);
+        return ExpressionFormatter.formatExpression(this, withFormat);
     }
 }

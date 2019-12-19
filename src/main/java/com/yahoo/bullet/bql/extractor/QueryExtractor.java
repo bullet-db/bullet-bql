@@ -13,6 +13,7 @@ import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Having;
 import com.yahoo.bullet.parsing.OrderBy;
 import com.yahoo.bullet.parsing.PostAggregation;
+import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
 import lombok.extern.slf4j.Slf4j;
@@ -68,7 +69,9 @@ public class QueryExtractor {
     }
 
     private void extractDuration(ProcessedQuery processedQuery, Query query) {
-        query.setDuration(Math.min(processedQuery.getTimeDuration(), queryMaxDuration));
+        if (processedQuery.getTimeDuration() != null) {
+            query.setDuration(Math.min(processedQuery.getTimeDuration(), queryMaxDuration));
+        }
     }
 
     private void extractFilter(ProcessedQuery processedQuery, Query query) {
@@ -79,7 +82,10 @@ public class QueryExtractor {
     }
 
     private void extractProjection(ProcessedQuery processedQuery, Query query) {
-        query.setProjection(projectionExtractor.extractProjection(processedQuery));
+        Projection projection = projectionExtractor.extractProjection(processedQuery);
+        if (projection != null && !projection.getFields().isEmpty()) {
+            query.setProjection(projectionExtractor.extractProjection(processedQuery));
+        }
     }
 
     private void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
@@ -87,7 +93,9 @@ public class QueryExtractor {
         extractHaving(processedQuery, postAggregations);
         extractComputations(processedQuery, postAggregations);
         extractOrderBy(processedQuery, postAggregations);
-        query.setPostAggregations(postAggregations);
+        if (!postAggregations.isEmpty()) {
+            query.setPostAggregations(postAggregations);
+        }
     }
 
     private void extractHaving(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
@@ -103,7 +111,7 @@ public class QueryExtractor {
 
     private void extractComputations(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
         Computation computation = computationExtractor.extractComputation(processedQuery);
-        if (computation != null) {
+        if (computation != null && !computation.getProjection().getFields().isEmpty()) {
             postAggregations.add(computation);
         }
     }

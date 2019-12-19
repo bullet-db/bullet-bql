@@ -5,18 +5,8 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.List;
-
-import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static java.util.Collections.singletonList;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-
 public class GroupByNodeTest {
-    private List<GroupingElement> groupingElements;
+    /*private List<GroupingElement> groupingElements;
     private GroupByNode groupBy;
 
     @BeforeClass
@@ -39,5 +29,5 @@ public class GroupByNodeTest {
         GroupingElement diffGroupingElement = new SimpleGroupBy(singletonList(identifier("bbb")));
         GroupByNode groupByDiffGroupingElements = new GroupByNode(false, singletonList(diffGroupingElement));
         assertFalse(groupBy.equals(groupByDiffGroupingElements));
-    }
+    }*/
 }

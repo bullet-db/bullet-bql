@@ -78,7 +78,7 @@ public class AggregationExtractor {
         List<Map<String, Object>> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
             Map<String, Object> operation = new HashMap<>();
             operation.put(OPERATION_TYPE, node.getOp());
-            operation.put(NEW_NAME_FIELD, processedQuery.getAlias(node));
+            operation.put(NEW_NAME_FIELD, processedQuery.getAliasOrName(node));
             if (node.getOp() != COUNT) {
                 // TODO this is going to be a bug
                 operation.put(OPERATION_FIELD, processedQuery.getAliasOrName(node.getExpression()));
@@ -99,12 +99,12 @@ public class AggregationExtractor {
         Aggregation aggregation = new Aggregation();
         aggregation.setType(COUNT_DISTINCT);
         aggregation.setFields(countDistinct.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::toFormatlessString, ExpressionNode::toFormatlessString)));
-        String alias = processedQuery.getAlias(countDistinct);
-        if (alias != null) {
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put(NEW_NAME_FIELD, alias);
-            aggregation.setAttributes(attributes);
-        }
+        //String alias = processedQuery.getAliasOrName(countDistinct);
+        //if (alias != null) {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put(NEW_NAME_FIELD, processedQuery.getAliasOrName(countDistinct));
+        aggregation.setAttributes(attributes);
+        //}
         return aggregation;
     }
 
@@ -145,13 +145,13 @@ public class AggregationExtractor {
         if (processedQuery.getHavingNode() != null) {
             attributes.put(THRESHOLD_FIELD, ((LongLiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue());
         }
-        String alias = processedQuery.getAlias(processedQuery.getGroupOpNodes().iterator().next());
-        if (alias != null) {
-            attributes.put(NEW_NAME_FIELD, alias);
-        }
-        if (!attributes.isEmpty()) {
+        String alias = processedQuery.getAliasOrName(processedQuery.getGroupOpNodes().iterator().next());
+        //if (alias != null) {
+        attributes.put(NEW_NAME_FIELD, alias);
+        //}
+        //if (!attributes.isEmpty()) {
             aggregation.setAttributes(attributes);
-        }
+        //}
         return aggregation;
     }
 }

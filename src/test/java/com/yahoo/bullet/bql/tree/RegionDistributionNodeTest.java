@@ -21,7 +21,7 @@ public class RegionDistributionNodeTest {
     private List<ExpressionNode> columns;
     private RegionDistributionNode distribution;
 
-    @BeforeClass
+    /*@BeforeClass
     public void setUP() {
         columns = singletonList(identifier("aaa"));
         distribution = new RegionDistributionNode(columns, QUANTILE, 0.0, 1.0, 0.2);
@@ -49,5 +49,5 @@ public class RegionDistributionNodeTest {
 
         RegionDistributionNode distributionDiffIncrement = new RegionDistributionNode(columns, QUANTILE, 0.0, 1.0, 0.4);
         assertFalse(distribution.equals(distributionDiffIncrement));
-    }
+    }*/
 }

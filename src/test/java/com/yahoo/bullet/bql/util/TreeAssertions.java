@@ -8,28 +8,10 @@
  * Adapted and modified from the Presto project:
  * https://github.com/prestodb/presto/blob/1898faf2ec4881709c9b8197e8332f302d618875/presto-parser/src/main/java/com/facebook/presto/sql/testing/TreeAssertions.java
  */
-package com.yahoo.bullet.bql.util;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.yahoo.bullet.bql.parser.BQLParser;
-import com.yahoo.bullet.bql.parser.ParsingException;
-import com.yahoo.bullet.bql.parser.ParsingOptions;
-import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
-import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.Statement;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Optional;
-
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DECIMAL;
-import static com.yahoo.bullet.bql.util.BQLFormatter.formatBQL;
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
-import static java.lang.String.format;
+package com.yahoo.bullet.bql.util;  
 
 public final class TreeAssertions {
-    private TreeAssertions() {
+    /*private TreeAssertions() {
     }
 
     public static void assertFormattedBQL(BQLParser bqlParser, Node expected) {
@@ -43,11 +25,11 @@ public final class TreeAssertions {
     }
 
     public static void assertFormattedBQL(BQLParser bqlParser, ParsingOptions parsingOptions, Node expected) {
-        String formatted = formatBQL(expected, Optional.empty());
+        String formatted = formatBQL(expected);
 
         // Verify round-trip of formatting already-formatted BQL
         Statement actual = parseFormatted(bqlParser, parsingOptions, formatted, expected);
-        assertEquals(formatBQL(actual, Optional.empty()), formatted);
+        assertEquals(formatBQL(actual), formatted);
 
         // Compare parsed tree with parsed tree of formatted BQL
         if (!actual.equals(expected)) {
@@ -110,5 +92,5 @@ public final class TreeAssertions {
         if (!actual.equals(expected)) {
             throw new AssertionError(format("expected [%s] but found [%s]", expected, actual));
         }
-    }
+    }*/
 }

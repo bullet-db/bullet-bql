@@ -11,29 +11,18 @@
 package com.yahoo.bullet.bql.util;
 
 import com.google.common.base.Strings;
-import com.yahoo.bullet.bql.tree.AllColumns;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.Query;
-import com.yahoo.bullet.bql.tree.QuerySpecification;
-import com.yahoo.bullet.bql.tree.Relation;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
-import com.yahoo.bullet.bql.tree.SingleColumn;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatExpression;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatStream;
-import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatOrderBy;
 import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatWindowing;
 
 public final class BQLFormatter {
@@ -46,22 +35,19 @@ public final class BQLFormatter {
      * Parse a {@link Node} tree to a formatted BQL String. This is used to check if two {@link Node} tree are same.
      *
      * @param root       The root of the {@link Node} tree
-     * @param parameters The List of {@link ExpressionNode} to tune parsing process. Currently, we pass in {@link Optional#empty()}
      * @return A formatted string representation of BQL statement
      */
-    public static String formatBQL(Node root, Optional<List<ExpressionNode>> parameters) {
+    public static String formatBQL(Node root) {
         StringBuilder builder = new StringBuilder();
-        new Formatter(builder, parameters).process(root, 0);
+        new Formatter(builder).process(root, 0);
         return builder.toString();
     }
 
     private static class Formatter extends ASTVisitor<Void, Integer> {
         private final StringBuilder builder;
-        private final Optional<List<ExpressionNode>> parameters;
 
-        public Formatter(StringBuilder builder, Optional<List<ExpressionNode>> parameters) {
+        public Formatter(StringBuilder builder) {
             this.builder = builder;
-            this.parameters = parameters;
         }
 
         @Override
@@ -72,11 +58,11 @@ public final class BQLFormatter {
         @Override
         protected Void visitExpression(ExpressionNode node, Integer indent) {
             checkArgument(indent == 0, "visitExpression should only be called at root");
-            builder.append(formatExpression(node, parameters));
+            builder.append(formatExpression(node));
             return null;
         }
 
-        @Override
+        /*@Override
         protected Void visitQuery(Query node, Integer indent) {
             processRelation(node.getQueryBody(), indent);
 
@@ -125,7 +111,7 @@ public final class BQLFormatter {
                         .append('\n');
             }
             return null;
-        }
+        }*/
 
         @Override
         protected Void visitSelect(SelectNode node, Integer indent) {
@@ -155,24 +141,6 @@ public final class BQLFormatter {
         }
 
         @Override
-        protected Void visitSingleColumn(SingleColumn node, Integer indent) {
-            builder.append(formatExpression(node.getExpression(), parameters));
-            if (node.getAlias().isPresent()) {
-                builder.append(' ')
-                        .append(formatExpression(node.getAlias().get(), parameters));
-            }
-
-            return null;
-        }
-
-        @Override
-        protected Void visitAllColumns(AllColumns node, Integer indent) {
-            builder.append(node.toString());
-
-            return null;
-        }
-
-        @Override
         protected Void visitWindow(WindowNode node, Integer indent) {
             builder.append(formatWindowing(node));
 
@@ -185,11 +153,6 @@ public final class BQLFormatter {
 
             return null;
         }
-
-        private void processRelation(Relation relation, Integer indent) {
-            process(relation, indent);
-        }
-
         private StringBuilder append(int indent, String value) {
             return builder.append(indentString(indent))
                     .append(value);
@@ -200,15 +163,15 @@ public final class BQLFormatter {
         }
     }
 
-    private static void appendAliasColumns(StringBuilder builder, List<IdentifierNode> columns) {
+    /*private static void appendAliasColumns(StringBuilder builder, List<IdentifierNode> columns) {
         if ((columns != null) && (!columns.isEmpty())) {
             String formattedColumns = columns.stream()
-                    .map(name -> formatExpression(name, Optional.empty()))
+                    .map(ExpressionFormatter::formatExpression))
                     .collect(Collectors.joining(", "));
 
             builder.append(" (")
                     .append(formattedColumns)
                     .append(')');
         }
-    }
+    }*/
 }

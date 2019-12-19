@@ -67,7 +67,7 @@ public class ProcessedQuery {
 
     public ProcessedQuery validate() {
         if (queryTypeSet.size() != 1) {
-            throw new ParsingException("Query must match exactly one query type.");
+            throw new ParsingException("Query matches more than one query type: " + queryTypeSet);
         }
         if (countDistinctNodes.size() > 1) {
             throw new ParsingException("Cannot have multiple count distincts.");
@@ -134,8 +134,16 @@ public class ProcessedQuery {
         return selectNodes.stream().filter(node -> isSuperAggregate(node.getExpression())).collect(Collectors.toList());
     }
 
+    public List<SelectItemNode> getNonAggregateSelectNodes() {
+        return selectNodes.stream().filter(node -> !isAggregate(node.getExpression())).collect(Collectors.toList());
+    }
+
     public boolean isAggregateOrSuperAggregate(ExpressionNode node) {
         return aggregateNodes.contains(node) || superAggregateNodes.contains(node);
+    }
+
+    public boolean isAggregate(ExpressionNode node) {
+        return aggregateNodes.contains(node);
     }
 
     public boolean isSuperAggregate(ExpressionNode node) {

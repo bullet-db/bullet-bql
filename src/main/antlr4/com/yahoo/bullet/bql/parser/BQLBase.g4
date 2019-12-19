@@ -18,6 +18,7 @@ query
       (ORDER BY orderBy)?
       (WINDOWING window)?
       (LIMIT limit=INTEGER_VALUE)?
+      ';'?
       EOF
     ;
 

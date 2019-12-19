@@ -21,7 +21,7 @@ public class CastExpressionNodeTest {
     private String castType;
     private CastExpressionNode castExpression;
 
-    @BeforeClass
+    /*@BeforeClass
     public void setUp() {
         expression = identifier("aaa");
         castType = "FLOAT";
@@ -52,5 +52,5 @@ public class CastExpressionNodeTest {
     public void testHashCode() {
         CastExpressionNode sameCastExpression = new CastExpressionNode(identifier("aaa"), "FLOAT");
         assertEquals(castExpression.hashCode(), sameCastExpression.hashCode());
-    }
+    }*/
 }

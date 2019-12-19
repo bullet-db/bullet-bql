@@ -30,6 +30,7 @@ import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.NullLiteralNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
+import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.tree.RegionDistributionNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
@@ -224,12 +225,12 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         }
         throw new AssertionError("Unknown input mode");
     }
-/*
+
     @Override
     public Node visitTopK(BQLBaseParser.TopKContext context) {
         return visit(context.topKConfig());
     }
-*/
+
     @Override
     public Node visitTopKConfig(BQLBaseParser.TopKConfigContext context) {
         return new TopKNode(context.size.getText(),
@@ -249,12 +250,12 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                                        (ExpressionNode) visit(context.right),
                                        getOperation(context.op));
     }
-/*
+
     @Override
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
-        return visit(context.expression());
+        return new ParenthesesExpressionNode((ExpressionNode) visit(context.expression()));
     }
-*/
+
 
     @Override
     public Node visitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) {

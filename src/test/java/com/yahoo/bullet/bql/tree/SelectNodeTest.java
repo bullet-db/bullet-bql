@@ -18,7 +18,7 @@ public class SelectNodeTest {
     private List<SelectItemNode> selectItems;
     private SelectNode select;
 
-    @BeforeClass
+    /*@BeforeClass
     public void setUp() {
         selectItems = singletonList(new AllColumns());
         select = new SelectNode(true, selectItems);
@@ -36,5 +36,5 @@ public class SelectNodeTest {
 
         SelectNode selectDiffDistinct = new SelectNode(false, selectItems);
         assertFalse(select.equals(selectDiffDistinct));
-    }
+    }*/
 }

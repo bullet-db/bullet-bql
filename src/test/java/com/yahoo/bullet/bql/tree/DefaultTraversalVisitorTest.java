@@ -6,28 +6,6 @@
 package com.yahoo.bullet.bql.tree;
 
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.Optional;
-
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
-import static com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression.Sign.PLUS;
-import static com.yahoo.bullet.bql.util.QueryUtil.equal;
-import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleFunctionCall;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleOrderBy;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuerySpecification;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleWindowInclude;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleWith;
-import static com.yahoo.bullet.parsing.Clause.Operation.AND;
-import static com.yahoo.bullet.parsing.Window.Unit.TIME;
-import static java.util.Collections.singletonList;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 public class DefaultTraversalVisitorTest {
     private TraversalTestVisitor visitor;
@@ -39,7 +17,7 @@ public class DefaultTraversalVisitorTest {
         visitor = new TraversalTestVisitor();
     }
 
-    @Test
+    /*@Test
     public void testVisitQuery() {
         With with = simpleWith();
         QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
@@ -179,5 +157,5 @@ public class DefaultTraversalVisitorTest {
         verify(spy).visitOrderBy(orderBy, null);
         verify(spy).visitWindow(windowing, null);
         verify(spy).visitWindowInclude(include, null);
-    }
+    }*/
 }

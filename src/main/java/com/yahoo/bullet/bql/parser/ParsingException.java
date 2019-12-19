@@ -10,7 +10,6 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.yahoo.bullet.bql.tree.NodeLocation;
 import org.antlr.v4.runtime.RecognitionException;
 
 import static java.lang.String.format;
@@ -43,15 +42,15 @@ public class ParsingException extends RuntimeException {
         this(message, null, 1, 0);
     }
 
-    /**
-     * Constructor to initialize ParsingException with a message and {@link NodeLocation}.
-     *
-     * @param message      The error message to be associated with the ParsingException.
-     * @param nodeLocation The {@link NodeLocation} that contains line number and char position in line.
-     */
-    public ParsingException(String message, NodeLocation nodeLocation) {
-        this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
-    }
+    ///**
+    // * Constructor to initialize ParsingException with a message and {@link NodeLocation}.
+    // *
+    // * @param message      The error message to be associated with the ParsingException.
+    // * @param nodeLocation The {@link NodeLocation} that contains line number and char position in line.
+    // */
+    //public ParsingException(String message, NodeLocation nodeLocation) {
+    //    this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
+    //}
 
     @Override
     public String getMessage() {

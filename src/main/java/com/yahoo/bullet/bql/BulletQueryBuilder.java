@@ -80,7 +80,7 @@ public class BulletQueryBuilder {
         return toJson(buildQuery(bql));
     }
 
-    private String toJson(Query query) {
+    public String toJson(Query query) {
         return GSON.toJson(query);
     }
 }

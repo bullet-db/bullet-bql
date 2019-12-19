@@ -5,18 +5,12 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.BQLConfig;
 import com.yahoo.bullet.bql.BulletQueryBuilder;
 import com.yahoo.bullet.bql.parser.ParsingException;
-import com.yahoo.bullet.bql.tree.QuerySpecification;
 import com.yahoo.bullet.common.BulletConfig;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType.UNKNOWN;
-import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuerySpecification;
 import static org.testng.Assert.assertEquals;
 
 public class QueryExtractorTest {
@@ -169,12 +163,12 @@ public class QueryExtractorTest {
         builder.buildJson("SELECT COUNT(*), aaa, bbb FROM STREAM(2000, TIME) GROUP BY aaa");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: BQL cannot be classified\\E.*")
+    /*@Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: BQL cannot be classified\\E.*")
     public void testExtractNotKnownType() {
         QueryExtractor extractor = new QueryExtractor(new BQLConfig(""));
         QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
         extractor.extractQuery(querySpecification, UNKNOWN);
-    }
+    }*/
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: SelectNode field aaa should be a grouping function or be in GROUP BY clause\\E.*")
     public void testGroupBySelectFieldNotInGroupByClause() {

@@ -22,7 +22,7 @@ public class BinaryExpressionNodeTest {
     private String op;
     private BinaryExpressionNode infixExpression;
 
-    @BeforeClass
+    /*@BeforeClass
     public void setUp() {
         left = identifier("aaa");
         right = new DoubleLiteralNode("5.0");
@@ -57,5 +57,5 @@ public class BinaryExpressionNodeTest {
     public void testHashCode() {
         BinaryExpressionNode sameInfixExpression = new BinaryExpressionNode(identifier("aaa"), new DoubleLiteralNode("5.0"), "+");
         assertEquals(infixExpression.hashCode(), sameInfixExpression.hashCode());
-    }
+    }*/
 }

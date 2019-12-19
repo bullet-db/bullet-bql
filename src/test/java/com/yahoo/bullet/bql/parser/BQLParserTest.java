@@ -10,53 +10,10 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.yahoo.bullet.bql.tree.AllColumns;
-import com.yahoo.bullet.bql.tree.BetweenPredicate;
-import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
-import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.GroupByNode;
-import com.yahoo.bullet.bql.tree.LongLiteralNode;
-import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.NodeLocation;
-import com.yahoo.bullet.bql.tree.QualifiedName;
-import com.yahoo.bullet.bql.tree.SimpleGroupBy;
-import com.yahoo.bullet.bql.tree.Statement;
-import com.yahoo.bullet.bql.util.ExpressionFormatter;
-import org.testng.annotations.Test;
-
-import java.util.Collections;
-import java.util.Optional;
-
-import static com.yahoo.bullet.bql.parser.IdentifierSymbol.AT_SIGN;
-import static com.yahoo.bullet.bql.parser.IdentifierSymbol.COLON;
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.REJECT;
-import static com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression.negative;
-import static com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression.positive;
-import static com.yahoo.bullet.bql.util.BQLFormatter.formatBQL;
-import static com.yahoo.bullet.bql.util.ExpressionFormatter.formatExpression;
-import static com.yahoo.bullet.bql.util.QueryUtil.equal;
-import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static com.yahoo.bullet.bql.tree.LogicalBinaryExpression.and;
-import static com.yahoo.bullet.bql.util.QueryUtil.logicalNot;
-import static com.yahoo.bullet.bql.tree.LogicalBinaryExpression.or;
-import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuery;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleStream;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleWithQuery;
-import static com.yahoo.bullet.bql.util.TreeAssertions.assertFormattedBQL;
-import static java.lang.String.format;
-import static java.util.Collections.nCopies;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
-
 public class BQLParserTest {
     private static final BQLParser BQL_PARSER = new BQLParser();
 
-    @Test
+    /*@Test
     public void testPossibleExponentialBacktracking() {
         BQL_PARSER.createExpression("(((((((((((((((((((((((((((a = true)))))))))))))))))))))))))))", new ParsingOptions());
     }
@@ -375,5 +332,5 @@ public class BQLParserTest {
     private static String indent(String value) {
         String indent = "    ";
         return indent + value.trim().replaceAll("\n", "\n" + indent);
-    }
+    }*/
 }

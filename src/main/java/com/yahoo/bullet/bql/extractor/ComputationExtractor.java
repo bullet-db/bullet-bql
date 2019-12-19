@@ -30,13 +30,18 @@ public class ComputationExtractor {
             case SELECT_DISTINCT:
                 return null;
             case GROUP:
-                return extractGroup();
             case COUNT_DISTINCT:
-                return extractCountDistinct();
             case DISTRIBUTION:
-                return extractDistribution();
             case TOP_K:
-                return extractTopK();
+                return extractAggregate();
+            //case GROUP:
+            //    return extractGroup();
+            //case COUNT_DISTINCT:
+            //    return extractCountDistinct();
+            //case DISTRIBUTION:
+            //    return extractDistribution();
+            //case TOP_K:
+            //    return extractTopK();
             case SPECIAL_K:
                 return extractSpecialK();
         }
@@ -47,6 +52,13 @@ public class ComputationExtractor {
         List<Projection.Field> fields = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                                                 .map(this::toField)
                                                                                 .collect(Collectors.toList());
+        return new Computation(new Projection(fields));
+    }
+
+    private Computation extractAggregate() {
+        List<Projection.Field> fields = processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
+                                                                                            .map(this::toField)
+                                                                                            .collect(Collectors.toList());
         return new Computation(new Projection(fields));
     }
 

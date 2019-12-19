@@ -5,24 +5,11 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-import java.util.Optional;
-
-import static com.yahoo.bullet.bql.tree.WindowIncludeNode.IncludeType.FIRST;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleWindowInclude;
-import static com.yahoo.bullet.parsing.Window.Unit.RECORD;
-import static com.yahoo.bullet.parsing.Window.Unit.TIME;
-import static java.util.Collections.emptyList;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-
 public class WindowNodeTest {
     private WindowIncludeNode windowInclude;
     private WindowNode windowing;
 
-    @BeforeClass
+    /*@BeforeClass
     public void setUp() {
         windowInclude = simpleWindowInclude();
         windowing = new WindowNode((long) 10, TIME, windowInclude);
@@ -44,5 +31,5 @@ public class WindowNodeTest {
 
         WindowNode windowingDiffType = new WindowNode((long) 10, RECORD, windowInclude);
         assertFalse(windowing.equals(windowingDiffType));
-    }
+    }*/
 }

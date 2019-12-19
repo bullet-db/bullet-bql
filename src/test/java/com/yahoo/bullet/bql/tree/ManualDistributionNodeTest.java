@@ -23,7 +23,7 @@ public class ManualDistributionNodeTest {
     private List<ExpressionNode> columns;
     private List<Double> points;
 
-    @BeforeClass
+    /*@BeforeClass
     public void setUp() {
         columns = singletonList(identifier("aaa"));
         points = ImmutableList.of(0.5, 1.0);
@@ -47,5 +47,5 @@ public class ManualDistributionNodeTest {
         List<Double> diffPoints = ImmutableList.of(0.4, 0.8);
         ManualDistributionNode distributionDiffPoints = new ManualDistributionNode(columns, QUANTILE, diffPoints);
         assertFalse(distribution.equals(distributionDiffPoints));
-    }
+    }*/
 }

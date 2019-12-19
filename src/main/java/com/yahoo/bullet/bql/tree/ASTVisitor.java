@@ -266,6 +266,17 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
+     * Visit a {@link ParenthesesExpressionNode} with passed in context.
+     *
+     * @param node    A {@link ParenthesesExpressionNode}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitParenthesesExpression(ParenthesesExpressionNode node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
      * Visit an {@link IdentifierNode} with passed in context.
      *
      * @param node    An {@link IdentifierNode}.

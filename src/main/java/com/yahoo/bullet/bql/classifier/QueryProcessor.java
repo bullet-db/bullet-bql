@@ -20,6 +20,7 @@ import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullLiteralNode;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
+import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
@@ -66,17 +67,21 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         }
         // TODO valueAggregateNodes vs nonValueAggregateNodes
         for (GroupOperationNode groupOperationNode : context.getGroupOpNodes()) {
+            FieldExpression expression = (FieldExpression) context.getExpression(groupOperationNode);
             String alias = context.getAliases().get(groupOperationNode);
             if (alias != null) {
-                FieldExpression expression = (FieldExpression) context.getExpression(groupOperationNode);
                 expression.setField(alias);
+            } else {
+                expression.setField(groupOperationNode.toFormatlessString());
             }
         }
         for (CountDistinctNode countDistinctNode : context.getCountDistinctNodes()) {
+            FieldExpression expression = (FieldExpression) context.getExpression(countDistinctNode);
             String alias = context.getAliases().get(countDistinctNode);
             if (alias != null) {
-                FieldExpression expression = (FieldExpression) context.getExpression(countDistinctNode);
                 expression.setField(alias);
+            } else {
+                expression.setField(countDistinctNode.toFormatlessString());
             }
         }
         return context.validate();
@@ -84,7 +89,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitSelect(SelectNode node, ProcessedQuery context) {
-        context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT_DISTINCT);
+        if (node.isDistinct()) {
+            context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT_DISTINCT);
+        }
         return super.visitSelect(node, context);
     }
 
@@ -157,6 +164,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitListExpression(ListExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitListExpression(node, context);
 
         ListExpression list = new ListExpression(node.getExpressions().stream().map(context::getExpression).collect(Collectors.toList()));
@@ -173,6 +183,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitNullPredicate(NullPredicateNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitNullPredicate(node, context);
 
         UnaryExpression expression = new UnaryExpression();
@@ -191,6 +204,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitUnaryExpression(UnaryExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitUnaryExpression(node, context);
 
         UnaryExpression expression = new UnaryExpression();
@@ -209,6 +225,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitNAryExpression(NAryExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitNAryExpression(node, context);
 
         NAryExpression expression = new NAryExpression();
@@ -227,6 +246,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitGroupOperation(GroupOperationNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitGroupOperation(node, context);
 
         FieldExpression expression = new FieldExpression();
@@ -247,6 +269,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitCountDistinct(CountDistinctNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitCountDistinct(node, context);
 
         FieldExpression expression = new FieldExpression();
@@ -267,16 +292,11 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitDistribution(DistributionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitDistribution(node, context);
-/*
-        node instanceof LinearDistributionNode;
-        node instanceof RegionDistributionNode;
-        node instanceof ManualDistributionNode;
 
-        node.getAttributes();
-        node.getExpression();
-        node.getType();
-*/
         context.getSubExpressionNodes().add(node.getExpression());
 
         if (context.isAggregateOrSuperAggregate(node.getExpression())) {
@@ -291,12 +311,11 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitTopK(TopKNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitTopK(node, context);
-/*
-        node.getExpressions();
-        node.getSize();
-        node.getThreshold();
-*/
+
         context.getSubExpressionNodes().addAll(node.getExpressions());
 
         if(node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
@@ -311,6 +330,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitCastExpression(CastExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitCastExpression(node, context);
 
         Expression expression = context.getExpression(node.getExpression());
@@ -328,6 +350,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitBinaryExpression(BinaryExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
         super.visitBinaryExpression(node, context);
 
         BinaryExpression expression = new BinaryExpression();
@@ -347,14 +372,34 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     }
 
     @Override
+    protected ProcessedQuery visitParenthesesExpression(ParenthesesExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+        super.visitParenthesesExpression(node, context);
+
+        Expression expression = context.getExpression(node.getExpression());
+
+        context.getExpressionNodes().put(node, expression);
+        context.getSubExpressionNodes().add(node.getExpression());
+
+        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
+            context.getSuperAggregateNodes().add(node);
+        }
+
+        return context;
+    }
+
+    @Override
     protected ProcessedQuery visitIdentifier(IdentifierNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         FieldExpression expression = new FieldExpression();
         expression.setField(node.getValue());
 
         context.getExpressionNodes().put(node, expression);
-
-        //node.getValue();
-        //node.isDelimited();
 
         return context;
     }
@@ -366,6 +411,10 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitNullLiteral(NullLiteralNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         ValueExpression expression = new ValueExpression();
         expression.setType(Type.NULL);
 
@@ -376,6 +425,10 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitStringLiteral(StringLiteralNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         ValueExpression expression = new ValueExpression();
         expression.setValue(node.getValue());
         expression.setType(Type.STRING);
@@ -387,6 +440,10 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitLongLiteral(LongLiteralNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         ValueExpression expression = new ValueExpression();
         expression.setValue(node.getValue().toString());
         expression.setType(Type.LONG);
@@ -398,6 +455,10 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitDoubleLiteral(DoubleLiteralNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         ValueExpression expression = new ValueExpression();
         expression.setValue(node.getValue().toString());
         expression.setType(Type.DOUBLE);
@@ -409,6 +470,10 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitDecimalLiteral(DecimalLiteralNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         ValueExpression expression = new ValueExpression();
         expression.setValue(node.getValue());
         //expression.setType(Type.FLOAT);
@@ -421,6 +486,10 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitBooleanLiteral(BooleanLiteralNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
         ValueExpression expression = new ValueExpression();
         expression.setValue(node.getValue().toString());
         expression.setType(Type.BOOLEAN);

@@ -18,6 +18,7 @@ import com.yahoo.bullet.parsing.Projection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,9 +63,10 @@ public class ProjectionExtractor {
     }
 
     private Projection extractGroup() {
-        // project group by fields and aggregate inner expressions
+        // Project GROUP BY fields and aggregate inner expressions
         Set<ExpressionNode> requiredNodes = new HashSet<>(processedQuery.getGroupByNodes());
-        requiredNodes.addAll(processedQuery.getGroupOpNodes().stream().map(GroupOperationNode::getExpression).collect(Collectors.toSet()));
+        // Filter non-null for COUNT(*)
+        requiredNodes.addAll(processedQuery.getGroupOpNodes().stream().map(GroupOperationNode::getExpression).filter(Objects::nonNull).collect(Collectors.toSet()));
         List<Projection.Field> fields = requiredNodes.stream().map(this::toNonAliasedField).collect(Collectors.toList());
         return new Projection(fields);
     }
@@ -84,7 +86,9 @@ public class ProjectionExtractor {
     }
 
     private Projection extractTopK() {
-        // project topk inner expressions
+        // TODO Project only if there are non-field expressions
+
+        // Project Top K inner expressions
         TopKNode topK = processedQuery.getTopK();
         List<Projection.Field> fields = topK.getExpressions().stream().map(this::toNonAliasedField).collect(Collectors.toList());
         return new Projection(fields);

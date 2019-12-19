@@ -11,41 +11,40 @@
 package com.yahoo.bullet.bql.util;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.BooleanLiteralNode;
+import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DecimalLiteralNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.LongLiteralNode;
+import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullLiteralNode;
+import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
-import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.StringLiteralNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
-import com.yahoo.bullet.bql.tree.WindowIncludeNode;
+import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
-import com.yahoo.bullet.parsing.Window.Unit;
+import lombok.AllArgsConstructor;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
-import static com.yahoo.bullet.parsing.Window.Unit.ALL;
 import static java.lang.String.format;
 
 public final class ExpressionFormatter {
@@ -56,11 +55,10 @@ public final class ExpressionFormatter {
      * Parse an {@link ExpressionNode} to a formatted BQL String, with a List of {@link ExpressionNode} parameters.
      *
      * @param expression A non-null {@link ExpressionNode} will be parsed.
-     * @param parameters A List of {@link ExpressionNode} parameters that tunes the parsing.
      * @return A formatted BQL String represents the passed in {@link ExpressionNode}.
      */
-    public static String formatExpression(ExpressionNode expression, Optional<List<ExpressionNode>> parameters) throws IllegalArgumentException, UnsupportedOperationException {
-        return formatExpression(expression, parameters, true);
+    public static String formatExpression(ExpressionNode expression){
+        return formatExpression(expression, true);
     }
 
     /**
@@ -68,41 +66,16 @@ public final class ExpressionFormatter {
      * For {@link LiteralNode}, the BQL String can be generated with or without format.
      *
      * @param expression A non-null {@link ExpressionNode} will be parsed.
-     * @param parameters A List of {@link ExpressionNode} parameters that tunes the parsing.
      * @param withFormat A boolean which decides if the parsed BQL String of {@link LiteralNode} has format or not.
      * @return A BQL String represents the passed in {@link ExpressionNode}.
      */
-    public static String formatExpression(ExpressionNode expression, Optional<List<ExpressionNode>> parameters, boolean withFormat) throws IllegalArgumentException, UnsupportedOperationException {
-        if (expression == null) {
-            throw new IllegalArgumentException("ExpressionNode inside formatExpression() must not be null");
-        }
-
-        return new Formatter(parameters, withFormat).process(expression, null);
+    public static String formatExpression(ExpressionNode expression, boolean withFormat) {
+        return new Formatter(withFormat).process(expression);
     }
 
+    @AllArgsConstructor
     public static class Formatter extends ASTVisitor<String, Void> {
-        private final Optional<List<ExpressionNode>> parameters;
         private boolean withFormat;
-
-        /**
-         * Constructor that requires a List of {@link ExpressionNode} parameters.
-         *
-         * @param parameters A List of {@link ExpressionNode} parameters that tunes the parsing.
-         */
-        public Formatter(Optional<List<ExpressionNode>> parameters) {
-            this(parameters, true);
-        }
-
-        /**
-         * Constructor that requires a List of {@link ExpressionNode} parameters and a boolean.
-         *
-         * @param parameters A List of {@link ExpressionNode} parameters that tunes the parsing.
-         * @param withFormat A boolean which decides if the parsed BQL String of {@link LiteralNode} has format or not.
-         */
-        public Formatter(Optional<List<ExpressionNode>> parameters, boolean withFormat) {
-            this.parameters = parameters;
-            this.withFormat = withFormat;
-        }
 
         @Override
         protected String visitNode(Node node, Void context) throws UnsupportedOperationException {
@@ -115,8 +88,84 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitBooleanLiteral(BooleanLiteralNode node, Void context) {
-            return String.valueOf(node.getValue());
+        protected String visitListExpression(ListExpressionNode node, Void context) {
+            return "[" + joinExpressions(node.getExpressions()) + "]";
+        }
+
+        @Override
+        protected String visitNullPredicate(NullPredicateNode node, Void context) {
+            return process(node.getExpression()) + (node.isNot() ? " IS NOT NULL" : " IS NULL");
+        }
+
+        @Override
+        protected String visitUnaryExpression(UnaryExpressionNode node, Void context) {
+            return node.getOp().getName() + " " + process(node.getExpression());
+        }
+
+        @Override
+        protected String visitNAryExpression(NAryExpressionNode node, Void context) {
+            return node.getOp().getName() + "(" + joinExpressions(node.getExpressions()) + ")";
+        }
+
+        @Override
+        protected String visitGroupOperation(GroupOperationNode node, Void context) {
+            if (node.getOp() == GroupOperation.GroupOperationType.COUNT) {
+                return "COUNT(*)";
+            }
+            return node.getOp().getName() + "(" + process(node.getExpression()) + ")";
+        }
+
+        @Override
+        protected String visitCountDistinct(CountDistinctNode node, Void context) {
+            return "COUNT(DISTINCT " + joinExpressions(node.getExpressions()) + ")";
+        }
+
+        @Override
+        protected String visitDistribution(DistributionNode node, Void context) {
+            return node.attributesToString();
+        }
+
+        @Override
+        protected String visitTopK(TopKNode node, Void context) {
+            StringBuilder builder = new StringBuilder();
+            builder.append("TOP(")
+                   .append(node.getSize())
+                   .append(", ");
+            if (node.getThreshold() != null) {
+                builder.append(node.getThreshold())
+                       .append(", ");
+            }
+            builder.append(joinExpressions(node.getExpressions()))
+                   .append(")");
+            return builder.toString();
+        }
+
+        @Override
+        protected String visitCastExpression(CastExpressionNode node, Void context) {
+            return "CAST (" + process(node.getExpression()) + " AS " + node.getCastType() + ")";
+        }
+
+        @Override
+        protected String visitBinaryExpression(BinaryExpressionNode node, Void context) {
+            if (node.getOp().isInfix()) {
+                return process(node.getLeft()) + " " + node.getOp() + " " + process(node.getRight());
+            }
+            return node.getOp() + "(" + process(node.getLeft()) + ", " + process(node.getRight());
+        }
+
+        @Override
+        protected String visitParenthesesExpression(ParenthesesExpressionNode node, Void context) {
+            return "(" + process(node.getExpression()) + ")";
+        }
+
+        @Override
+        protected String visitIdentifier(IdentifierNode node, Void context) {
+            return node.getValue();
+        }
+
+        @Override
+        protected String visitNullLiteral(NullLiteralNode node, Void context) {
+            return "NULL";
         }
 
         @Override
@@ -142,42 +191,15 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitDecimalLiteral(DecimalLiteralNode node, Void context) {
-            if (!withFormat) {
-                return node.getValue();
-            }
             return node.getValue();
         }
 
         @Override
-        protected String visitNullLiteral(NullLiteralNode node, Void context) {
-            return "NULL";
+        protected String visitBooleanLiteral(BooleanLiteralNode node, Void context) {
+            return String.valueOf(node.getValue());
         }
 
-        @Override
-        protected String visitIdentifier(IdentifierNode node, Void context) {
-            if (!withFormat) {
-                return node.getValue();
-            }
-            return node.getValue();
-        }
-
-        @Override
-        protected String visitDistribution(DistributionNode node, Void context) {
-            return node.attributesToString();
-        }
-
-        @Override
-        protected String visitTopK(TopKNode node, Void context) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("TOP(")
-                    .append(node.getSize())
-                    .append(", ");
-            node.getThreshold().ifPresent(threshold -> builder.append(threshold).append(", "));
-            builder.append(process(node.getColumns().get(0)))
-                    .append(")");
-            return builder.toString();
-        }
-
+        /*
         @Override
         protected String visitOrderBy(OrderByNode node, Void context) {
             return "ORDER BY " +
@@ -354,38 +376,10 @@ public final class ExpressionFormatter {
             }
             return op + "(" + process(node.getValue(), context) + ")";
         }
-
-        @Override
-        protected String visitCastExpression(CastExpressionNode node, Void context) {
-            return "CAST (" + process(node.getExpression(), context) + ", " + node.getCastType().toUpperCase() + ")";
-        }
-
-        @Override
-        protected String visitBinaryExpression(BinaryExpressionNode node, Void context) {
-            return process(node.getLeft(), context) + " " + node.getOp() + " " + process(node.getRight(), context);
-        }
-
-        @Override
-        protected String visitParensExpression(ParensExpression node, Void context) {
-            if (node.getValue() instanceof BinaryExpressionNode) {
-                return "(" + node.getValue().toFormatlessString() + ")";
-            }
-            return node.getValue().toFormatlessString();
-        }
-
-        @Override
-        protected String visitListExpression(ListExpressionNode node, Void context) {
-            return "(" + joinExpressions(node.getExpressions()) + ")";
-        }
-
-        private String formatBinaryExpression(String operator, ExpressionNode left, ExpressionNode right) {
-            return '(' + process(left, null) + ' ' + operator + ' ' + process(right, null) + ')';
-        }
+        */
 
         private String joinExpressions(List<ExpressionNode> expressions) {
-            return Joiner.on(", ").join(expressions.stream()
-                    .map((e) -> process(e, null))
-                    .iterator());
+            return Joiner.on(", ").join(expressions.stream().map(this::process).iterator());
         }
     }
 
@@ -393,7 +387,7 @@ public final class ExpressionFormatter {
         s = s.replace("'", "''");
         return "'" + s + "'";
     }
-
+    /*
     static String formatGroupBy(List<GroupingElement> groupingElements) {
         return formatGroupBy(groupingElements, Optional.empty());
     }
@@ -405,30 +399,28 @@ public final class ExpressionFormatter {
             String result = "";
             Set<ExpressionNode> columns = ImmutableSet.copyOf(((SimpleGroupBy) groupingElement).getColumnExpressions());
             if (columns.size() == 1) {
-                result = formatExpression(getOnlyElement(columns), parameters);
+                result = formatExpression(getOnlyElement(columns));
             } else {
-                result = formatGroupingSet(columns, parameters);
+                result = formatGroupingSet(columns);
             }
             resultStrings.add(result);
         }
         return Joiner.on(", ").join(resultStrings.build());
     }
-
+    */
     static String formatStream(StreamNode node) {
-        return new Formatter(Optional.empty()).process(node);
+        return new Formatter(true).process(node);
     }
 
     static String formatOrderBy(OrderByNode node) {
-        return new Formatter(Optional.empty()).process(node);
+        return new Formatter(true).process(node);
     }
 
     static String formatWindowing(WindowNode node) {
-        return new Formatter(Optional.empty()).process(node);
+        return new Formatter(true).process(node);
     }
 
-    private static String formatGroupingSet(Set<ExpressionNode> groupingSet, Optional<List<ExpressionNode>> parameters) {
-        return format("(%s)", Joiner.on(", ").join(groupingSet.stream()
-                .map(e -> formatExpression(e, parameters))
-                .iterator()));
+    private static String formatGroupingSet(Set<ExpressionNode> groupingSet) {
+        return format("(%s)", Joiner.on(", ").join(groupingSet.stream().map(ExpressionFormatter::formatExpression).iterator()));
     }
 }

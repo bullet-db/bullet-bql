@@ -123,6 +123,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
         return null;
     }
 
+    @Override
+    protected R visitParenthesesExpression(ParenthesesExpressionNode node, C context) {
+        process(node.getExpression(), context);
+        return null;
+    }
+
     protected Consumer<Node> process(C context) {
         return node -> process(node, context);
     }
