@@ -1,12 +1,9 @@
 package com.yahoo.bullet.bql.classifier;
 
-import com.yahoo.bullet.bql.tree.BooleanLiteralNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
-import com.yahoo.bullet.bql.tree.DecimalLiteralNode;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
 import com.yahoo.bullet.bql.tree.DistributionNode;
-import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
@@ -14,10 +11,8 @@ import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
-import com.yahoo.bullet.bql.tree.LongLiteralNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.NullLiteralNode;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
@@ -26,7 +21,6 @@ import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
-import com.yahoo.bullet.bql.tree.StringLiteralNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -39,7 +33,6 @@ import com.yahoo.bullet.parsing.expressions.NAryExpression;
 import com.yahoo.bullet.parsing.expressions.Operation;
 import com.yahoo.bullet.parsing.expressions.UnaryExpression;
 import com.yahoo.bullet.parsing.expressions.ValueExpression;
-import com.yahoo.bullet.typesystem.Type;
 
 import java.util.stream.Collectors;
 
@@ -406,95 +399,11 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitLiteral(LiteralNode node, ProcessedQuery context) {
-        throw new RuntimeException("shouldn't be called");
-    }
-
-    @Override
-    protected ProcessedQuery visitNullLiteral(NullLiteralNode node, ProcessedQuery context) {
         if (context.getExpressionNodes().containsKey(node)) {
             return context;
         }
 
-        ValueExpression expression = new ValueExpression();
-        expression.setType(Type.NULL);
-
-        context.getExpressionNodes().put(node, expression);
-
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitStringLiteral(StringLiteralNode node, ProcessedQuery context) {
-        if (context.getExpressionNodes().containsKey(node)) {
-            return context;
-        }
-
-        ValueExpression expression = new ValueExpression();
-        expression.setValue(node.getValue());
-        expression.setType(Type.STRING);
-
-        context.getExpressionNodes().put(node, expression);
-
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitLongLiteral(LongLiteralNode node, ProcessedQuery context) {
-        if (context.getExpressionNodes().containsKey(node)) {
-            return context;
-        }
-
-        ValueExpression expression = new ValueExpression();
-        expression.setValue(node.getValue().toString());
-        expression.setType(Type.LONG);
-
-        context.getExpressionNodes().put(node, expression);
-
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitDoubleLiteral(DoubleLiteralNode node, ProcessedQuery context) {
-        if (context.getExpressionNodes().containsKey(node)) {
-            return context;
-        }
-
-        ValueExpression expression = new ValueExpression();
-        expression.setValue(node.getValue().toString());
-        expression.setType(Type.DOUBLE);
-
-        context.getExpressionNodes().put(node, expression);
-
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitDecimalLiteral(DecimalLiteralNode node, ProcessedQuery context) {
-        if (context.getExpressionNodes().containsKey(node)) {
-            return context;
-        }
-
-        ValueExpression expression = new ValueExpression();
-        expression.setValue(node.getValue());
-        //expression.setType(Type.FLOAT);
-        expression.setType(Type.DOUBLE);
-
-        context.getExpressionNodes().put(node, expression);
-
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitBooleanLiteral(BooleanLiteralNode node, ProcessedQuery context) {
-        if (context.getExpressionNodes().containsKey(node)) {
-            return context;
-        }
-
-        ValueExpression expression = new ValueExpression();
-        expression.setValue(node.getValue().toString());
-        expression.setType(Type.BOOLEAN);
-
-        context.getExpressionNodes().put(node, expression);
+        context.getExpressionNodes().put(node, new ValueExpression(node.getValue()));
 
         return context;
     }

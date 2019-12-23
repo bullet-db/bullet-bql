@@ -12,8 +12,6 @@ import com.yahoo.bullet.bql.classifier.QueryProcessor;
 import com.yahoo.bullet.bql.classifier.QueryClassifier;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
-import com.yahoo.bullet.bql.parser.ParsingOptions;
-import com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
@@ -25,7 +23,6 @@ public class BulletQueryBuilder {
     private final QueryProcessor queryProcessor = new QueryProcessor();
     private final QueryClassifier queryClassifier = new QueryClassifier();
     private final BQLParser bqlParser;
-    private final ParsingOptions parsingOptions;
     private final QueryExtractor queryExtractor;
 
     /**
@@ -37,10 +34,6 @@ public class BulletQueryBuilder {
         bqlParser = new BQLParser();
         BQLConfig bqlConfig = new BQLConfig(requireNonNull(config));
         queryExtractor = new QueryExtractor(bqlConfig);
-
-        // Default is treating decimal as double.
-        String decimalLiteralTreatment = bqlConfig.getAs(BQLConfig.BQL_DECIMAL_LITERAL_TREATMENT, String.class);
-        parsingOptions = new ParsingOptions(DecimalLiteralTreatment.valueOf(decimalLiteralTreatment));
     }
 
     /**
@@ -53,7 +46,7 @@ public class BulletQueryBuilder {
         requireNonNull(bql);
 
         // Parse BQL to node tree.
-        QueryNode queryNode = bqlParser.createQueryNode(bql, parsingOptions);
+        QueryNode queryNode = bqlParser.createQueryNode(bql);
 
         // Process the query node into query components and validate components
         ProcessedQuery processedQuery = queryProcessor.process(queryNode);

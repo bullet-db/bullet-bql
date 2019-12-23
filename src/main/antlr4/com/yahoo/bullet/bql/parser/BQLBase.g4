@@ -54,8 +54,8 @@ window
 
 include
     : includeUnit=ALL
-    //| includeType=(FIRST | LAST) ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
     | includeType=FIRST ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
+//  | includeType=(FIRST | LAST) ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
     ;
 
 expression
@@ -77,9 +77,9 @@ expression
 
 valueExpression
     : NULL                                                                                  #nullLiteral
-    | signedNumber                                                                          #numericLiteral
+    | number                                                                                #numericLiteral
     | booleanValue                                                                          #booleanLiteral
-    | string                                                                                #stringLiteral
+    | STRING                                                                                #stringLiteral
     ;
 
 listExpression
@@ -90,15 +90,7 @@ listExpression
 unaryExpression
     : op=(NOT | SIZEOF) operand=expression
     ;
-/*
-binaryExpression
-    : op=('RLIKE' | 'SIZEIS' | CONTAINSKEY | CONTAINSVALUE | XOR | 'FILTER') '(' left=expression ',' right=expression ')'
-    ;
 
-nAryExpression
-    : op=(AND | OR | 'IF') '(' (expression? | (expression (',' expression)*)) ')'
-    ;
-*/
 functionExpression
     : binaryFunction '(' left=expression ',' right=expression ')'                           #binary
     | op=(AND | OR | IF) '(' expression (',' expression)* ')'                               #nAry
@@ -124,40 +116,30 @@ distributionType
 
 inputMode
     : iMode=LINEAR ',' numberOfPoints=INTEGER_VALUE
-    | iMode=REGION ',' start=signedNumber ',' end=signedNumber ',' increment=signedNumber
-    | iMode=MANUAL ',' signedNumber (',' signedNumber)*
+    | iMode=REGION ',' start=number ',' end=number ',' increment=number
+    | iMode=MANUAL ',' number (',' number)*
     ;
 
 topKConfig
     : size=INTEGER_VALUE (',' threshold=INTEGER_VALUE)? ',' expression (',' expression)*
     ;
 
-castType
-    : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
+identifier
+    : IDENTIFIER                                                                            #unquotedIdentifier
+    | nonReserved                                                                           #unquotedIdentifier
+    | DIGIT_IDENTIFIER                                                                      #digitIdentifier
+    ;
+
+number
+    : operator=(MINUS | PLUS)? value=(INTEGER_VALUE | LONG_VALUE | FLOAT_VALUE | DOUBLE_VALUE)
     ;
 
 booleanValue
     : TRUE | FALSE
     ;
 
-identifier
-    : IDENTIFIER                                                                          #unquotedIdentifier
-    | nonReserved                                                                         #unquotedIdentifier
-    | DIGIT_IDENTIFIER                                                                    #digitIdentifier
-    ;
-
-number
-    : DECIMAL_VALUE                                                                       #decimalLiteral
-    | DOUBLE_VALUE                                                                        #doubleLiteral
-    | INTEGER_VALUE                                                                       #integerLiteral
-    ;
-
-signedNumber
-    : operator=(MINUS | PLUS)? number
-    ;
-
-string
-    : STRING                                                                              #basicStringLiteral
+castType
+    : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
     ;
 
 nonReserved
@@ -254,22 +236,27 @@ STRING
     | '"' ( ~'"' | '""' )* '"'
     ;
 
+/*
 UNICODE_STRING
     : 'U&\'' ( ~'\'' | '\'\'' )* '\''
     ;
+*/
 
 INTEGER_VALUE
     : DIGIT+
     ;
 
-DECIMAL_VALUE
-    : DIGIT+ '.' DIGIT*
-    | '.' DIGIT+
+LONG_VALUE
+    : INTEGER_VALUE 'L'
     ;
 
 DOUBLE_VALUE
-    : DIGIT+ ('.' DIGIT*)? EXPONENT
-    | '.' DIGIT+ EXPONENT
+    : DIGIT+ '.' DIGIT*
+    | DIGIT+ ('.' DIGIT*)? EXPONENT
+    ;
+
+FLOAT_VALUE
+    : DOUBLE_VALUE 'F'
     ;
 
 IDENTIFIER
@@ -302,14 +289,6 @@ fragment LETTER
 
 fragment NAME_LETTER
     : LETTER | DIGIT | '_' | '@' | ':'
-    ;
-
-SIMPLE_COMMENT
-    : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
-    ;
-
-BRACKETED_COMMENT
-    : '/*' .*? '*/' -> channel(HIDDEN)
     ;
 
 WS

@@ -8,7 +8,7 @@ package com.yahoo.bullet.bql.classifier;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
-import com.yahoo.bullet.bql.tree.LongLiteralNode;
+import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.parsing.expressions.Expression;
@@ -77,7 +77,7 @@ public class QueryClassifier {
             if (having.getOp() != Operation.GREATER_THAN_OR_EQUALS) {
                 return false;
             }
-            if (!(having.getRight() instanceof LongLiteralNode)) {
+            if (!(having.getRight() instanceof LiteralNode && ((LiteralNode) having.getRight()).getValue() instanceof Number)) {
                 return false;
             }
         }

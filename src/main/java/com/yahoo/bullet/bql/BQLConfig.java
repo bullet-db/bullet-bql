@@ -10,29 +10,14 @@ import com.yahoo.bullet.common.Config;
 import com.yahoo.bullet.common.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DECIMAL;
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
-import static com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment.REJECT;
-
 @Slf4j
 public class BQLConfig extends BulletConfig {
-    // Common BQLParser properties.
-    public static final String BQL_DECIMAL_LITERAL_TREATMENT = "bullet.bql.decimal.literal.treatment";
-
-    // Defaults.
-    public static final String DEFAULT_BQL_DECIMAL_LITERAL_TREATMENT = "AS_DOUBLE";
-    public static final String DEFAULT_BQL_CONFIGURATION = "bullet_bql_defaults.yaml";
+    // Defaults
+    private static final String DEFAULT_BQL_CONFIGURATION = "bullet_bql_defaults.yaml";
 
     // Validator definitions for the configs in this class.
     // This can be static since VALIDATOR itself does not change for different values for fields in the BQLConfig.
     private static final Validator VALIDATOR = new Validator();
-
-    static {
-        VALIDATOR.define(BQL_DECIMAL_LITERAL_TREATMENT)
-                 .defaultTo(DEFAULT_BQL_DECIMAL_LITERAL_TREATMENT)
-                 .checkIf(Validator::isString)
-                 .checkIf(Validator.isIn(AS_DOUBLE.name(), AS_DECIMAL.name(), REJECT.name()));
-    }
 
     /**
      * Creates a BQLConfig by reading in a file.

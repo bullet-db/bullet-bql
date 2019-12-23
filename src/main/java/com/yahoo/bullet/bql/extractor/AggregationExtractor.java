@@ -11,7 +11,7 @@ import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.LongLiteralNode;
+import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.parsing.Aggregation;
@@ -143,7 +143,7 @@ public class AggregationExtractor {
         aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::toFormatlessString, processedQuery::getAliasOrName)));
         Map<String, Object> attributes = new HashMap<>();
         if (processedQuery.getHavingNode() != null) {
-            attributes.put(THRESHOLD_FIELD, ((LongLiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue());
+            attributes.put(THRESHOLD_FIELD, ((LiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue());
         }
         String alias = processedQuery.getAliasOrName(processedQuery.getGroupOpNodes().iterator().next());
         //if (alias != null) {

@@ -13,11 +13,8 @@ package com.yahoo.bullet.bql.util;
 import com.google.common.base.Joiner;
 import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
-import com.yahoo.bullet.bql.tree.BooleanLiteralNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
-import com.yahoo.bullet.bql.tree.DecimalLiteralNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
-import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
@@ -25,15 +22,12 @@ import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
-import com.yahoo.bullet.bql.tree.LongLiteralNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.NullLiteralNode;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
-import com.yahoo.bullet.bql.tree.StringLiteralNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
@@ -63,10 +57,10 @@ public final class ExpressionFormatter {
 
     /**
      * Parse an {@link ExpressionNode} to a BQL String, with a List of {@link ExpressionNode} parameters.
-     * For {@link LiteralNode}, the BQL String can be generated with or without format.
+     * For a literal node, the BQL String can be generated with or without format.
      *
      * @param expression A non-null {@link ExpressionNode} will be parsed.
-     * @param withFormat A boolean which decides if the parsed BQL String of {@link LiteralNode} has format or not.
+     * @param withFormat A boolean which decides if the parsed BQL String of a literal node has format or not.
      * @return A BQL String represents the passed in {@link ExpressionNode}.
      */
     public static String formatExpression(ExpressionNode expression, boolean withFormat) {
@@ -164,39 +158,19 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitNullLiteral(NullLiteralNode node, Void context) {
-            return "NULL";
-        }
-
-        @Override
-        protected String visitStringLiteral(StringLiteralNode node, Void context) {
-            if (!withFormat) {
-                return node.getValue();
+        protected String visitLiteral(LiteralNode node, Void context) {
+            Object value = node.getValue();
+            if (value == null) {
+                return "NULL";
             }
-            return formatStringLiteral(node.getValue());
-        }
-
-        @Override
-        protected String visitLongLiteral(LongLiteralNode node, Void context) {
-            return Long.toString(node.getValue());
-        }
-
-        @Override
-        protected String visitDoubleLiteral(DoubleLiteralNode node, Void context) {
-            if (!withFormat) {
-                return Double.toString(node.getValue());
+            if (withFormat) {
+                if (value instanceof Double || value instanceof Float) {
+                    return DOUBLE_FORMATTER.get().format(value);
+                } else if (value instanceof String) {
+                    return formatStringLiteral((String) value);
+                }
             }
-            return DOUBLE_FORMATTER.get().format(node.getValue());
-        }
-
-        @Override
-        protected String visitDecimalLiteral(DecimalLiteralNode node, Void context) {
-            return node.getValue();
-        }
-
-        @Override
-        protected String visitBooleanLiteral(BooleanLiteralNode node, Void context) {
-            return String.valueOf(node.getValue());
+            return value.toString();
         }
 
         /*
@@ -383,7 +357,7 @@ public final class ExpressionFormatter {
         }
     }
 
-    static String formatStringLiteral(String s) {
+    private static String formatStringLiteral(String s) {
         s = s.replace("'", "''");
         return "'" + s + "'";
     }

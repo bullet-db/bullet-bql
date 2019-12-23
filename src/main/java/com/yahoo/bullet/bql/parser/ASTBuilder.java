@@ -13,22 +13,18 @@ package com.yahoo.bullet.bql.parser;
 import com.yahoo.bullet.aggregations.Distribution.Type;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
-import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
-import com.yahoo.bullet.bql.tree.BooleanLiteralNode;
-import com.yahoo.bullet.bql.tree.DecimalLiteralNode;
 import com.yahoo.bullet.bql.tree.LinearDistributionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
-import com.yahoo.bullet.bql.tree.LongLiteralNode;
+import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.ManualDistributionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
-import com.yahoo.bullet.bql.tree.NullLiteralNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
@@ -37,7 +33,6 @@ import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
-import com.yahoo.bullet.bql.tree.StringLiteralNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -54,15 +49,8 @@ import java.util.stream.Collectors;
 import static com.yahoo.bullet.aggregations.Distribution.Type.CDF;
 import static com.yahoo.bullet.aggregations.Distribution.Type.PMF;
 import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
-import static java.util.Objects.requireNonNull;
 
 class ASTBuilder extends BQLBaseBaseVisitor<Node> {
-    private final ParsingOptions parsingOptions;
-
-    ASTBuilder(ParsingOptions parsingOptions) {
-        this.parsingOptions = requireNonNull(parsingOptions, "ParsingOptions is null");
-    }
-
     @Override
     public Node visitQuery(BQLBaseParser.QueryContext context) {
         return new QueryNode((SelectNode) visit(context.select()),
@@ -213,13 +201,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return new LinearDistributionNode(type, expression, numberOfPoints);
             }
             case BQLBaseLexer.REGION: {
-                Double start = getSignedDouble(context.inputMode().start);
-                Double end = getSignedDouble(context.inputMode().end);
-                Double increment = getSignedDouble(context.inputMode().increment);
+                Double start = getSignedNumber(context.inputMode().start).doubleValue();
+                Double end = getSignedNumber(context.inputMode().end).doubleValue();
+                Double increment = getSignedNumber(context.inputMode().increment).doubleValue();
                 return new RegionDistributionNode(type, expression, start, end, increment);
             }
             case BQLBaseLexer.MANUAL: {
-                List<Double> points = context.inputMode().signedNumber().stream().map(this::getSignedDouble).collect(Collectors.toList());
+                List<Double> points = context.inputMode().number().stream().map(this::getSignedNumber).map(Number::doubleValue).collect(Collectors.toList());
                 return new ManualDistributionNode(type, expression, points);
             }
         }
@@ -266,40 +254,22 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitNullLiteral(BQLBaseParser.NullLiteralContext context) {
-        return new NullLiteralNode();
+        return new LiteralNode(null);
     }
 
     @Override
-    public Node visitBasicStringLiteral(BQLBaseParser.BasicStringLiteralContext context) {
-        return new StringLiteralNode(unquote(context.STRING().getText()));
-    }
-
-    @Override
-    public Node visitIntegerLiteral(BQLBaseParser.IntegerLiteralContext context) {
-        return new LongLiteralNode(context.getText());
-    }
-
-    @Override
-    public Node visitDecimalLiteral(BQLBaseParser.DecimalLiteralContext context) {
-        switch (parsingOptions.getDecimalLiteralTreatment()) {
-            case AS_DOUBLE:
-                return new DoubleLiteralNode(context.getText());
-            case AS_DECIMAL:
-                return new DecimalLiteralNode(context.getText());
-            case REJECT:
-                throw parseError("Unexpected decimal literal: " + context.getText(), context);
-        }
-        throw new AssertionError("Unreachable");
-    }
-
-    @Override
-    public Node visitDoubleLiteral(BQLBaseParser.DoubleLiteralContext context) {
-        return new DoubleLiteralNode(context.getText());
+    public Node visitNumericLiteral(BQLBaseParser.NumericLiteralContext context) {
+        return new LiteralNode(getSignedNumber(context.number()));
     }
 
     @Override
     public Node visitBooleanValue(BQLBaseParser.BooleanValueContext context) {
-        return new BooleanLiteralNode(context.getText());
+        return new LiteralNode(Boolean.valueOf(context.getText()));
+    }
+
+    @Override
+    public Node visitStringLiteral(BQLBaseParser.StringLiteralContext context) {
+        return new LiteralNode(unquote(context.getText()));
     }
 
     // ***************** Helpers *****************
@@ -389,7 +359,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
             case BQLBaseLexer.IF:
                 return Operation.IF;
         }
-        throw new AssertionError("Unknown operation");
+        throw new ParsingException("Unknown operation");
     }
 
     private Type getDistributionType(BQLBaseParser.DistributionContext context) {
@@ -401,21 +371,22 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
             case "CUMFREQ":
                 return CDF;
         }
-        throw new AssertionError("Unknown distribution type");
+        throw new ParsingException("Unknown distribution");
     }
 
-    private static ParsingException parseError(String message, ParserRuleContext context) {
-        return new ParsingException(message,
-                                    null,
-                                    context.getStart().getLine(),
-                                    context.getStart().getCharPositionInLine());
-    }
-
-    private double getSignedDouble(BQLBaseParser.SignedNumberContext context) {
-        double number = Double.parseDouble(context.number().getText());
-        if (context.operator != null && context.operator.getText().equals("-")) {
-            return -number;
+    private Number getSignedNumber(BQLBaseParser.NumberContext context) {
+        boolean negative = context.MINUS() != null;
+        String value = context.value.getText();
+        switch (context.value.getType()) {
+            case BQLBaseLexer.INTEGER_VALUE:
+                return negative ? -Integer.valueOf(value) : Integer.valueOf(value);
+            case BQLBaseLexer.LONG_VALUE:
+                return negative ? -Long.valueOf(value) : Long.valueOf(value);
+            case BQLBaseLexer.FLOAT_VALUE:
+                return negative ? -Float.valueOf(value) : Float.valueOf(value);
+            case BQLBaseLexer.DOUBLE_VALUE:
+                return negative ? -Double.valueOf(value) : Double.valueOf(value);
         }
-        return number;
+        throw new ParsingException("Not a number");
     }
 }

@@ -42,8 +42,7 @@ public class RegionDistributionNode extends DistributionNode {
 
     @Override
     public String attributesToString() {
-        return getDistributionType(type) + "(" + expression.toFormatlessString() + ", REGION, " +
-                start + ", " + end + ", " + increment + ")";
+        return getDistributionType(type) + "(" + expression.toFormatlessString() + ", REGION, " + start + ", " + end + ", " + increment + ")";
     }
 
     @Override

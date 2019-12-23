@@ -62,22 +62,19 @@ public class BQLParser {
     }
 
     /**
-     * Create a {@link QueryNode} which is a {@link Node} Tree from given BQL String and {@link ParsingOptions}.
+     * Create a {@link QueryNode} which is a {@link Node} Tree from given BQL String.
      *
      * @param bql            A BQL String.
-     * @param parsingOptions A {@link ParsingOptions} that defines how to treat decimal number.
      * @return A {@link QueryNode} which is a {@link Node} Tree.
      * @throws ParsingException              when statement is not valid.
      * @throws IllegalArgumentException      when statement argument is not valid.
      * @throws UnsupportedOperationException when statement operation is not valid.
-     * @throws NullPointerException          when parsingOptions is null.
-     * @throws AssertionError                when {@link ParsingOptions#decimalLiteralTreatment} is not valid.
      */
-    public QueryNode createQueryNode(String bql, ParsingOptions parsingOptions) {
-        return (QueryNode) invokeParser(bql, BQLBaseParser::query, parsingOptions);
+    public QueryNode createQueryNode(String bql) {
+        return (QueryNode) invokeParser(bql, BQLBaseParser::query);
     }
 
-    private Node invokeParser(String bql, Function<BQLBaseParser, ParserRuleContext> parseFunction, ParsingOptions parsingOptions) {
+    private Node invokeParser(String bql, Function<BQLBaseParser, ParserRuleContext> parseFunction) {
         try {
             BQLBaseLexer lexer = new BQLBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(bql)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -103,7 +100,7 @@ public class BQLParser {
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
                 tree = parseFunction.apply(parser);
             }
-            return new ASTBuilder(parsingOptions).visit(tree);
+            return new ASTBuilder().visit(tree);
         } catch (StackOverflowError e) {
             throw new ParsingException("Stack overflow while parsing.");
         }
