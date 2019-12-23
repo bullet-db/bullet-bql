@@ -35,7 +35,7 @@ public class BQLConfig extends BulletConfig {
      */
     public BQLConfig(Config config) {
         // Load default BQLConfig settings. Merge additional settings in Config.
-        super(DEFAULT_BQL_CONFIGURATION);
+        //super(DEFAULT_BQL_CONFIGURATION);
         merge(config);
         VALIDATOR.validate(this);
         log.info("Merged settings:\n {}", this);
