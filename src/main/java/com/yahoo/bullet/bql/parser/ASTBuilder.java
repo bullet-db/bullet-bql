@@ -211,7 +211,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return new ManualDistributionNode(type, expression, points);
             }
         }
-        throw new AssertionError("Unknown input mode");
+        throw new ParsingException("Unknown input mode");
     }
 
     @Override
@@ -250,6 +250,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new IdentifierNode(context.getText());
     }
 
+    @Override
+    public Node visitQuotedIdentifier(BQLBaseParser.QuotedIdentifierContext context) {
+        return new IdentifierNode(unquoteDouble(context.getText()));
+    }
+
     // ************** Literals **************
 
     @Override
@@ -269,7 +274,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitStringLiteral(BQLBaseParser.StringLiteralContext context) {
-        return new LiteralNode(unquote(context.getText()));
+        return new LiteralNode(unquoteSingle(context.getText()));
     }
 
     // ***************** Helpers *****************
@@ -302,8 +307,12 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                                 .collect(Collectors.toList());
     }
 
-    private static String unquote(String value) {
+    private static String unquoteSingle(String value) {
         return value.substring(1, value.length() - 1).replace("''", "'");
+    }
+
+    private static String unquoteDouble(String value) {
+        return value.substring(1, value.length() - 1).replace("\"\"", "\"");
     }
 
     private static String getTextIfPresent(Token token) {

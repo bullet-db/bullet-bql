@@ -127,6 +127,7 @@ topKConfig
 identifier
     : IDENTIFIER                                                                            #unquotedIdentifier
     | nonReserved                                                                           #unquotedIdentifier
+    | QUOTED_IDENTIFIER                                                                     #quotedIdentifier
     | DIGIT_IDENTIFIER                                                                      #digitIdentifier
     ;
 
@@ -233,14 +234,8 @@ CONCAT: '||';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
-    | '"' ( ~'"' | '""' )* '"'
+//  | '"' ( ~'"' | '""' )* '"'
     ;
-
-/*
-UNICODE_STRING
-    : 'U&\'' ( ~'\'' | '\'\'' )* '\''
-    ;
-*/
 
 INTEGER_VALUE
     : DIGIT+
@@ -269,10 +264,6 @@ DIGIT_IDENTIFIER
 
 QUOTED_IDENTIFIER
     : '"' ( ~'"' | '""' )* '"'
-    ;
-
-BACKQUOTED_IDENTIFIER
-    : '`' ( ~'`' | '``' )* '`'
     ;
 
 fragment EXPONENT
