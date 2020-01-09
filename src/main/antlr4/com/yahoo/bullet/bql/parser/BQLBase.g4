@@ -60,7 +60,7 @@ include
 
 expression
     : valueExpression                                                                       #value
-    | identifier                                                                            #field
+    | fieldExpression                                                                       #field
     | listExpression                                                                        #list
     | expression IS NULL                                                                    #nullPredicate
     | expression IS NOT NULL                                                                #nullPredicate
@@ -82,6 +82,14 @@ valueExpression
     | STRING                                                                                #stringLiteral
     ;
 
+fieldExpression
+    : identifier (AS fieldType)?
+    | identifier '[' index=INTEGER_VALUE ']' (AS fieldType)?
+    | identifier '[' index=INTEGER_VALUE ']' '[' subKey=STRING ']' (AS fieldType)?
+    | identifier '[' key=STRING ']' (AS fieldType)?
+    | identifier '[' key=STRING ']' '[' subKey=STRING ']' (AS fieldType)?
+    ;
+
 listExpression
     : '[' ']'
     | '[' expression (',' expression)* ']'
@@ -95,7 +103,7 @@ functionExpression
     : binaryFunction '(' left=expression ',' right=expression ')'                           #binary
     | op=(AND | OR | IF) '(' expression (',' expression)* ')'                               #nAry
     | aggregateExpression                                                                   #aggregate
-    | CAST '(' expression AS castType ')'                                                   #cast
+    | CAST '(' expression AS primitiveType ')'                                              #cast
     ;
 
 binaryFunction
@@ -139,7 +147,15 @@ booleanValue
     : TRUE | FALSE
     ;
 
-castType
+fieldType
+    : primitiveType
+    | outerType=LIST_TYPE '[' primitiveType ']'
+    | outerType=MAP_TYPE '[' primitiveType ']'
+    | complexOuterType=LIST_TYPE '[' MAP_TYPE '[' primitiveType ']' ']'
+    | complexOuterType=MAP_TYPE '[' MAP_TYPE '[' primitiveType ']' ']'
+    ;
+
+primitiveType
     : INTEGER_TYPE | LONG_TYPE | FLOAT_TYPE | DOUBLE_TYPE | BOOLEAN_TYPE | STRING_TYPE
     ;
 
@@ -214,6 +230,8 @@ FLOAT_TYPE: 'FLOAT';
 DOUBLE_TYPE: 'DOUBLE';
 BOOLEAN_TYPE: 'BOOLEAN';
 STRING_TYPE: 'STRING';
+LIST_TYPE: 'LIST';
+MAP_TYPE: 'MAP';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

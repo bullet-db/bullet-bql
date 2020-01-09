@@ -156,6 +156,17 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
+     * Visit an {@link FieldExpressionNode} with passed in context.
+     *
+     * @param node    A {@link FieldExpressionNode}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitFieldExpression(FieldExpressionNode node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
      * Visit a {@link ListExpressionNode} with passed in context.
      *
      * @param node    A {@link ListExpressionNode}.
@@ -196,7 +207,7 @@ public abstract class ASTVisitor<R, C> {
      * @return A {@link R}.
      */
     protected R visitNAryExpression(NAryExpressionNode node, C context) {
-        return visitNode(node, context);
+        return visitExpression(node, context);
     }
 
     /**

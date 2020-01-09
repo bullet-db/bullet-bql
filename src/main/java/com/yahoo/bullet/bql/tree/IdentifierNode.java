@@ -18,7 +18,6 @@ import java.util.Objects;
 public class IdentifierNode extends ExpressionNode {
     //private static final Pattern NAME_PATTERN = Pattern.compile("[a-zA-Z_]([a-zA-Z0-9_])*");
     private final String value;
-    //private final boolean delimited;
 
     /**
      * Constructor that requires a String.
@@ -27,8 +26,6 @@ public class IdentifierNode extends ExpressionNode {
      */
     public IdentifierNode(String value) {
         this.value = value;
-        //this.delimited = !NAME_PATTERN.matcher(value).matches();
-        //this.delimited = value.contains(".");
     }
 
     @Override

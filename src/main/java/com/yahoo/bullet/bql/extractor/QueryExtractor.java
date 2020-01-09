@@ -10,10 +10,10 @@ import com.yahoo.bullet.bql.classifier.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Computation;
+import com.yahoo.bullet.parsing.Culling;
 import com.yahoo.bullet.parsing.Having;
 import com.yahoo.bullet.parsing.OrderBy;
 import com.yahoo.bullet.parsing.PostAggregation;
-import com.yahoo.bullet.parsing.Projection;
 import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.parsing.Window;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.yahoo.bullet.bql.classifier.ProcessedQuery.QueryType;
@@ -34,6 +35,7 @@ public class QueryExtractor {
     private final AggregationExtractor aggregationExtractor = new AggregationExtractor();
     private final ProjectionExtractor projectionExtractor = new ProjectionExtractor();
     private final ComputationExtractor computationExtractor = new ComputationExtractor();
+    private final TransientFieldExtractor transientFieldExtractor = new TransientFieldExtractor();
     private final Long queryMaxDuration;
 
     /**
@@ -82,10 +84,7 @@ public class QueryExtractor {
     }
 
     private void extractProjection(ProcessedQuery processedQuery, Query query) {
-        Projection projection = projectionExtractor.extractProjection(processedQuery);
-        if (projection != null && !projection.getFields().isEmpty()) {
-            query.setProjection(projectionExtractor.extractProjection(processedQuery));
-        }
+        query.setProjection(projectionExtractor.extractProjection(processedQuery));
     }
 
     private void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
@@ -93,6 +92,7 @@ public class QueryExtractor {
         extractHaving(processedQuery, postAggregations);
         extractComputations(processedQuery, postAggregations);
         extractOrderBy(processedQuery, postAggregations);
+        extractTransientFields(processedQuery, postAggregations);
         if (!postAggregations.isEmpty()) {
             query.setPostAggregations(postAggregations);
         }
@@ -122,7 +122,6 @@ public class QueryExtractor {
         }
         List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {
             OrderBy.SortItem sortItem = new OrderBy.SortItem();
-            // TODO bug probably gotta make this an expression and not just a string........
             sortItem.setField(processedQuery.getAliasOrName(node.getExpression()));
             if (node.getOrdering() == SortItemNode.Ordering.DESCENDING) {
                 sortItem.setDirection(OrderBy.Direction.DESC);
@@ -132,6 +131,13 @@ public class QueryExtractor {
             return sortItem;
         }).collect(Collectors.toList());
         postAggregations.add(new OrderBy(fields));
+    }
+
+    private void extractTransientFields(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
+        Set<String> transientFields = transientFieldExtractor.extractTransientFields(processedQuery);
+        if (transientFields != null && !transientFields.isEmpty()) {
+            postAggregations.add(new Culling(transientFields));
+        }
     }
 
     private void extractWindow(ProcessedQuery processedQuery, Query query) {

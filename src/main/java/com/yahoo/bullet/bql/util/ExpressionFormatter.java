@@ -16,6 +16,7 @@ import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -79,6 +80,14 @@ public final class ExpressionFormatter {
         @Override
         protected String visitExpression(ExpressionNode node, Void context) throws UnsupportedOperationException {
             throw new UnsupportedOperationException(format("Not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+        }
+
+        @Override
+        protected String visitFieldExpression(FieldExpressionNode node, Void context) {
+            return process(node.getField()) +
+                    (node.getIndex() != null ? "[" + node.getIndex() + "]" : "") +
+                    (node.getKey() != null ? "['" + node.getKey() + "']" : "") +
+                    (node.getSubKey() != null ? "['" + node.getSubKey() + "']" : "");
         }
 
         @Override

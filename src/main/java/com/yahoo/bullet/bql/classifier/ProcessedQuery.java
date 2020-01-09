@@ -4,6 +4,7 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
@@ -153,5 +154,12 @@ public class ProcessedQuery {
     public boolean isGroupOrCountDistinct(ExpressionNode node) {
         return (node instanceof GroupOperationNode && groupOpNodes.contains(node)) ||
                (node instanceof CountDistinctNode && countDistinctNodes.contains(node));
+    }
+
+    public boolean isNotAliasReference(ExpressionNode node) {
+        if (!(node instanceof FieldExpressionNode)) {
+            return true;
+        }
+        return aliases.values().contains(((FieldExpressionNode) node).getField().getValue());
     }
 }

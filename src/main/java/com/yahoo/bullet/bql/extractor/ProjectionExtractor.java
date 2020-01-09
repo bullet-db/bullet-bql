@@ -12,6 +12,7 @@ import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
+import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.parsing.Projection;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ProjectionExtractor {
     private ProcessedQuery processedQuery;
@@ -31,7 +33,7 @@ public class ProjectionExtractor {
             case SELECT:
                 return extractSelect();
             case SELECT_ALL:
-                return null;
+                return extractSelectAll();
             case SELECT_DISTINCT:
                 return extractDistinct();
             case GROUP:
@@ -49,10 +51,22 @@ public class ProjectionExtractor {
     }
 
     private Projection extractSelect() {
-        List<Projection.Field> fields = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                .map(this::toAliasedField)
-                                                                                .collect(Collectors.toList());
+        List<Projection.Field> fields =
+                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(processedQuery::isNotAliasReference)
+                        .distinct()
+                        .map(this::toAliasedField)
+                        .collect(Collectors.toList());
         return new Projection(fields);
+    }
+
+    private Projection extractSelectAll() {
+        if (processedQuery.getSelectNodes().isEmpty()) {
+            return null;
+        }
+        // Perform a copy when there are additional fields selected
+        return new Projection();
     }
 
     private Projection extractDistinct() {
@@ -63,31 +77,36 @@ public class ProjectionExtractor {
     }
 
     private Projection extractGroup() {
-        // Project GROUP BY fields and aggregate inner expressions
+        // Project GROUP BY fields
         Set<ExpressionNode> requiredNodes = new HashSet<>(processedQuery.getGroupByNodes());
-        // Filter non-null for COUNT(*)
+
+        // Project aggregate inner expressions (need to filter for non-null because COUNT(*) does not have an inner expression)
         requiredNodes.addAll(processedQuery.getGroupOpNodes().stream().map(GroupOperationNode::getExpression).filter(Objects::nonNull).collect(Collectors.toSet()));
         List<Projection.Field> fields = requiredNodes.stream().map(this::toNonAliasedField).collect(Collectors.toList());
+
+        // Can be empty if SELECT COUNT(*) FROM STREAM();
+        if (fields.isEmpty()) {
+            return null;
+        }
+
         return new Projection(fields);
     }
 
     private Projection extractCountDistinct() {
-        // project count distinct inner expressions
+        // Project COUNT DISTINCT inner expressions
         CountDistinctNode countDistinct = processedQuery.getCountDistinct();
         List<Projection.Field> fields = countDistinct.getExpressions().stream().map(this::toNonAliasedField).collect(Collectors.toList());
         return new Projection(fields);
     }
 
     private Projection extractDistribution() {
-        // project distribution inner expression
+        // Project DISTRIBUTION inner expression
         DistributionNode distribution = processedQuery.getDistribution();
         List<Projection.Field> fields = Collections.singletonList(toNonAliasedField(distribution.getExpression()));
         return new Projection(fields);
     }
 
     private Projection extractTopK() {
-        // TODO Project only if there are non-field expressions
-
         // Project Top K inner expressions
         TopKNode topK = processedQuery.getTopK();
         List<Projection.Field> fields = topK.getExpressions().stream().map(this::toNonAliasedField).collect(Collectors.toList());
@@ -95,7 +114,7 @@ public class ProjectionExtractor {
     }
 
     private Projection extractSpecialK() {
-        // project group by fields
+        // Project GROUP BY fields
         List<Projection.Field> fields = processedQuery.getGroupByNodes().stream().map(this::toAliasedField).collect(Collectors.toList());
         return new Projection(fields);
     }

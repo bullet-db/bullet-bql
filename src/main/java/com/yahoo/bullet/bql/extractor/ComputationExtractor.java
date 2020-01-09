@@ -8,14 +8,16 @@ package com.yahoo.bullet.bql.extractor;
 import com.yahoo.bullet.bql.classifier.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
+import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Projection;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ComputationExtractor {
     private ProcessedQuery processedQuery;
@@ -26,7 +28,7 @@ public class ComputationExtractor {
             case SELECT:
                 return null;
             case SELECT_ALL:
-                return extractAll();
+                return extractSelectAll();
             case SELECT_DISTINCT:
                 return null;
             case GROUP:
@@ -48,20 +50,31 @@ public class ComputationExtractor {
         throw new ParsingException("Unsupported");
     }
 
-    private Computation extractAll() {
-        List<Projection.Field> fields = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                .map(this::toField)
-                                                                                .collect(Collectors.toList());
+    private Computation extractSelectAll() {
+        List<Projection.Field> fields =
+                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(ComputationExtractor::isNotFieldExpression)
+                        .distinct()
+                        .map(this::toField)
+                        .collect(Collectors.toList());
         return new Computation(new Projection(fields));
     }
 
     private Computation extractAggregate() {
-        List<Projection.Field> fields = processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                            .map(this::toField)
-                                                                                            .collect(Collectors.toList());
+        //List<Projection.Field> fields = processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
+        //                                                                                    .map(this::toField)
+        //                                                                                    .collect(Collectors.toList());
+        List<Projection.Field> fields =
+                Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(ComputationExtractor::isNotFieldExpression)
+                        .distinct()
+                        .map(this::toField)
+                        .collect(Collectors.toList());
         return new Computation(new Projection(fields));
     }
-
+/*
     private Computation extractGroup() {
         List<Projection.Field> fields = processedQuery.getSuperAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
                                                                                               .map(this::toField)
@@ -91,7 +104,7 @@ public class ComputationExtractor {
                                                                                 .collect(Collectors.toList());
         return new Computation(new Projection(fields));
     }
-
+*/
     private Computation extractSpecialK() {
         Set<ExpressionNode> computationNodes = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
         computationNodes.removeAll(processedQuery.getGroupByNodes());
@@ -102,5 +115,9 @@ public class ComputationExtractor {
 
     private Projection.Field toField(ExpressionNode node) {
         return new Projection.Field(processedQuery.getAliasOrName(node), processedQuery.getExpression(node));
+    }
+
+    private static boolean isNotFieldExpression(ExpressionNode node) {
+        return !(node instanceof FieldExpressionNode);
     }
 }

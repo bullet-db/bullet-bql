@@ -5,6 +5,7 @@ import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
@@ -153,6 +154,19 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     @Override
     protected ProcessedQuery visitExpression(ExpressionNode node, ProcessedQuery context) {
         throw new RuntimeException("This method should not be called.");
+    }
+
+    @Override
+    protected ProcessedQuery visitFieldExpression(FieldExpressionNode node, ProcessedQuery context) {
+        if (context.getExpressionNodes().containsKey(node)) {
+            return context;
+        }
+
+        FieldExpression expression = new FieldExpression(node.getField().getValue(), node.getIndex(), node.getKey(), node.getSubKey());
+
+        context.getExpressionNodes().put(node, expression);
+
+        return context;
     }
 
     @Override
@@ -379,20 +393,6 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         if (context.isAggregateOrSuperAggregate(node.getExpression())) {
             context.getSuperAggregateNodes().add(node);
         }
-
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitIdentifier(IdentifierNode node, ProcessedQuery context) {
-        if (context.getExpressionNodes().containsKey(node)) {
-            return context;
-        }
-
-        FieldExpression expression = new FieldExpression();
-        expression.setField(node.getValue());
-
-        context.getExpressionNodes().put(node, expression);
 
         return context;
     }

@@ -10,10 +10,11 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.yahoo.bullet.aggregations.Distribution.Type;
+import com.yahoo.bullet.aggregations.Distribution;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
@@ -39,6 +40,7 @@ import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.Window.Unit;
 import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.typesystem.Type;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -126,7 +128,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitField(BQLBaseParser.FieldContext context) {
-        return visit(context.identifier());
+        return visit(context.fieldExpression());
     }
 
     @Override
@@ -134,6 +136,16 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return visit(context.listExpression());
     }
 */
+    @Override
+    public Node visitFieldExpression(BQLBaseParser.FieldExpressionContext context) {
+        return new FieldExpressionNode((IdentifierNode) visit(context.identifier()),
+                                       context.index != null ? Integer.valueOf(context.index.getText()) : null,
+                                       getTextIfPresent(context.key),
+                                       getTextIfPresent(context.subKey),
+                                       getType(context.fieldType()),
+                                       getPrimitiveType(context.fieldType()));
+    }
+
     @Override
     public Node visitListExpression(BQLBaseParser.ListExpressionContext context) {
         return new ListExpressionNode(visit(context.expression(), ExpressionNode.class));
@@ -193,7 +205,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitDistribution(BQLBaseParser.DistributionContext context) {
-        Type type = getDistributionType(context);
+        Distribution.Type type = getDistributionType(context);
         ExpressionNode expression = (ExpressionNode) visit(context.expression());
         switch(context.inputMode().iMode.getType()) {
             case BQLBaseLexer.LINEAR: {
@@ -229,14 +241,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitCast(BQLBaseParser.CastContext context) {
         return new CastExpressionNode((ExpressionNode) visit(context.expression()),
-                                      context.castType().getText());
+                                      context.primitiveType().getText());
     }
 
     @Override
     public Node visitInfix(BQLBaseParser.InfixContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
-                                       (ExpressionNode) visit(context.right),
-                                       getOperation(context.op));
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op));
     }
 
     @Override
@@ -371,7 +383,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         throw new ParsingException("Unknown operation");
     }
 
-    private Type getDistributionType(BQLBaseParser.DistributionContext context) {
+    private Distribution.Type getDistributionType(BQLBaseParser.DistributionContext context) {
         switch (context.distributionType().getText().toUpperCase()) {
             case "QUANTILE":
                 return QUANTILE;
@@ -398,5 +410,30 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return negative ? -Double.valueOf(value) : Double.valueOf(value);
         }
         throw new ParsingException("Not a number");
+    }
+
+    private Type getType(BQLBaseParser.FieldTypeContext context) {
+        if (context.outerType != null) {
+            if (context.outerType.getType() == BQLBaseLexer.LIST_TYPE) {
+                return Type.LIST;
+            } else {
+                return Type.MAP;
+            }
+        }
+        if (context.complexOuterType != null) {
+            if (context.complexOuterType.getType() == BQLBaseLexer.LIST_TYPE) {
+                return Type.LISTOFMAP;
+            } else {
+                return Type.MAPOFMAP;
+            }
+        }
+        return Type.valueOf(context.primitiveType().getText().toUpperCase());
+    }
+
+    private Type getPrimitiveType(BQLBaseParser.FieldTypeContext context) {
+        if (context.outerType != null || context.complexOuterType != null) {
+            return Type.valueOf(context.primitiveType().getText().toUpperCase());
+        }
+        return null;
     }
 }
