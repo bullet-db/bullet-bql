@@ -11,8 +11,8 @@ import java.util.Objects;
 public class FieldExpressionNode extends ExpressionNode {
     private final IdentifierNode field;
     private final Integer index;
-    private final String key;
-    private final String subKey;
+    private final IdentifierNode key;
+    private final IdentifierNode subKey;
     private final Type type;
     private final Type primitiveType;
 
@@ -30,13 +30,11 @@ public class FieldExpressionNode extends ExpressionNode {
         return Objects.equals(field, other.field) &&
                Objects.equals(index, other.index) &&
                Objects.equals(key, other.key) &&
-               Objects.equals(subKey, other.subKey) &&
-               Objects.equals(type, other.type) &&
-               Objects.equals(primitiveType, other.primitiveType);
+               Objects.equals(subKey, other.subKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, index, key, subKey, type, primitiveType);
+        return Objects.hash(field, index, key, subKey);
     }
 }

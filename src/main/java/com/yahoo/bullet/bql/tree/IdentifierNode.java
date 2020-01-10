@@ -11,22 +11,15 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
+@RequiredArgsConstructor
 public class IdentifierNode extends ExpressionNode {
-    //private static final Pattern NAME_PATTERN = Pattern.compile("[a-zA-Z_]([a-zA-Z0-9_])*");
     private final String value;
-
-    /**
-     * Constructor that requires a String.
-     *
-     * @param value A String.
-     */
-    public IdentifierNode(String value) {
-        this.value = value;
-    }
+    private final boolean quoted;
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
@@ -35,11 +28,15 @@ public class IdentifierNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof IdentifierNode && Objects.equals(value, ((IdentifierNode) obj).value);
+        if (!(obj instanceof IdentifierNode)) {
+            return false;
+        }
+        IdentifierNode other = (IdentifierNode) obj;
+        return Objects.equals(value, other.value) && quoted == other.quoted;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(value);
+        return Objects.hash(value, quoted);
     }
 }

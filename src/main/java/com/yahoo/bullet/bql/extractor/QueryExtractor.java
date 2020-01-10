@@ -117,7 +117,7 @@ public class QueryExtractor {
     }
 
     private void extractOrderBy(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
-        if (processedQuery.getOrderByNodes().isEmpty()) {
+        if (processedQuery.getOrderByNodes().isEmpty() || processedQuery.getQueryType() == QueryType.SPECIAL_K) {
             return;
         }
         List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {

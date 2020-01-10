@@ -83,11 +83,11 @@ valueExpression
     ;
 
 fieldExpression
-    : identifier (AS fieldType)?
-    | identifier '[' index=INTEGER_VALUE ']' (AS fieldType)?
-    | identifier '[' index=INTEGER_VALUE ']' '[' subKey=STRING ']' (AS fieldType)?
-    | identifier '[' key=STRING ']' (AS fieldType)?
-    | identifier '[' key=STRING ']' '[' subKey=STRING ']' (AS fieldType)?
+    : field=identifier (':' fieldType)?
+    | field=identifier '[' index=INTEGER_VALUE ']' (':' fieldType)?
+    | field=identifier '[' index=INTEGER_VALUE ']' '.' subKey=identifier (':' fieldType)?
+    | field=identifier '.' key=identifier (':' fieldType)?
+    | field=identifier '.' key=identifier '.' subKey=identifier (':' fieldType)?
     ;
 
 listExpression
@@ -273,7 +273,7 @@ FLOAT_VALUE
     ;
 
 IDENTIFIER
-    : (LETTER | '_') ((NAME_LETTER | '.')* NAME_LETTER)?
+    : (LETTER | '_') NAME_LETTER*
     ;
 
 DIGIT_IDENTIFIER
@@ -297,7 +297,7 @@ fragment LETTER
     ;
 
 fragment NAME_LETTER
-    : LETTER | DIGIT | '_' | '@' | ':'
+    : LETTER | DIGIT | '_'
     ;
 
 WS

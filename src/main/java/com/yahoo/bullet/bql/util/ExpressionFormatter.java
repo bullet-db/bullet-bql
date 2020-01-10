@@ -17,6 +17,7 @@ import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
+import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -28,19 +29,22 @@ import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
+import com.yahoo.bullet.bql.tree.QueryNode;
+import com.yahoo.bullet.bql.tree.SelectItemNode;
+import com.yahoo.bullet.bql.tree.SelectNode;
+import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
+import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
+import com.yahoo.bullet.parsing.Window;
 import lombok.AllArgsConstructor;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
-
-import static java.lang.String.format;
 
 public final class ExpressionFormatter {
     private static final ThreadLocal<DecimalFormat> DOUBLE_FORMATTER = ThreadLocal.withInitial(
@@ -74,25 +78,113 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNode(Node node, Void context) throws UnsupportedOperationException {
-            throw new UnsupportedOperationException(format("Not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+            throw new UnsupportedOperationException(String.format("Not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
         }
 
         @Override
         protected String visitExpression(ExpressionNode node, Void context) throws UnsupportedOperationException {
-            throw new UnsupportedOperationException(format("Not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+            throw new UnsupportedOperationException(String.format("Not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+        }
+
+        @Override
+        protected String visitQuery(QueryNode node, Void context) {
+            StringBuilder builder = new StringBuilder();
+            builder.append(process(node.getSelect()))
+                   .append(" FROM ")
+                   .append(process(node.getStream()));
+            if (node.getWhere() != null) {
+                builder.append(" WHERE ")
+                       .append(process(node.getWhere()));
+            }
+            if (node.getGroupBy() != null) {
+                builder.append(" ")
+                       .append(process(node.getGroupBy()));
+            }
+            if (node.getHaving() != null) {
+                builder.append(" HAVING ")
+                       .append(process(node.getHaving()));
+            }
+            if (node.getOrderBy() != null) {
+                builder.append(" ")
+                       .append(process(node.getOrderBy()));
+            }
+            if (node.getWindow() != null) {
+                builder.append(" ")
+                       .append(process(node.getWindow()));
+            }
+            if (node.getLimit() != null) {
+                builder.append(" LIMIT ")
+                       .append(node.getLimit());
+            }
+            return builder.toString();
+        }
+
+        @Override
+        protected String visitSelect(SelectNode node, Void context) {
+            return "SELECT " + join(node.getSelectItems());
+        }
+
+        @Override
+        protected String visitSelectItem(SelectItemNode node, Void context) {
+            if (node.isAll()) {
+                return "*";
+            }
+            return process(node.getExpression()) + (node.getAlias() != null ? " AS " + process(node.getAlias()) : "");
+        }
+
+        @Override
+        protected String visitStream(StreamNode node, Void context) {
+            if (node.getTimeDuration() == null) {
+                return "STREAM()";
+            }
+            if (node.getRecordDuration() == null) {
+                return "STREAM(" + node.getTimeDuration() + ", TIME)";
+            }
+            return "STREAM(" + node.getTimeDuration() + ", TIME, " + node.getRecordDuration() + ", RECORD)";
+        }
+
+        @Override
+        protected String visitGroupBy(GroupByNode node, Void context) {
+            return "GROUP BY " + join(node.getExpressions());
+        }
+
+        @Override
+        protected String visitOrderBy(OrderByNode node, Void context) {
+            return "ORDER BY " + join(node.getSortItems());
+        }
+
+        @Override
+        protected String visitSortItem(SortItemNode node, Void context) {
+            return process(node.getExpression()) + " " + (node.getOrdering() == SortItemNode.Ordering.DESCENDING ? "DESC" : "ASC");
+        }
+
+        @Override
+        protected String visitWindow(WindowNode node, Void context) {
+            if (node.getWindowInclude() != null) {
+                return "WINDOWING EVERY(" + node.getEmitEvery() + ", " + node.getEmitType() + ", " + process(node.getWindowInclude()) + ")";
+            }
+            return "WINDOWING TUMBLING(" + node.getEmitEvery() + ", " + node.getEmitType() + ")";
+        }
+
+        @Override
+        protected String visitWindowInclude(WindowIncludeNode node, Void context) {
+            if (node.getUnit() == Window.Unit.ALL) {
+                return node.getUnit().toString();
+            }
+            return "FIRST, " + node.getNumber() + ", " + node.getUnit();
         }
 
         @Override
         protected String visitFieldExpression(FieldExpressionNode node, Void context) {
             return process(node.getField()) +
-                    (node.getIndex() != null ? "[" + node.getIndex() + "]" : "") +
-                    (node.getKey() != null ? "['" + node.getKey() + "']" : "") +
-                    (node.getSubKey() != null ? "['" + node.getSubKey() + "']" : "");
+                   (node.getIndex() != null ? "[" + node.getIndex() + "]" : "") +
+                   (node.getKey() != null ? "." + process(node.getKey()) : "") +
+                   (node.getSubKey() != null ? "." + process(node.getSubKey()) : "");
         }
 
         @Override
         protected String visitListExpression(ListExpressionNode node, Void context) {
-            return "[" + joinExpressions(node.getExpressions()) + "]";
+            return "[" + join(node.getExpressions()) + "]";
         }
 
         @Override
@@ -107,7 +199,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNAryExpression(NAryExpressionNode node, Void context) {
-            return node.getOp().getName() + "(" + joinExpressions(node.getExpressions()) + ")";
+            return node.getOp().getName() + "(" + join(node.getExpressions()) + ")";
         }
 
         @Override
@@ -120,7 +212,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitCountDistinct(CountDistinctNode node, Void context) {
-            return "COUNT(DISTINCT " + joinExpressions(node.getExpressions()) + ")";
+            return "COUNT(DISTINCT " + join(node.getExpressions()) + ")";
         }
 
         @Override
@@ -138,7 +230,7 @@ public final class ExpressionFormatter {
                 builder.append(node.getThreshold())
                        .append(", ");
             }
-            builder.append(joinExpressions(node.getExpressions()))
+            builder.append(join(node.getExpressions()))
                    .append(")");
             return builder.toString();
         }
@@ -163,6 +255,9 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitIdentifier(IdentifierNode node, Void context) {
+            if (withFormat && node.isQuoted()) {
+                return "\"" + node.getValue() + "\"";
+            }
             return node.getValue();
         }
 
@@ -182,187 +277,8 @@ public final class ExpressionFormatter {
             return value.toString();
         }
 
-        /*
-        @Override
-        protected String visitOrderBy(OrderByNode node, Void context) {
-            return "ORDER BY " +
-                    format("%s", Joiner.on(", ").join(node.getSortItems().stream().map(sortItem ->
-                            sortItem.getSortKey().toFormatlessString() + (sortItem.getOrdering() == SortItemNode.Ordering.DESCENDING ? " DESC" : " ASC")
-                        ).collect(Collectors.toList())));
-        }
-
-        @Override
-        protected String visitStream(StreamNode node, Void context) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("STREAM(")
-                    .append(node.getTimeDuration().get())
-                    .append(" , TIME");
-
-            if (node.getRecordDuration().isPresent()) {
-                builder.append(", ")
-                        .append(node.getRecordDuration().get())
-                        .append(", RECORD");
-            }
-
-            builder.append(")");
-
-            return builder.toString();
-        }
-
-        @Override
-        protected String visitWindow(WindowNode node, Void context) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("WINDOWING(EVERY, ")
-                    .append(node.getEmitEvery())
-                    .append(", ")
-                    .append(node.getEmitType().name())
-                    .append(", ")
-                    .append(process(node.getInclude(), context))
-                    .append(")");
-            return builder.toString();
-        }
-
-        @Override
-        protected String visitWindowInclude(WindowIncludeNode node, Void context) {
-            StringBuilder builder = new StringBuilder();
-            Unit unit = node.getUnit();
-            if (unit == ALL) {
-                builder.append(unit);
-            } else {
-                builder.append(node.getType().get().name())
-                        .append(", ")
-                        .append(node.getNumber().get())
-                        .append(", ")
-                        .append(unit);
-            }
-
-            return builder.toString();
-        }
-
-        @Override
-        protected String visitFunctionCall(FunctionCall node, Void context) {
-            StringBuilder builder = new StringBuilder();
-
-            String arguments = joinExpressions(node.getArguments());
-            if (node.getArguments().isEmpty()) {
-                arguments = "*";
-            }
-            if (node.isDistinct()) {
-                arguments = "DISTINCT " + arguments;
-            }
-
-            builder.append(node.getType())
-                    .append('(').append(arguments);
-
-            builder.append(')');
-
-            return builder.toString();
-        }
-
-        @Override
-        protected String visitLogicalBinaryExpression(LogicalBinaryExpression node, Void context) {
-            return formatBinaryExpression(node.getOperation().toString(), node.getLeft(), node.getRight());
-        }
-
-        @Override
-        protected String visitNotExpression(NotExpression node, Void context) {
-            return "(NOT " + process(node.getValue(), context) + ")";
-        }
-
-        @Override
-        protected String visitComparisonExpression(ComparisonExpression node, Void context) {
-            String operation = null;
-            switch (node.getOperation()) {
-                case EQUALS:
-                    operation = "=";
-                    break;
-                case NOT_EQUALS:
-                    operation = "!=";
-                    break;
-                case LESS_THAN:
-                    operation = "<";
-                    break;
-                case LESS_EQUALS:
-                    operation = "<=";
-                    break;
-                case GREATER_THAN:
-                    operation = ">";
-                    break;
-                case GREATER_EQUALS:
-                    operation = ">=";
-                    break;
-            }
-
-            if (node.isDistinctFrom()) {
-                operation = "IS DISTINCT FROM";
-            }
-            return formatBinaryExpression(operation, node.getLeft(), node.getRight());
-        }
-
-        @Override
-        protected String visitIsNullPredicate(IsNullPredicate node, Void context) {
-            return "(" + process(node.getValue(), context) + " IS NULL)";
-        }
-
-        @Override
-        protected String visitIsNotNullPredicate(IsNotNullPredicate node, Void context) {
-            return "(" + process(node.getValue(), context) + " IS NOT NULL)";
-        }
-
-        @Override
-        protected String visitArithmeticUnary(ArithmeticUnaryExpression node, Void context) {
-            String value = process(node.getValue(), context);
-            if (node.getSign() == MINUS) {
-                return "-" + value;
-            } else {
-                return "+" + value;
-            }
-        }
-
-        @Override
-        protected String visitLikePredicate(LikePredicate node, Void context) {
-            return "(" + process(node.getValue(), context) + " LIKE " + process(node.getPatterns(), context) + ")";
-        }
-
-        @Override
-        protected String visitBetweenPredicate(BetweenPredicate node, Void context) {
-            return "(" + process(node.getValue(), context) + " BETWEEN " +
-                    process(node.getMin(), context) + " AND " + process(node.getMax(), context) + ")";
-        }
-
-        @Override
-        protected String visitInPredicate(InPredicate node, Void context) {
-            return "(" + process(node.getValue(), context) + " IN " + process(node.getValueList(), context) + ")";
-        }
-
-        @Override
-        protected String visitContainsPredicate(ContainsPredicate node, Void context) {
-            String op = null;
-            switch (node.getOperation()) {
-                case CONTAINS_KEY:
-                    op = "CONTAINSKEY";
-                    break;
-                case CONTAINS_VALUE:
-                    op = "CONTAINSVALUE";
-                    break;
-            }
-            return "(" + process(node.getValue(), context) + " " + op + " " + process(node.getValueList(), context) + ")";
-        }
-
-        @Override
-        protected String visitReferenceWithFunction(ReferenceWithFunction node, Void context) {
-            String op = null;
-            switch (node.getOperation()) {
-                case SIZE_IS:
-                    op = "SIZEOF";
-                    break;
-            }
-            return op + "(" + process(node.getValue(), context) + ")";
-        }
-        */
-
-        private String joinExpressions(List<ExpressionNode> expressions) {
-            return Joiner.on(", ").join(expressions.stream().map(this::process).iterator());
+        private String join(List list) {
+            return Joiner.on(", ").join(list.stream().map(node -> process((Node) node)).iterator());
         }
     }
 
@@ -391,6 +307,10 @@ public final class ExpressionFormatter {
         return Joiner.on(", ").join(resultStrings.build());
     }
     */
+    public static String format(Node node) {
+        return new Formatter(true).process(node);
+    }
+
     static String formatStream(StreamNode node) {
         return new Formatter(true).process(node);
     }
@@ -403,7 +323,7 @@ public final class ExpressionFormatter {
         return new Formatter(true).process(node);
     }
 
-    private static String formatGroupingSet(Set<ExpressionNode> groupingSet) {
-        return format("(%s)", Joiner.on(", ").join(groupingSet.stream().map(ExpressionFormatter::formatExpression).iterator()));
-    }
+    //private static String formatGroupingSet(Set<ExpressionNode> groupingSet) {
+    //    return format("(%s)", Joiner.on(", ").join(groupingSet.stream().map(ExpressionFormatter::formatExpression).iterator()));
+    //}
 }

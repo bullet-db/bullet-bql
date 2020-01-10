@@ -1,20 +1,24 @@
 package com.yahoo.bullet.bql.classifier;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
+import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.parsing.Window;
 import com.yahoo.bullet.parsing.expressions.Expression;
+import com.yahoo.bullet.parsing.expressions.FieldExpression;
+import com.yahoo.bullet.parsing.expressions.Operation;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 
 @Getter @Setter
 public class ProcessedQuery {
@@ -94,12 +100,54 @@ public class ProcessedQuery {
         if (recordDuration != null) {
             throw new ParsingException("STREAM does not currently support record duration.");
         }
-        // TODO not sure about restriction on HAVING clause
         QueryType queryType = getQueryType();
         if (havingNode != null && queryType != QueryType.GROUP) {
-            throw new ParsingException("HAVING clause only supported for queries with group by operations.");
+            throw new ParsingException("HAVING clause is only supported for queries with group by operations.");
         }
+        if (queryType == QueryType.TOP_K || queryType == QueryType.COUNT_DISTINCT) {
+            if (!orderByNodes.isEmpty()) {
+                throw new ParsingException("ORDER BY clause is not supported for queries with top k or count distinct.");
+            }
+            if (limit != null) {
+                throw new ParsingException("LIMIT clause is not supported for queries with top k or count distinct.");
+            }
+        }
+        setIfSpecialK();
         return this;
+    }
+
+    private void setIfSpecialK() {
+        if (getQueryType() != QueryType.GROUP || groupByNodes.isEmpty() || groupOpNodes.size() != 1 || orderByNodes.size() != 1 || limit == null) {
+            return;
+        }
+        GroupOperationNode groupOperationNode = groupOpNodes.iterator().next();
+        if (groupOperationNode.getOp() != COUNT) {
+            return;
+        }
+        Set<ExpressionNode> selectExpressions = selectNodes.stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
+        if (!selectExpressions.contains(groupOperationNode) || !selectExpressions.containsAll(groupByNodes)) {
+            return;
+        }
+        // Compare by expression since both should point to the same field expression
+        Expression groupOperationExpression = getExpression(groupOperationNode);
+        SortItemNode sortItemNode = orderByNodes.get(0);
+        if (!getExpression(sortItemNode.getExpression()).equals(groupOperationExpression) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
+            return;
+        }
+        if (havingNode != null) {
+            // Check if HAVING has the form: count(*) >= number
+            if (!(havingNode instanceof BinaryExpressionNode)) {
+                return;
+            }
+            BinaryExpressionNode having = (BinaryExpressionNode) havingNode;
+            if (!getExpression(having.getLeft()).equals(groupOperationExpression) ||
+                having.getOp() != Operation.GREATER_THAN_OR_EQUALS ||
+                !(having.getRight() instanceof LiteralNode) ||
+                !(((LiteralNode) having.getRight()).getValue() instanceof Number)) {
+                return;
+            }
+        }
+        queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
     }
 
     public QueryType getQueryType() {
@@ -156,10 +204,36 @@ public class ProcessedQuery {
                (node instanceof CountDistinctNode && countDistinctNodes.contains(node));
     }
 
-    public boolean isNotAliasReference(ExpressionNode node) {
-        if (!(node instanceof FieldExpressionNode)) {
+    public boolean isSimpleFieldExpression(ExpressionNode node) {
+        Expression expression = expressionNodes.get(node);
+        if (!(expression instanceof FieldExpression)) {
+            return false;
+        }
+        FieldExpression fieldExpression = (FieldExpression) expression;
+        return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
+    }
+
+    public boolean isNotSimpleFieldExpression(ExpressionNode node) {
+        Expression expression = expressionNodes.get(node);
+        if (!(expression instanceof FieldExpression)) {
             return true;
         }
-        return aliases.values().contains(((FieldExpressionNode) node).getField().getValue());
+        FieldExpression fieldExpression = (FieldExpression) expression;
+        return fieldExpression.getIndex() != null || fieldExpression.getKey() != null;
+    }
+
+    public boolean isNotFieldExpression(ExpressionNode node) {
+        return !(expressionNodes.get(node) instanceof FieldExpression);
+    }
+
+    public boolean isNotAliasFieldExpression(ExpressionNode node) {
+        Expression expression = expressionNodes.get(node);
+        if (!(expression instanceof FieldExpression)) {
+            return true;
+        }
+        FieldExpression fieldExpression = (FieldExpression) expression;
+        return fieldExpression.getIndex() != null ||
+               fieldExpression.getKey() != null ||
+               !aliases.values().contains(fieldExpression.getField());
     }
 }

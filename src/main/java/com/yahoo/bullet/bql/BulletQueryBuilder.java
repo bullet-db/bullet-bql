@@ -9,19 +9,18 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.yahoo.bullet.bql.classifier.ProcessedQuery;
 import com.yahoo.bullet.bql.classifier.QueryProcessor;
-import com.yahoo.bullet.bql.classifier.QueryClassifier;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.tree.QueryNode;
+import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
 
 import static java.util.Objects.requireNonNull;
 
 public class BulletQueryBuilder {
-    private static final Gson GSON = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
+    private static final Gson GSON = new GsonBuilder().create();
     private final QueryProcessor queryProcessor = new QueryProcessor();
-    private final QueryClassifier queryClassifier = new QueryClassifier();
     private final BQLParser bqlParser;
     private final QueryExtractor queryExtractor;
 
@@ -48,12 +47,11 @@ public class BulletQueryBuilder {
         // Parse BQL to node tree.
         QueryNode queryNode = bqlParser.createQueryNode(bql);
 
+        // TODO debugging
+        System.out.println(ExpressionFormatter.format(queryNode));
+
         // Process the query node into query components and validate components
         ProcessedQuery processedQuery = queryProcessor.process(queryNode);
-
-        // TODO probably just push this to query processing/validating
-        // Classify the query
-        queryClassifier.classifyQuery(processedQuery);
 
         // Build the query
         return queryExtractor.extractQuery(processedQuery);

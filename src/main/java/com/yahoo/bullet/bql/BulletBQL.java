@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql;
 
+import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,11 @@ public class BulletBQL {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             try {
-                Query query = BULLET_QUERY_BUILDER.buildQuery(reader.readLine());
+                String line = reader.readLine();
+                if (line.isEmpty()) {
+                    return;
+                }
+                Query query = BULLET_QUERY_BUILDER.buildQuery(line);
                 query.configure(new BulletConfig());
                 System.out.println(BULLET_QUERY_BUILDER.toJson(query));
                 System.out.println(query.initialize());

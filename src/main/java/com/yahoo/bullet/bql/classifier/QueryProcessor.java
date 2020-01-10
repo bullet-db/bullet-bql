@@ -27,6 +27,7 @@ import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.expressions.BinaryExpression;
+import com.yahoo.bullet.parsing.expressions.CastExpression;
 import com.yahoo.bullet.parsing.expressions.Expression;
 import com.yahoo.bullet.parsing.expressions.FieldExpression;
 import com.yahoo.bullet.parsing.expressions.ListExpression;
@@ -162,7 +163,12 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
             return context;
         }
 
-        FieldExpression expression = new FieldExpression(node.getField().getValue(), node.getIndex(), node.getKey(), node.getSubKey());
+        FieldExpression expression = new FieldExpression(node.getField().getValue(),
+                                                         node.getIndex(),
+                                                         node.getKey() != null ? node.getKey().getValue() : null,
+                                                         node.getSubKey() != null ? node.getSubKey().getValue() : null,
+                                                         node.getType(),
+                                                         node.getPrimitiveType());
 
         context.getExpressionNodes().put(node, expression);
 
@@ -342,8 +348,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         }
         super.visitCastExpression(node, context);
 
-        Expression expression = context.getExpression(node.getExpression());
-        expression.setType(node.getCastType());
+        CastExpression expression = new CastExpression(context.getExpression(node.getExpression()), node.getCastType());
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().add(node.getExpression());
@@ -362,10 +367,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         }
         super.visitBinaryExpression(node, context);
 
-        BinaryExpression expression = new BinaryExpression();
-        expression.setLeft(context.getExpression(node.getLeft()));
-        expression.setRight(context.getExpression(node.getRight()));
-        expression.setOp(node.getOp());
+        BinaryExpression expression = new BinaryExpression(context.getExpression(node.getLeft()),
+                                                           context.getExpression(node.getRight()),
+                                                           node.getOp());
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().add(node.getLeft());

@@ -2,8 +2,6 @@ package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.classifier.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
-import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 
@@ -45,7 +43,7 @@ public class TransientFieldExtractor {
 
     private Set<String> extractSelectAll() {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
-                                                                             .filter(TransientFieldExtractor::isNotFieldExpression)
+                                                                             .filter(processedQuery::isNotFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
         orderByFields.removeAll(getSelectFields());
@@ -54,9 +52,9 @@ public class TransientFieldExtractor {
 
     private Set<String> extractAggregateValue() {
         Set<String> transientFields =
-                Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(), processedQuery.getAggregateNodes().stream()),
+                Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(),
+                                            processedQuery.getAggregateNodes().stream()),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .filter(TransientFieldExtractor::isNotFieldExpression)
                         .map(processedQuery::getAliasOrName)
                         .collect(Collectors.toSet());
         transientFields.removeAll(getSelectFields());
@@ -66,7 +64,6 @@ public class TransientFieldExtractor {
     private Set<String> extractAggregateNonValue() {
         // TODO same as extractSelectAll()
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
-                                                                             .filter(TransientFieldExtractor::isNotFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
         orderByFields.removeAll(getSelectFields());
@@ -77,9 +74,5 @@ public class TransientFieldExtractor {
         return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                        .map(processedQuery::getAliasOrName)
                                                        .collect(Collectors.toSet());
-    }
-
-    private static boolean isNotFieldExpression(ExpressionNode node) {
-        return !(node instanceof FieldExpressionNode);
     }
 }

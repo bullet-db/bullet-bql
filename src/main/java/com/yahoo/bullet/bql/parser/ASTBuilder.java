@@ -138,10 +138,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 */
     @Override
     public Node visitFieldExpression(BQLBaseParser.FieldExpressionContext context) {
-        return new FieldExpressionNode((IdentifierNode) visit(context.identifier()),
+        return new FieldExpressionNode((IdentifierNode) visit(context.field),
                                        context.index != null ? Integer.valueOf(context.index.getText()) : null,
-                                       getTextIfPresent(context.key),
-                                       getTextIfPresent(context.subKey),
+                                       (IdentifierNode) visitIfPresent(context.key),
+                                       (IdentifierNode) visitIfPresent(context.subKey),
                                        getType(context.fieldType()),
                                        getPrimitiveType(context.fieldType()));
     }
@@ -259,12 +259,12 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) {
-        return new IdentifierNode(context.getText());
+        return new IdentifierNode(context.getText(), false);
     }
 
     @Override
     public Node visitQuotedIdentifier(BQLBaseParser.QuotedIdentifierContext context) {
-        return new IdentifierNode(unquoteDouble(context.getText()));
+        return new IdentifierNode(unquoteDouble(context.getText()), true);
     }
 
     // ************** Literals **************
@@ -413,6 +413,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     private Type getType(BQLBaseParser.FieldTypeContext context) {
+        if (context == null) {
+            return null;
+        }
         if (context.outerType != null) {
             if (context.outerType.getType() == BQLBaseLexer.LIST_TYPE) {
                 return Type.LIST;
@@ -431,6 +434,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     private Type getPrimitiveType(BQLBaseParser.FieldTypeContext context) {
+        if (context == null) {
+            return null;
+        }
         if (context.outerType != null || context.complexOuterType != null) {
             return Type.valueOf(context.primitiveType().getText().toUpperCase());
         }

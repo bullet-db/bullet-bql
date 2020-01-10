@@ -54,7 +54,7 @@ public class ComputationExtractor {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .filter(ComputationExtractor::isNotFieldExpression)
+                        .filter(processedQuery::isNotFieldExpression)
                         .distinct()
                         .map(this::toField)
                         .collect(Collectors.toList());
@@ -68,7 +68,7 @@ public class ComputationExtractor {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .filter(ComputationExtractor::isNotFieldExpression)
+                        .filter(processedQuery::isNotFieldExpression)
                         .distinct()
                         .map(this::toField)
                         .collect(Collectors.toList());
@@ -115,9 +115,5 @@ public class ComputationExtractor {
 
     private Projection.Field toField(ExpressionNode node) {
         return new Projection.Field(processedQuery.getAliasOrName(node), processedQuery.getExpression(node));
-    }
-
-    private static boolean isNotFieldExpression(ExpressionNode node) {
-        return !(node instanceof FieldExpressionNode);
     }
 }

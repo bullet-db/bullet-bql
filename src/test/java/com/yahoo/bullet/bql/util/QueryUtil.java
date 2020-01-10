@@ -11,39 +11,18 @@
 package com.yahoo.bullet.bql.util;
 
 import com.google.common.collect.ImmutableList;
-import com.yahoo.bullet.bql.tree.DoubleLiteralNode;
-import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
-import com.yahoo.bullet.bql.tree.LinearDistributionNode;
-import com.yahoo.bullet.bql.tree.ManualDistributionNode;
-import com.yahoo.bullet.bql.tree.OrderByNode;
-import com.yahoo.bullet.bql.tree.RegionDistributionNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
-import com.yahoo.bullet.bql.tree.SortItemNode;
-import com.yahoo.bullet.bql.tree.StreamNode;
-import com.yahoo.bullet.bql.tree.TopKNode;
-import com.yahoo.bullet.bql.tree.ListExpressionNode;
-import com.yahoo.bullet.bql.tree.WindowIncludeNode;
-import com.yahoo.bullet.bql.tree.WindowNode;
 
 import java.util.List;
-import java.util.Optional;
-
-import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
-import static com.yahoo.bullet.bql.tree.SortItemNode.Ordering.ASCENDING;
-import static com.yahoo.bullet.parsing.Window.Unit.TIME;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 
 public final class QueryUtil {
     private QueryUtil() {
     }
 
     public static IdentifierNode identifier(String name) {
-        return new IdentifierNode(name);
+        return new IdentifierNode(name, true);
     }
 
     /*public static IdentifierNode quotedIdentifier(String name) {

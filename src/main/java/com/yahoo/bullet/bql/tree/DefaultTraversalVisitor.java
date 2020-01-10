@@ -34,7 +34,6 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     @Override
     protected R visitSelectItem(SelectItemNode node, C context) {
         process(node.getExpression(), context);
-        process(node.getAlias(), context);
         return null;
     }
 
