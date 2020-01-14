@@ -44,12 +44,14 @@ public class ManualDistributionNode extends DistributionNode {
 
     @Override
     public String attributesToString() {
-        return getDistributionType(type) + "(" + expression.toFormatlessString() + ", MANUAL, " +
-                points.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
+        return getDistributionType() + "(" + expression.getName() + ", MANUAL, " + points.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
     }
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof ManualDistributionNode)) {
             return false;
         }

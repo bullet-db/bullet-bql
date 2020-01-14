@@ -5,47 +5,43 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.google.common.collect.ImmutableList;
+import com.yahoo.bullet.aggregations.Distribution;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.List;
+import java.util.Collections;
+import java.util.Map;
 
-import static com.yahoo.bullet.aggregations.Distribution.Type.PMF;
-import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static java.util.Collections.singletonList;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
 
-public class ManualDistributionNodeTest {
-    private ManualDistributionNode distribution;
-    private List<ExpressionNode> columns;
-    private List<Double> points;
+public class ManualDistributionNodeTest extends ExpressionNodeTest {
+    private ManualDistributionNode node;
 
-    /*@BeforeClass
-    public void setUp() {
-        columns = singletonList(identifier("aaa"));
-        points = ImmutableList.of(0.5, 1.0);
-        distribution = new ManualDistributionNode(columns, QUANTILE, points);
+    @BeforeClass
+    public void setup() {
+        node = new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), Collections.singletonList(5.0));
     }
 
     @Test
-    public void testEquals() {
-        ManualDistributionNode copy = distribution;
-        assertTrue(distribution.equals(copy));
-        assertFalse(distribution.equals(null));
-        assertFalse(distribution.equals(columns));
+    public void testEqualsAndHashCode() {
+        testEqualsAndHashCode(() -> new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), Collections.singletonList(5.0)),
+                              new ManualDistributionNode(Distribution.Type.PMF, identifier("abc"), Collections.singletonList(5.0)),
+                              new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("def"), Collections.singletonList(5.0)),
+                              new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), Collections.singletonList(10.0)));
 
-        List<ExpressionNode> diffColumns = singletonList(identifier("bbb"));
-        ManualDistributionNode distributionDiffColumns = new ManualDistributionNode(diffColumns, QUANTILE, points);
-        assertFalse(distribution.equals(distributionDiffColumns));
+    }
 
-        ManualDistributionNode distributionDiffType = new ManualDistributionNode(columns, PMF, points);
-        assertFalse(distribution.equals(distributionDiffType));
+    @Test
+    public void testGetAttributes() {
+        Map<String, Object> attributes = node.getAttributes();
+        Assert.assertEquals(attributes.size(), 2);
+        Assert.assertEquals(attributes.get(Distribution.TYPE), Distribution.Type.QUANTILE);
+        Assert.assertEquals(attributes.get(Distribution.POINTS), Collections.singletonList(5.0));
+    }
 
-        List<Double> diffPoints = ImmutableList.of(0.4, 0.8);
-        ManualDistributionNode distributionDiffPoints = new ManualDistributionNode(columns, QUANTILE, diffPoints);
-        assertFalse(distribution.equals(distributionDiffPoints));
-    }*/
+    @Test
+    public void testAttributesToString() {
+        Assert.assertEquals(node.attributesToString(), "QUANTILE(abc, MANUAL, 5.0)");
+    }
 }

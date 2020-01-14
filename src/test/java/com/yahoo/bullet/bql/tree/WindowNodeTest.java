@@ -5,31 +5,11 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import org.testng.annotations.Test;
+
 public class WindowNodeTest {
-    private WindowIncludeNode windowInclude;
-    private WindowNode windowing;
-
-    /*@BeforeClass
-    public void setUp() {
-        windowInclude = simpleWindowInclude();
-        windowing = new WindowNode((long) 10, TIME, windowInclude);
-    }
-
     @Test
-    public void testGetChildren() {
-        assertEquals(windowing.getChildren(), emptyList());
+    public void testToString() {
+        // TODO ?
     }
-
-    @Test
-    public void testEquals() {
-        assertFalse(windowing.equals(null));
-        assertFalse(windowing.equals(windowInclude));
-
-        WindowIncludeNode diffWindowInclude = new WindowIncludeNode(TIME, Optional.of(FIRST), Optional.of((long) 100));
-        WindowNode windowingDiffWindowInclude = new WindowNode((long) 10, TIME, diffWindowInclude);
-        assertFalse(windowing.equals(windowingDiffWindowInclude));
-
-        WindowNode windowingDiffType = new WindowNode((long) 10, RECORD, windowInclude);
-        assertFalse(windowing.equals(windowingDiffType));
-    }*/
 }

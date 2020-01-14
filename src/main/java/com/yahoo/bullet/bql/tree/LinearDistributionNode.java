@@ -34,11 +34,14 @@ public class LinearDistributionNode extends DistributionNode {
 
     @Override
     public String attributesToString() {
-        return getDistributionType(type) + "(" + expression.toFormatlessString() + ", LINEAR, " + numberOfPoints + ")";
+        return getDistributionType() + "(" + expression.getName() + ", LINEAR, " + numberOfPoints + ")";
     }
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof LinearDistributionNode)) {
             return false;
         }

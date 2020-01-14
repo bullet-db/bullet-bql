@@ -5,28 +5,13 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-public class IdentifierNodeTest {
-    private IdentifierNode identifier;
+import org.testng.annotations.Test;
 
-    /*@BeforeClass
-    public void setUp() {
-        identifier = new IdentifierNode("aaa", true);
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "\\Qvalue contains illegal characters\\E.*")
-    public void testInvalidName() {
-        new IdentifierNode("!23aa", false);
-    }
-
+public class IdentifierNodeTest extends ExpressionNodeTest {
     @Test
-    public void testGetChildren() {
-        List<Node> expected = emptyList();
-        assertEquals(identifier.getChildren(), expected);
+    public void testEqualsAndHashCode() {
+        testEqualsAndHashCode(() -> new IdentifierNode("abc", true),
+                              new IdentifierNode("def", true),
+                              new IdentifierNode("abc", false));
     }
-
-    @Test
-    public void testEquals() {
-        assertFalse(identifier.equals(null));
-        assertFalse(identifier.equals(simpleInPredicate()));
-    }*/
 }

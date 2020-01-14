@@ -7,8 +7,8 @@ package com.yahoo.bullet.bql;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.yahoo.bullet.bql.classifier.ProcessedQuery;
-import com.yahoo.bullet.bql.classifier.QueryProcessor;
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
+import com.yahoo.bullet.bql.processor.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.tree.QueryNode;

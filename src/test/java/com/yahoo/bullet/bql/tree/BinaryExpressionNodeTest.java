@@ -5,57 +5,17 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.google.common.collect.ImmutableList;
-import org.testng.annotations.BeforeClass;
+import com.yahoo.bullet.parsing.expressions.Operation;
 import org.testng.annotations.Test;
 
-import java.util.List;
-
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
 
-public class BinaryExpressionNodeTest {
-    private ExpressionNode left;
-    private ExpressionNode right;
-    private String op;
-    private BinaryExpressionNode infixExpression;
-
-    /*@BeforeClass
-    public void setUp() {
-        left = identifier("aaa");
-        right = new DoubleLiteralNode("5.0");
-        op = "+";
-        infixExpression = new BinaryExpressionNode(left, right, op);
-    }
-
+public class BinaryExpressionNodeTest extends ExpressionNodeTest {
     @Test
-    public void testGetChildren() {
-        List<Node> expected = ImmutableList.of(left, right);
-        assertEquals(infixExpression.getChildren(), expected);
+    public void testEqualsAndHashCode() {
+        testEqualsAndHashCode(() -> new BinaryExpressionNode(identifier("abc"), identifier("def"), Operation.ADD),
+                              new BinaryExpressionNode(identifier("def"), identifier("def"), Operation.ADD),
+                              new BinaryExpressionNode(identifier("abc"), identifier("abc"), Operation.ADD),
+                              new BinaryExpressionNode(identifier("abc"), identifier("def"), Operation.SUB));
     }
-
-    @Test
-    public void testEquals() {
-        BinaryExpressionNode copy = infixExpression;
-        assertTrue(infixExpression.equals(copy));
-        assertFalse(infixExpression.equals(null));
-        assertFalse(infixExpression.equals(left));
-
-        BinaryExpressionNode infixExpressionDiffLeft = new BinaryExpressionNode(identifier("bbb"), right, op);
-        assertFalse(infixExpression.equals(infixExpressionDiffLeft));
-
-        BinaryExpressionNode infixExpressionDiffRight = new BinaryExpressionNode(left, new DoubleLiteralNode("5.5"), op);
-        assertFalse(infixExpression.equals(infixExpressionDiffRight));
-
-        BinaryExpressionNode infixExpressionDiffOp = new BinaryExpressionNode(left, right, "-");
-        assertFalse(infixExpression.equals(infixExpressionDiffOp));
-    }
-
-    @Test
-    public void testHashCode() {
-        BinaryExpressionNode sameInfixExpression = new BinaryExpressionNode(identifier("aaa"), new DoubleLiteralNode("5.0"), "+");
-        assertEquals(infixExpression.hashCode(), sameInfixExpression.hashCode());
-    }*/
 }

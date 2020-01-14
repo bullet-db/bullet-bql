@@ -18,6 +18,9 @@ public class CountDistinctNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         return obj instanceof CountDistinctNode && Objects.equals(expressions, ((CountDistinctNode) obj).expressions);
     }
 

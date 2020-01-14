@@ -16,8 +16,6 @@ import java.util.Objects;
 public class ListExpressionNode extends ExpressionNode {
     private final List<ExpressionNode> expressions;
 
-    // TODO restrict to primitives somehow............?
-
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitListExpression(this, context);
@@ -25,6 +23,9 @@ public class ListExpressionNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         return obj instanceof ListExpressionNode && Objects.equals(expressions, ((ListExpressionNode) obj).expressions);
     }
 

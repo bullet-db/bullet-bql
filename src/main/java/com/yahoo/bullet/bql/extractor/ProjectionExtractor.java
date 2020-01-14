@@ -5,7 +5,7 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.classifier.ProcessedQuery;
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
@@ -61,11 +61,11 @@ public class ProjectionExtractor {
     }
 
     private Projection extractSelectAll() {
-        if (processedQuery.getSelectNodes().isEmpty()) {
-            return null;
-        }
-        // Proje
-        if (processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).allMatch(processedQuery::isSimpleFieldExpression)) {
+        List<ExpressionNode> expressions =
+                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)).collect(Collectors.toList());
+        // If the only additional fields selected (including ORDER BY) are simple field expressions, then no additional computations will be made
+        if (expressions.stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
         }
         // Perform a copy when there are additional fields selected
@@ -141,6 +141,6 @@ public class ProjectionExtractor {
     }
 
     private Projection.Field toNonAliasedField(ExpressionNode node) {
-        return new Projection.Field(node.toFormatlessString(), processedQuery.getExpression(node));
+        return new Projection.Field(node.getName(), processedQuery.getExpression(node));
     }
 }

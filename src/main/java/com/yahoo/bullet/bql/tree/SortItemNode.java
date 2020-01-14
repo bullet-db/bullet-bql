@@ -13,8 +13,6 @@ package com.yahoo.bullet.bql.tree;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Objects;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 @Getter
@@ -32,9 +30,12 @@ public class SortItemNode extends Node {
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitSortItem(this, context);
     }
-
+/*
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof SortItemNode)) {
             return false;
         }
@@ -46,7 +47,7 @@ public class SortItemNode extends Node {
     public int hashCode() {
         return Objects.hash(expression, ordering);
     }
-
+*/
     @Override
     public String toString() {
         return toStringHelper(this).add("expression", expression)

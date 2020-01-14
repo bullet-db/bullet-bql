@@ -24,20 +24,6 @@ public class StreamNode extends Node {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof StreamNode)) {
-            return false;
-        }
-        StreamNode other = (StreamNode) obj;
-        return Objects.equals(timeDuration, other.timeDuration) && Objects.equals(recordDuration, other.recordDuration);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(timeDuration, recordDuration);
-    }
-
-    @Override
     public String toString() {
         return toStringHelper(this).add("timeDuration", timeDuration)
                                    .add("recordDuration", recordDuration)

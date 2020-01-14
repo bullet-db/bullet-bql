@@ -5,52 +5,15 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.google.common.collect.ImmutableList;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.List;
-
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
 
-public class CastExpressionNodeTest {
-    private ExpressionNode expression;
-    private String castType;
-    private CastExpressionNode castExpression;
-
-    /*@BeforeClass
-    public void setUp() {
-        expression = identifier("aaa");
-        castType = "FLOAT";
-        castExpression = new CastExpressionNode(expression, castType);
-    }
-
+public class CastExpressionNodeTest extends ExpressionNodeTest {
     @Test
-    public void testGetChildren() {
-        List<Node> expected = ImmutableList.of(expression);
-        assertEquals(castExpression.getChildren(), expected);
+    public void testEqualsAndHashCode() {
+        testEqualsAndHashCode(() -> new CastExpressionNode(identifier("abc"), "INTEGER"),
+                              new CastExpressionNode(identifier("def"), "INTEGER"),
+                              new CastExpressionNode(identifier("abc"), "FLOAT"));
     }
-
-    @Test
-    public void testEquals() {
-        CastExpressionNode copy = castExpression;
-        assertTrue(castExpression.equals(copy));
-        assertFalse(castExpression.equals(null));
-        assertFalse(castExpression.equals(expression));
-
-        CastExpressionNode castExpressionDiffExpression = new CastExpressionNode(identifier("bbb"), castType);
-        assertFalse(castExpression.equals(castExpressionDiffExpression));
-
-        CastExpressionNode castExpressionDiffCastType = new CastExpressionNode(expression, "DOUBLE");
-        assertFalse(castExpression.equals(castExpressionDiffCastType));
-    }
-
-    @Test
-    public void testHashCode() {
-        CastExpressionNode sameCastExpression = new CastExpressionNode(identifier("aaa"), "FLOAT");
-        assertEquals(castExpression.hashCode(), sameCastExpression.hashCode());
-    }*/
 }

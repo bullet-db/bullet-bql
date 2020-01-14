@@ -17,6 +17,9 @@ public class LiteralNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         return obj instanceof LiteralNode && Objects.equals(value, ((LiteralNode) obj).value);
     }
 

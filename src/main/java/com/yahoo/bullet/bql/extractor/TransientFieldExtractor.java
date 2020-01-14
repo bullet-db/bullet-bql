@@ -1,7 +1,8 @@
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.classifier.ProcessedQuery;
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 
@@ -37,7 +38,7 @@ public class TransientFieldExtractor {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getSelectFields());
+        orderByFields.removeAll(getAliasSelectFields());
         return orderByFields;
     }
 
@@ -46,19 +47,30 @@ public class TransientFieldExtractor {
                                                                              .filter(processedQuery::isNotFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getSelectFields());
+        orderByFields.removeAll(getAliasSelectFields());
         return orderByFields;
     }
 
     private Set<String> extractAggregateValue() {
-        Set<String> transientFields =
+        //Set<String> transientFields =
+        //        Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(),
+        //                                    processedQuery.getAggregateNodes().stream()),
+        //                      processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+        //                .map(processedQuery::getAliasOrName)
+        //                .collect(Collectors.toSet());
+        //transientFields.removeAll(getNonAliasSelectFields());
+
+        Set<ExpressionNode> transientFields =
                 Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(),
                                             processedQuery.getAggregateNodes().stream()),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .map(processedQuery::getAliasOrName)
                         .collect(Collectors.toSet());
-        transientFields.removeAll(getSelectFields());
-        return transientFields;
+        transientFields.removeAll(getSelectExpressions());
+        return transientFields.stream().map(processedQuery::getAliasOrName).collect(Collectors.toSet());
+        //                .map(processedQuery::getAliasOrName)
+        //                .collect(Collectors.toSet());
+        //transientFields.removeAll(getNonAliasSelectFields());
+        //return transientFields;
     }
 
     private Set<String> extractAggregateNonValue() {
@@ -66,13 +78,24 @@ public class TransientFieldExtractor {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getSelectFields());
+        orderByFields.removeAll(getAliasSelectFields());
         return orderByFields;
     }
 
-    private Set<String> getSelectFields() {
+    private Set<String> getAliasSelectFields() {
         return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                        .map(processedQuery::getAliasOrName)
+                                                       .collect(Collectors.toSet());
+    }
+
+    private Set<String> getNonAliasSelectFields() {
+        return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
+                                                       .map(ExpressionNode::getName)
+                                                       .collect(Collectors.toSet());
+    }
+
+    private Set<ExpressionNode> getSelectExpressions() {
+        return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                        .collect(Collectors.toSet());
     }
 }

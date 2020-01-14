@@ -5,10 +5,9 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.classifier.ProcessedQuery;
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.parsing.Computation;

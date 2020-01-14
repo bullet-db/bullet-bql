@@ -6,15 +6,15 @@
 package com.yahoo.bullet.bql.parser;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertEquals;
-
 public class CaseInsensitiveStreamTest {
+    private final String bql = "SELECT * FROM STREAM()";
+
     @Test
     public void testGetSourceName() {
-        String bql = "SELECT aaa FROM STREAM(2000, TIME)";
-        CaseInsensitiveStream stream = new CaseInsensitiveStream(new ANTLRInputStream(bql));
-        assertEquals(stream.getSourceName(), "<unknown>");
+        // coverage
+        Assert.assertEquals(new CaseInsensitiveStream(new ANTLRInputStream(bql)).getSourceName(), "<unknown>");
     }
 }

@@ -5,29 +5,11 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import org.testng.annotations.Test;
+
 public class GroupByNodeTest {
-    /*private List<GroupingElement> groupingElements;
-    private GroupByNode groupBy;
-
-    @BeforeClass
-    public void setUp() {
-        GroupingElement groupingElement = new SimpleGroupBy(singletonList(identifier("aaa")));
-        groupingElements = singletonList(groupingElement);
-        groupBy = new GroupByNode(false, groupingElements);
-    }
-
     @Test
-    public void testGetChildren() {
-        assertEquals(groupBy.getChildren(), groupingElements);
+    public void testToString() {
+        // TODO ?
     }
-
-    @Test
-    public void testEquals() {
-        assertFalse(groupBy.equals(null));
-        assertFalse(groupBy.equals(groupingElements));
-
-        GroupingElement diffGroupingElement = new SimpleGroupBy(singletonList(identifier("bbb")));
-        GroupByNode groupByDiffGroupingElements = new GroupByNode(false, singletonList(diffGroupingElement));
-        assertFalse(groupBy.equals(groupByDiffGroupingElements));
-    }*/
 }

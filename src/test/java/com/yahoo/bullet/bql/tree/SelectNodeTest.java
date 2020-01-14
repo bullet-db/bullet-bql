@@ -5,36 +5,11 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.List;
-
-import static java.util.Collections.singletonList;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-
 public class SelectNodeTest {
-    private List<SelectItemNode> selectItems;
-    private SelectNode select;
-
-    /*@BeforeClass
-    public void setUp() {
-        selectItems = singletonList(new AllColumns());
-        select = new SelectNode(true, selectItems);
-    }
-
     @Test
-    public void testGetChildren() {
-        assertEquals(select.getChildren(), selectItems);
+    public void testToString() {
+        // TODO ?
     }
-
-    @Test
-    public void testEquals() {
-        assertFalse(select.equals(null));
-        assertFalse(select.equals(selectItems));
-
-        SelectNode selectDiffDistinct = new SelectNode(false, selectItems);
-        assertFalse(select.equals(selectDiffDistinct));
-    }*/
 }

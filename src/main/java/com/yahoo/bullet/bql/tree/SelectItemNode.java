@@ -26,9 +26,12 @@ public class SelectItemNode extends Node {
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitSelectItem(this, context);
     }
-
+/*
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof SelectItemNode)) {
             return false;
         }
@@ -42,7 +45,7 @@ public class SelectItemNode extends Node {
     public int hashCode() {
         return Objects.hash(all, expression, alias);
     }
-
+*/
     @Override
     public String toString() {
         return null;

@@ -21,7 +21,7 @@ public class QueryExtractorTest {
         builder = new BulletQueryBuilder(new BulletConfig());
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: StreamNode duration control based on record is not supported yet\\E.*")
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Stream duration control based on record is not supported yet\\E.*")
     public void testStreamRecord() {
         builder.buildJson("SELECT aaa FROM STREAM(2000, TIME, 2000, RECORD)");
     }

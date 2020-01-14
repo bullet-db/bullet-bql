@@ -5,7 +5,7 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.classifier.ProcessedQuery;
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -66,14 +66,14 @@ public class AggregationExtractor {
 
     private Aggregation extractDistinct() {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
-        aggregation.setFields(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toMap(ExpressionNode::toFormatlessString, processedQuery::getAliasOrName)));
+        aggregation.setFields(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         return aggregation;
     }
 
     private Aggregation extractGroup() {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
         if (!processedQuery.getGroupByNodes().isEmpty()) {
-            aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::toFormatlessString, processedQuery::getAliasOrName)));
+            aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         }
         List<Map<String, Object>> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
             Map<String, Object> operation = new HashMap<>();
@@ -98,7 +98,7 @@ public class AggregationExtractor {
 
         Aggregation aggregation = new Aggregation();
         aggregation.setType(COUNT_DISTINCT);
-        aggregation.setFields(countDistinct.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::toFormatlessString, ExpressionNode::toFormatlessString)));
+        aggregation.setFields(countDistinct.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, ExpressionNode::getName)));
         //String alias = processedQuery.getAliasOrName(countDistinct);
         //if (alias != null) {
         Map<String, Object> attributes = new HashMap<>();
@@ -110,7 +110,7 @@ public class AggregationExtractor {
 
     private Aggregation extractDistribution() {
         DistributionNode distribution = processedQuery.getDistribution();
-        String name = distribution.getExpression().toFormatlessString();
+        String name = distribution.getExpression().getName();
 
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), DISTRIBUTION);
         aggregation.setFields(new HashMap<>());
@@ -123,7 +123,7 @@ public class AggregationExtractor {
         TopKNode topK = processedQuery.getTopK();
 
         Aggregation aggregation = new Aggregation(topK.getSize(), TOP_K);
-        aggregation.setFields(topK.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::toFormatlessString, ExpressionNode::toFormatlessString)));
+        aggregation.setFields(topK.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, ExpressionNode::getName)));
         Map<String, Object> attributes = new HashMap<>();
         if (topK.getThreshold() != null) {
             attributes.put(THRESHOLD_FIELD, topK.getThreshold());
@@ -140,7 +140,7 @@ public class AggregationExtractor {
 
     private Aggregation extractSpecialK() {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), TOP_K);
-        aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::toFormatlessString, processedQuery::getAliasOrName)));
+        aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         Map<String, Object> attributes = new HashMap<>();
         if (processedQuery.getHavingNode() != null) {
             attributes.put(THRESHOLD_FIELD, ((LiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue());

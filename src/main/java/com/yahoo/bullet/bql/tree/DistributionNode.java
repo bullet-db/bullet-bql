@@ -6,6 +6,7 @@
 package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.aggregations.Distribution.Type;
+import com.yahoo.bullet.bql.parser.ParsingException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -14,6 +15,10 @@ import java.util.Map;
 @Getter
 @RequiredArgsConstructor
 public abstract class DistributionNode extends ExpressionNode {
+    public static final String QUANTILE = "QUANTILE";
+    public static final String FREQ = "FREQ";
+    public static final String CUMFREQ = "CUMFREQ";
+
     protected final Type type;
     protected final ExpressionNode expression;
 
@@ -34,20 +39,19 @@ public abstract class DistributionNode extends ExpressionNode {
     /**
      * Get the BQL String of this Distribution's type.
      *
-     * @param type A {@link Type}.
      * @return A BQL String that represents type.
-     * @throws UnsupportedOperationException when Distribution's type is not supported.
      */
-    protected String getDistributionType(Type type) {
+    protected String getDistributionType() {
         switch (type) {
             case QUANTILE:
-                return "QUANTILE";
+                return QUANTILE;
             case PMF:
-                return "FREQ";
+                return FREQ;
             case CDF:
-                return "CUMFREQ";
+                return CUMFREQ;
         }
-        throw new UnsupportedOperationException("Distribution type is not supported");
+        // Unreachable
+        throw new ParsingException("Unknown distribution type");
     }
 
     @Override

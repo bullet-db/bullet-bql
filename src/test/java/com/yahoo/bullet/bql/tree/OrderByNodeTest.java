@@ -5,31 +5,11 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import java.util.List;
+import org.testng.annotations.Test;
 
 public class OrderByNodeTest {
-    private List<SortItemNode> sortItems;
-    private OrderByNode orderBy;
-
-    /*@BeforeClass
-    public void setUp() {
-        sortItems = singletonList(simpleSortItem());
-        orderBy = new OrderByNode(sortItems);
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "\\QsortItems should not be empty\\E.*")
-    public void testEmptySortItems() {
-        new OrderByNode(emptyList());
-    }
-
     @Test
-    public void testGetChildren() {
-        assertEquals(orderBy.getChildren(), sortItems);
+    public void testToString() {
+        // TODO ?
     }
-
-    @Test
-    public void testEquals() {
-        assertFalse(orderBy.equals(null));
-        assertFalse(orderBy.equals(sortItems));
-    }*/
 }

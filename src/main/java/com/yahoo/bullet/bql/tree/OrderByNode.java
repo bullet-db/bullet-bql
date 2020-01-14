@@ -29,16 +29,6 @@ public class OrderByNode extends Node {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return obj instanceof OrderByNode && Objects.equals(sortItems, ((OrderByNode) obj).sortItems);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(sortItems);
-    }
-
-    @Override
     public String toString() {
         return toStringHelper(this).add("sortItems", sortItems).toString();
     }

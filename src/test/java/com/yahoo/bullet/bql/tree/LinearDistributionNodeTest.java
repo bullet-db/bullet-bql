@@ -5,55 +5,41 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import com.yahoo.bullet.aggregations.Distribution;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.List;
+import java.util.Map;
 
-import static com.yahoo.bullet.aggregations.Distribution.Type.PMF;
-import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
 
-public class LinearDistributionNodeTest {
-    List<ExpressionNode> columns;
-    private LinearDistributionNode distribution;
+public class LinearDistributionNodeTest extends ExpressionNodeTest {
+    private LinearDistributionNode node;
 
-    /*@BeforeClass
-    public void setUp() {
-        columns = singletonList(identifier("aaa"));
-        distribution = new LinearDistributionNode(columns, QUANTILE, (long) 10);
+    @BeforeClass
+    public void setup() {
+        node = new LinearDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 5L);
     }
 
     @Test
-    public void testGetType() {
-        assertEquals(distribution.getType(), QUANTILE);
+    public void testEqualsAndHashCode() {
+        testEqualsAndHashCode(() -> new LinearDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 5L),
+                              new LinearDistributionNode(Distribution.Type.PMF, identifier("abc"), 5L),
+                              new LinearDistributionNode(Distribution.Type.QUANTILE, identifier("def"), 5L),
+                              new LinearDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 10L));
     }
 
     @Test
-    public void testGetChildren() {
-        assertEquals(distribution.getChildren(), emptyList());
+    public void testGetAttributes() {
+        Map<String, Object> attributes = node.getAttributes();
+        Assert.assertEquals(attributes.size(), 2);
+        Assert.assertEquals(attributes.get(Distribution.TYPE), Distribution.Type.QUANTILE);
+        Assert.assertEquals(attributes.get(Distribution.NUMBER_OF_POINTS), 5L);
     }
 
     @Test
-    public void testEquals() {
-        LinearDistributionNode copy = distribution;
-        assertTrue(distribution.equals(copy));
-        assertFalse(distribution.equals(null));
-        assertFalse(distribution.equals(columns));
-
-        List<ExpressionNode> diffColumns = singletonList(identifier("bbb"));
-        LinearDistributionNode distributionDiffColumns = new LinearDistributionNode(diffColumns, QUANTILE, (long) 10);
-        assertFalse(distribution.equals(distributionDiffColumns));
-
-        LinearDistributionNode distributionDiffType = new LinearDistributionNode(columns, PMF, (long) 10);
-        assertFalse(distribution.equals(distributionDiffType));
-
-        LinearDistributionNode distributionDiffNumberOfPoints = new LinearDistributionNode(columns, QUANTILE, (long) 20);
-        assertFalse(distribution.equals(distributionDiffNumberOfPoints));
-    }*/
+    public void testAttributesToString() {
+        Assert.assertEquals(node.attributesToString(), "QUANTILE(abc, LINEAR, 5)");
+    }
 }

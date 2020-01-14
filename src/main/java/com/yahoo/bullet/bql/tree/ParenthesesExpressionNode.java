@@ -17,6 +17,9 @@ public class ParenthesesExpressionNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         return obj instanceof ParenthesesExpressionNode && Objects.equals(expression, ((ParenthesesExpressionNode) obj).expression);
     }
 

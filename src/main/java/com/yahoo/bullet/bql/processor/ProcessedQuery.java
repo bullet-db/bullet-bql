@@ -1,4 +1,4 @@
-package com.yahoo.bullet.bql.classifier;
+package com.yahoo.bullet.bql.processor;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -176,7 +176,7 @@ public class ProcessedQuery {
 
     public String getAliasOrName(ExpressionNode node) {
         String alias = aliases.get(node);
-        return alias != null ? alias : node.toFormatlessString();
+        return alias != null ? alias : node.getName();
     }
 
     public List<SelectItemNode> getSuperAggregateSelectNodes() {
@@ -198,12 +198,12 @@ public class ProcessedQuery {
     public boolean isSuperAggregate(ExpressionNode node) {
         return superAggregateNodes.contains(node);
     }
-
+/*
     public boolean isGroupOrCountDistinct(ExpressionNode node) {
         return (node instanceof GroupOperationNode && groupOpNodes.contains(node)) ||
                (node instanceof CountDistinctNode && countDistinctNodes.contains(node));
     }
-
+*/
     public boolean isSimpleFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
@@ -212,7 +212,7 @@ public class ProcessedQuery {
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
     }
-
+/*
     public boolean isNotSimpleFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
@@ -221,7 +221,7 @@ public class ProcessedQuery {
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() != null || fieldExpression.getKey() != null;
     }
-
+*/
     public boolean isNotFieldExpression(ExpressionNode node) {
         return !(expressionNodes.get(node) instanceof FieldExpression);
     }

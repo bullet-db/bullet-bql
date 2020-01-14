@@ -42,11 +42,14 @@ public class RegionDistributionNode extends DistributionNode {
 
     @Override
     public String attributesToString() {
-        return getDistributionType(type) + "(" + expression.toFormatlessString() + ", REGION, " + start + ", " + end + ", " + increment + ")";
+        return getDistributionType() + "(" + expression.getName() + ", REGION, " + start + ", " + end + ", " + increment + ")";
     }
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof RegionDistributionNode)) {
             return false;
         }

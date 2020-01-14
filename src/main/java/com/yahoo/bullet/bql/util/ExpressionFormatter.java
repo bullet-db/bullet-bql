@@ -22,14 +22,17 @@ import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
+import com.yahoo.bullet.bql.tree.LinearDistributionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
+import com.yahoo.bullet.bql.tree.ManualDistributionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
+import com.yahoo.bullet.bql.tree.RegionDistributionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
@@ -45,6 +48,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
     private static final ThreadLocal<DecimalFormat> DOUBLE_FORMATTER = ThreadLocal.withInitial(

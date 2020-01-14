@@ -29,6 +29,9 @@ public class TopKNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof TopKNode)) {
             return false;
         }

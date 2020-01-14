@@ -24,6 +24,7 @@ public class BulletBQL {
      */
     public static void main(String[] args) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        BulletConfig config = new BulletConfig();
         while (true) {
             try {
                 String line = reader.readLine();
@@ -31,7 +32,7 @@ public class BulletBQL {
                     return;
                 }
                 Query query = BULLET_QUERY_BUILDER.buildQuery(line);
-                query.configure(new BulletConfig());
+                query.configure(config);
                 System.out.println(BULLET_QUERY_BUILDER.toJson(query));
                 System.out.println(query.initialize());
             } catch (Exception e) {

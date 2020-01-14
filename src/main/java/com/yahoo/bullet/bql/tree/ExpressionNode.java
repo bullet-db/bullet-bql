@@ -22,6 +22,12 @@ public abstract class ExpressionNode extends Node {
     }
 
     @Override
+    public abstract boolean equals(Object obj);
+
+    @Override
+    public abstract int hashCode();
+
+    @Override
     public final String toString() {
         return toString(true);
     }
@@ -31,7 +37,7 @@ public abstract class ExpressionNode extends Node {
      *
      * @return A String.
      */
-    public final String toFormatlessString() {
+    public final String getName() {
         return toString(false);
     }
 

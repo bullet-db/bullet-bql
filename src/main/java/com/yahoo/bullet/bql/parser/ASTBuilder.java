@@ -13,6 +13,7 @@ package com.yahoo.bullet.bql.parser;
 import com.yahoo.bullet.aggregations.Distribution;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
+import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
@@ -57,9 +58,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitQuery(BQLBaseParser.QueryContext context) {
         return new QueryNode((SelectNode) visit(context.select()),
                              (StreamNode) visit(context.stream()),
-                             (ExpressionNode) visitIfPresent(context.where),
+                             stripParentheses((ExpressionNode) visitIfPresent(context.where)),
                              (GroupByNode) visitIfPresent(context.groupBy()),
-                             (ExpressionNode) visitIfPresent(context.having),
+                             stripParentheses((ExpressionNode) visitIfPresent(context.having)),
                              (OrderByNode) visitIfPresent(context.orderBy()),
                              (WindowNode) visitIfPresent(context.window()),
                              getTextIfPresent(context.limit));
@@ -74,7 +75,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitSelectItem(BQLBaseParser.SelectItemContext context) {
         return new SelectItemNode(context.ASTERISK() != null,
-                                  (ExpressionNode) visitIfPresent(context.expression()),
+                                  stripParentheses((ExpressionNode) visitIfPresent(context.expression())),
                                   (IdentifierNode) visitIfPresent(context.identifier()));
     }
 
@@ -86,7 +87,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGroupBy(BQLBaseParser.GroupByContext context) {
-        return new GroupByNode(visit(context.expression(), ExpressionNode.class));
+        return new GroupByNode(visit(context.expression(), ExpressionNode.class).stream().map(this::stripParentheses).collect(Collectors.toList()));
     }
 
 
@@ -97,7 +98,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSortItem(BQLBaseParser.SortItemContext context) {
-        return new SortItemNode((ExpressionNode) visit(context.expression()),
+        return new SortItemNode(stripParentheses((ExpressionNode) visit(context.expression())),
                                 getOrdering(context.ordering));
     }
 
@@ -253,7 +254,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
-        return new ParenthesesExpressionNode((ExpressionNode) visit(context.expression()));
+        ExpressionNode expression = (ExpressionNode) visit(context.expression());
+        if (expression instanceof BinaryExpressionNode) {
+            return new ParenthesesExpressionNode((ExpressionNode) visit(context.expression()));
+        }
+        return expression;
     }
 
 
@@ -302,6 +307,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
             throw new UnsupportedOperationException("Not implemented");
         }
         return nextResult;
+    }
+
+    private ExpressionNode stripParentheses(ExpressionNode expression) {
+        if (expression instanceof ParenthesesExpressionNode) {
+            return ((ParenthesesExpressionNode) expression).getExpression();
+        }
+        return expression;
     }
 
     private static SortItemNode.Ordering getOrdering(Token token) {
@@ -385,14 +397,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     private Distribution.Type getDistributionType(BQLBaseParser.DistributionContext context) {
         switch (context.distributionType().getText().toUpperCase()) {
-            case "QUANTILE":
+            case DistributionNode.QUANTILE:
                 return QUANTILE;
-            case "FREQ":
+            case DistributionNode.FREQ:
                 return PMF;
-            case "CUMFREQ":
+            case DistributionNode.CUMFREQ:
                 return CDF;
         }
-        throw new ParsingException("Unknown distribution");
+        throw new ParsingException("Unknown distribution type");
     }
 
     private Number getSignedNumber(BQLBaseParser.NumberContext context) {

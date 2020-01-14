@@ -23,6 +23,9 @@ public class GroupOperationNode extends ExpressionNode {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (!(obj instanceof GroupOperationNode)) {
             return false;
         }

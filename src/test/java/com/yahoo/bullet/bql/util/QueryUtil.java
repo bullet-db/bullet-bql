@@ -22,26 +22,28 @@ public final class QueryUtil {
     }
 
     public static IdentifierNode identifier(String name) {
-        return new IdentifierNode(name, true);
+        return new IdentifierNode(name, false);
     }
 
-    /*public static IdentifierNode quotedIdentifier(String name) {
+    public static IdentifierNode quotedIdentifier(String name) {
         return new IdentifierNode(name, true);
     }
-
+/*
     public static SelectItemNode unaliasedName(String name) {
+
+
         return new SingleColumn(identifier(name));
     }
 
     public static SelectItemNode aliasedName(String name, String alias) {
         return new SingleColumn(identifier(name), identifier(alias));
-    }*/
+    }
 
-    /*public static SelectNode selectList(ExpressionNode... expressions) {
+    public static SelectNode selectList(ExpressionNode... expressions) {
         return selectList(asList(expressions));
-    }*/
+    }
 
-    /*public static SelectNode selectList(List<ExpressionNode> expressions) {
+    public static SelectNode selectList(List<ExpressionNode> expressions) {
         ImmutableList.Builder<SelectItemNode> items = ImmutableList.builder();
         for (ExpressionNode expression : expressions) {
             items.add(new SingleColumn(expression));

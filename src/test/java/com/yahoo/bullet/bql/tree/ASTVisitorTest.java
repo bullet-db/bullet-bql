@@ -8,13 +8,14 @@ package com.yahoo.bullet.bql.tree;
 import org.testng.annotations.BeforeClass;
 
 public class ASTVisitorTest {
-    private ASTTestVisitor visitor;
+    private static class MockASTVisitor extends ASTVisitor<Void, Void> {
+    }
 
-    private class ASTTestVisitor extends ASTVisitor<Void, Void> { }
+    private ASTVisitor visitor;
 
     @BeforeClass
-    public void setUp() {
-        visitor = new ASTTestVisitor();
+    public void setup() {
+        visitor = new MockASTVisitor();
     }
 /*
     @Test

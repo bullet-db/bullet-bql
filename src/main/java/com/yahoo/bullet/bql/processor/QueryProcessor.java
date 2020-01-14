@@ -1,4 +1,4 @@
-package com.yahoo.bullet.bql.classifier;
+package com.yahoo.bullet.bql.processor;
 
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -8,7 +8,6 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
-import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
@@ -67,7 +66,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
             if (alias != null) {
                 expression.setField(alias);
             } else {
-                expression.setField(groupOperationNode.toFormatlessString());
+                expression.setField(groupOperationNode.getName());
             }
         }
         for (CountDistinctNode countDistinctNode : context.getCountDistinctNodes()) {
@@ -76,7 +75,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
             if (alias != null) {
                 expression.setField(alias);
             } else {
-                expression.setField(countDistinctNode.toFormatlessString());
+                expression.setField(countDistinctNode.getName());
             }
         }
         return context.validate();

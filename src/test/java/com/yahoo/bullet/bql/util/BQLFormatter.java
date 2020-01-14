@@ -34,7 +34,7 @@ public final class BQLFormatter {
     /**
      * Parse a {@link Node} tree to a formatted BQL String. This is used to check if two {@link Node} tree are same.
      *
-     * @param root       The root of the {@link Node} tree
+     * @param root The root of the {@link Node} tree
      * @return A formatted string representation of BQL statement
      */
     public static String formatBQL(Node root) {

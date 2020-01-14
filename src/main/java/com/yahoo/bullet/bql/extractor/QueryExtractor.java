@@ -6,7 +6,7 @@
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.BQLConfig;
-import com.yahoo.bullet.bql.classifier.ProcessedQuery;
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Computation;
@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.yahoo.bullet.bql.classifier.ProcessedQuery.QueryType;
+import static com.yahoo.bullet.bql.processor.ProcessedQuery.QueryType;
 import static com.yahoo.bullet.parsing.Window.EMIT_EVERY_FIELD;
 import static com.yahoo.bullet.parsing.Window.INCLUDE_FIRST_FIELD;
 import static com.yahoo.bullet.parsing.Window.TYPE_FIELD;
@@ -144,14 +144,21 @@ public class QueryExtractor {
         if (!processedQuery.isWindowed()) {
             return;
         }
+
+        Window window = new Window();
+
         Map<String, Object> emit = new HashMap<>();
         emit.put(EMIT_EVERY_FIELD, processedQuery.getEmitEvery());
-        emit.put(TYPE_FIELD, processedQuery.getEmitType());
+        emit.put(TYPE_FIELD, processedQuery.getEmitType().toString());
+        window.setEmit(emit);
 
-        Map<String, Object> include = new HashMap<>();
-        include.put(TYPE_FIELD, processedQuery.getIncludeUnit());
-        include.put(INCLUDE_FIRST_FIELD, processedQuery.getFirst());
+        if (processedQuery.getIncludeUnit() != null) {
+            Map<String, Object> include = new HashMap<>();
+            include.put(TYPE_FIELD, processedQuery.getIncludeUnit().toString());
+            include.put(INCLUDE_FIRST_FIELD, processedQuery.getFirst());
+            window.setInclude(include);
+        }
 
-        query.setWindow(new Window(emit, include));
+        query.setWindow(window);
     }
 }

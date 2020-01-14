@@ -28,20 +28,6 @@ public class WindowIncludeNode extends Node {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof WindowIncludeNode)) {
-            return false;
-        }
-        WindowIncludeNode other = (WindowIncludeNode) obj;
-        return Objects.equals(number, other.number) && unit == other.unit;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(number, unit);
-    }
-
-    @Override
     public String toString() {
         return toStringHelper(this).add("number", number)
                                    .add("unit", unit)
