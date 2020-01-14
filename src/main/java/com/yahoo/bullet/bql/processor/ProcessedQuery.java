@@ -212,7 +212,7 @@ public class ProcessedQuery {
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
     }
-/*
+
     public boolean isNotSimpleFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
@@ -221,12 +221,12 @@ public class ProcessedQuery {
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() != null || fieldExpression.getKey() != null;
     }
-*/
+
     public boolean isNotFieldExpression(ExpressionNode node) {
         return !(expressionNodes.get(node) instanceof FieldExpression);
     }
 
-    public boolean isNotAliasFieldExpression(ExpressionNode node) {
+    public boolean isNotSimpleAliasFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
             return true;

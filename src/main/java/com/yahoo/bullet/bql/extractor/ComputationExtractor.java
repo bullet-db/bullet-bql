@@ -53,7 +53,7 @@ public class ComputationExtractor {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .filter(processedQuery::isNotFieldExpression)
+                        .filter(processedQuery::isNotSimpleFieldExpression)
                         .distinct()
                         .map(this::toField)
                         .collect(Collectors.toList());

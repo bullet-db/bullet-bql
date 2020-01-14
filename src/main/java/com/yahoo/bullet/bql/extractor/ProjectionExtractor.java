@@ -53,7 +53,7 @@ public class ProjectionExtractor {
     private Projection extractSelect() {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression).filter(processedQuery::isNotAliasFieldExpression))
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression).filter(processedQuery::isNotSimpleAliasFieldExpression))
                         .distinct()
                         .map(this::toAliasedField)
                         .collect(Collectors.toList());

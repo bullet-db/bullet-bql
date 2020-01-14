@@ -122,7 +122,11 @@ public class QueryExtractor {
         }
         List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {
             OrderBy.SortItem sortItem = new OrderBy.SortItem();
-            sortItem.setField(processedQuery.getAliasOrName(node.getExpression()));
+            if (processedQuery.isNotSimpleAliasFieldExpression(node.getExpression())) {
+                sortItem.setField(processedQuery.getAliasOrName(node.getExpression()));
+            } else {
+                sortItem.setField(node.getExpression().getName());
+            }
             if (node.getOrdering() == SortItemNode.Ordering.DESCENDING) {
                 sortItem.setDirection(OrderBy.Direction.DESC);
             } else {

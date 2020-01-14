@@ -13,6 +13,8 @@ package com.yahoo.bullet.bql.parser;
 public class BQLParserTest {
     private static final BQLParser BQL_PARSER = new BQLParser();
 
+    // TODO exceptions in here
+
     /*@Test
     public void testPossibleExponentialBacktracking() {
         BQL_PARSER.createExpression("(((((((((((((((((((((((((((a = true)))))))))))))))))))))))))))", new ParsingOptions());

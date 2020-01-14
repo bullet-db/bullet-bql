@@ -5,769 +5,336 @@
  */
 package com.yahoo.bullet.bql;
 
-import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.common.BulletConfig;
+
+import com.yahoo.bullet.parsing.Aggregation;
+import com.yahoo.bullet.parsing.Computation;
+import com.yahoo.bullet.parsing.Culling;
+import com.yahoo.bullet.parsing.OrderBy;
+import com.yahoo.bullet.parsing.PostAggregation;
+import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.parsing.expressions.BinaryExpression;
+import com.yahoo.bullet.parsing.expressions.FieldExpression;
+import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.parsing.expressions.ValueExpression;
+import com.yahoo.bullet.typesystem.Type;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-//import static com.yahoo.bullet.TestHelpers.assertJSONEquals;
+import java.util.Arrays;
+import java.util.Collections;
+
+import static com.yahoo.bullet.parsing.Projection.Field;
 
 public class BulletQueryBuilderTest {
     private BulletQueryBuilder builder;
+    private Query query;
 
     @BeforeClass
-    public void setUp() {
+    public void setup() {
         builder = new BulletQueryBuilder(new BulletConfig());
     }
-    /*
-    @Test
-    public void testBuildRawAll() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT * FROM STREAM(2000, TIME) LIMIT 1"),
-                "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawAllWithDefaultDuration() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT * FROM STREAM() LIMIT 1"),
-                "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}}");
-    }
-
-    @Test
-    public void testBuildRawAllWithMaxDuration() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT * FROM STREAM(MAX, TIME) LIMIT 1"),
-                "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
-                        "\"duration\":" + (long) Double.POSITIVE_INFINITY + "}");
-    }
-
-    @Test
-    public void testBuildRawProjection() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT bbb AS b, aaa AS a FROM STREAM(2000, TIME) LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"a\",\"bbb\":\"b\"}}," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildFilterWithFields() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=bbb LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"FIELD\",\"value\":\"bbb\"}],\"operation\":\"\\u003d\\u003d\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildSizeOfFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa)=4 LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildInSizeOfFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) IN(1, 4) LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildNotSizeOfFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) != 4 LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}],\"operation\":\"NOT\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is distinct from 4 LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"SIZEIS\"}],\"operation\":\"NOT\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
-    public void testBuildSizeOfFilterWithUnsupportedOperation() {
-        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) > 4 LIMIT 3");
-    }
-
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
-    public void testBuildSizeOfFilterWithBetween() {
-        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) between 1 and 4 LIMIT 3");
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
-    public void testBuildSizeOfFilterWithLike() {
-        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) like (4) LIMIT 3");
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only '==', '!=', '<>', 'DISTINCT FROM' or 'IN' are supported in SIZEOF\\E.*")
-    public void testBuildSizeOfFilterWithEmpty() {
-        builder.buildJson("SELECT aaa FROM STREAM(2000, TIME) WHERE SIZEOF(aaa) is empty LIMIT 3");
-    }
-
-    @Test
-    public void testBuildContainsKeyFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa CONTAINSKEY(1, 4) LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSKEY\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildContainsValueFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa CONTAINSVALUE(1, 4) LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSVALUE\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildNotContainsKeyFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa NOT CONTAINSKEY(1, 4) LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSKEY\"}],\"operation\":\"NOT\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildNotContainsValueFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa NOT CONTAINSVALUE(1, 4) LIMIT 3"),
-                     "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                             "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"CONTAINSVALUE\"}],\"operation\":\"NOT\"}]," +
-                             "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionEqual() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=5.12 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"5.12\"}],\"operation\":\"\\u003d\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionNotEqual() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa!='ccc' LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionDistinctFrom() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa IS DISTINCT FROM 'ccc' LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionNotDistinctFrom() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa IS NOT DISTINCT FROM 'ccc' LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"NOT\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionBetween() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd BETWEEN 2 AND 3 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\\u003d\"}],\"operation\":\"AND\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionLess() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd<3 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionLessEqual() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd<=3 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003c\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test
-    public void testBuildRawProjectionGreater() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd>2 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
 
-    @Test
-    public void testBuildRawProjectionGreaterEqual() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd>=2 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"}],\"operation\":\"\\u003e\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    private void build(String bql) {
+        query = builder.buildQuery(bql);
     }
 
     @Test
-    public void testBuildRawProjectionIn() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IN (2, 3) LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"2\"},{\"kind\":\"VALUE\",\"value\":\"3\"}],\"operation\":\"\\u003d\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testRawAll() {
+        build("SELECT * FROM STREAM()");
+        Assert.assertNull(query.getProjection());
+        Assert.assertNull(query.getFilter());
+        Assert.assertNull(query.getAggregation().getSize());
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
+        Assert.assertNull(query.getDuration());
     }
 
     @Test
-    public void testBuildRawProjectionNotIn() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd NOT IN (1, 3, 4) LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"1\"},{\"kind\":\"VALUE\",\"value\":\"3\"},{\"kind\":\"VALUE\",\"value\":\"4\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"NOT\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testWhere() {
+        build("SELECT * FROM STREAM() WHERE abc");
+        Assert.assertEquals(query.getFilter(), new FieldExpression("abc"));
     }
 
     @Test
-    public void testBuildRawProjectionIsEmpty() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS EMPTY LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"\\u003d\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testLimit() {
+        build("SELECT * FROM STREAM() LIMIT 10");
+        Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
     }
 
     @Test
-    public void testBuildRawProjectionIsNotEmpty() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NOT EMPTY LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"!\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testDuration() {
+        build("SELECT * FROM STREAM(2000, TIME)");
+        Assert.assertEquals(query.getDuration(), (Long) 2000L);
     }
 
     @Test
-    public void testBuildRawProjectionIsNull() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NULL LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"\\u003d\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testRaw() {
+        build("SELECT abc FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
     }
 
     @Test
-    public void testBuildRawProjectionIsNotNull() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WHERE ddd IS NOT NULL LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testRawWithUnnecessaryParentheses() {
+        build("SELECT ((abc)) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
     }
 
     @Test
-    public void testBuildRawProjectionRLike() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa LIKE ('ccc[^*]', 'test') LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc[^*]\"},{\"kind\":\"VALUE\",\"value\":\"test\"}],\"operation\":\"RLIKE\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testRawAlias() {
+        build("SELECT abc AS def FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("def", new FieldExpression("abc")));
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
     }
 
     @Test
-    public void testBuildRawProjectionAnd() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa='ccc' AND ddd IS NOT NULL LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"AND\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testQuotedRawAlias() {
+        build("SELECT \"abc\" AS \"def\" FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("def", new FieldExpression("abc")));
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
     }
 
     @Test
-    public void testBuildRawProjectionOr() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa='ccc' OR ddd IS NOT NULL LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"clauses\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"ccc\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}],\"operation\":\"OR\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+    public void testRawAllWithField() {
+        build("SELECT *, abc FROM STREAM()");
+        Assert.assertNull(query.getProjection());
     }
 
     @Test
-    public void testBuildRawProjectionNestedFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT * FROM STREAM(2000, TIME) WHERE (bbb='eee' AND ggg IS NULL) AND (browser_version<='test2' OR fff IS EMPTY OR hhh LIKE ('jjj', 'kkk', 'mmm')) AND (bbb IN ('test6', 'test7')) LIMIT 1"),
-                "{\"filters\":[{\"clauses\":[{\"clauses\":[{\"clauses\":[{\"field\":\"bbb\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"eee\"}],\"operation\":\"\\u003d\\u003d\"},{\"field\":\"ggg\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"},{\"clauses\":[{\"clauses\":[{\"field\":\"browser_version\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"test2\"}],\"operation\":\"\\u003c\\u003d\"},{\"field\":\"fff\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"OR\"},{\"field\":\"hhh\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"jjj\"},{\"kind\":\"VALUE\",\"value\":\"kkk\"},{\"kind\":\"VALUE\",\"value\":\"mmm\"}],\"operation\":\"RLIKE\"}],\"operation\":\"OR\"}],\"operation\":\"AND\"},{\"field\":\"bbb\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"test6\"},{\"kind\":\"VALUE\",\"value\":\"test7\"}],\"operation\":\"\\u003d\\u003d\"}],\"operation\":\"AND\"}]," +
-                        "\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawAllWithComputation() {
+        build("SELECT *, abc + 5 FROM STREAM()");
+        Assert.assertNotNull(query.getProjection());
+        Assert.assertNull(query.getProjection().getFields());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.COMPUTATION);
 
-    @Test
-    public void testBuildGroupByFilter() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd AS bv, aaa AS uc FROM STREAM(2000, TIME) WHERE ddd IS NOT NULL GROUP BY ddd, aaa LIMIT 10"),
-                "{\"filters\":[{\"field\":\"ddd\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":10,\"type\":\"GROUP\",\"fields\":{\"aaa\":\"uc\",\"ddd\":\"bv\"}}," +
-                        "\"duration\":2000}");
-    }
+        Computation computation = (Computation) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildSelectDistinct() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT DISTINCT aaa AS a, bb.cc AS bc, dd.* AS d FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"GROUP\",\"fields\":{\"aaa\":\"a\",\"dd\":\"d\",\"bb.cc\":\"bc\"}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
+        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                      new ValueExpression(5),
+                                                                                                                      Operation.ADD)));
     }
 
     @Test
-    public void testBuildSelectDistinctWithGroupBy() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT DISTINCT aaa AS a, bb.cc AS bc, dd.* AS d FROM STREAM(2000, TIME) GROUP BY aaa, bb.cc, dd"),
-                "{\"aggregation\":{\"type\":\"GROUP\",\"fields\":{\"aaa\":\"a\",\"dd\":\"d\",\"bb.cc\":\"bc\"}}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawAllWithSubField() {
+        build("SELECT *, abc[0] FROM STREAM()");
+        Assert.assertNotNull(query.getProjection());
+        Assert.assertNull(query.getProjection().getFields());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.COMPUTATION);
 
-    @Test
-    public void testBuildGroupByAggregation() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd AS bv, COUNT(*) AS count, MIN(ddd) AS min, MAX(ddd) AS max, SUM(ddd) AS sum, AVG(ddd) AS avg FROM STREAM(2000, TIME) GROUP BY ddd"),
-                "{\"aggregation\":{\"type\":\"GROUP\",\"attributes\":{\"operations\":[{\"newName\":\"count\",\"type\":\"COUNT\"},{\"newName\":\"min\",\"field\":\"ddd\",\"type\":\"MIN\"},{\"newName\":\"max\",\"field\":\"ddd\",\"type\":\"MAX\"},{\"newName\":\"sum\",\"field\":\"ddd\",\"type\":\"SUM\"},{\"newName\":\"avg\",\"field\":\"ddd\",\"type\":\"AVG\"}]},\"fields\":{\"ddd\":\"bv\"}}," +
-                        "\"duration\":2000}");
-    }
+        Computation computation = (Computation) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildGroupAllAggregation() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT COUNT(*) AS count, MIN(ddd) AS min, MAX(ddd) AS max, SUM(ddd) AS sum, AVG(ddd) AS avg FROM STREAM(2000, TIME) GROUP BY ()"),
-                "{\"aggregation\":{\"type\":\"GROUP\",\"attributes\":{\"operations\":[{\"newName\":\"count\",\"type\":\"COUNT\"},{\"newName\":\"min\",\"field\":\"ddd\",\"type\":\"MIN\"},{\"newName\":\"max\",\"field\":\"ddd\",\"type\":\"MAX\"},{\"newName\":\"sum\",\"field\":\"ddd\",\"type\":\"SUM\"},{\"newName\":\"avg\",\"field\":\"ddd\",\"type\":\"AVG\"}]}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
+        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc[0]", new FieldExpression("abc", 0)));
     }
 
     @Test
-    public void testBuildGroupAggregationWithoutAlias() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT COUNT(*), MIN(ddd), MAX(ddd), SUM(ddd), AVG(ddd) FROM STREAM(2000, TIME) GROUP BY ()"),
-                "{\"aggregation\":{\"type\":\"GROUP\",\"attributes\":{\"operations\":[{\"type\":\"COUNT\"},{\"field\":\"ddd\",\"type\":\"MIN\"},{\"field\":\"ddd\",\"type\":\"MAX\"},{\"field\":\"ddd\",\"type\":\"SUM\"},{\"field\":\"ddd\",\"type\":\"AVG\"}]}}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawAllWithOrderByField() {
+        build("SELECT * FROM STREAM() ORDER BY abc");
+        Assert.assertNull(query.getProjection());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
 
-    @Test
-    public void testBuildCountDistinct() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT COUNT(DISTINCT ddd, aaa) FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"COUNT DISTINCT\",\"fields\":{\"aaa\":\"aaa\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildCountDistinctWithAlias() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT COUNT(DISTINCT ddd, aaa) AS countD FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"COUNT DISTINCT\",\"attributes\":{\"newName\":\"countD\"},\"fields\":{\"aaa\":\"aaa\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
     }
 
     @Test
-    public void testBuildQuantilesLinear() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT QUANTILE(ddd, LINEAR, 11) AS Q11 FROM STREAM(2000, TIME) LIMIT 4"),
-                "{\"aggregation\":{\"size\":4,\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"numberOfPoints\":11,\"type\":\"QUANTILE\"},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawAllWithOrderByComputation() {
+        build("SELECT * FROM STREAM() ORDER BY abc + 5");
+        Assert.assertNotNull(query.getProjection());
+        Assert.assertNull(query.getProjection().getFields());
+        Assert.assertEquals(query.getPostAggregations().size(), 3);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.COMPUTATION);
+        Assert.assertEquals(query.getPostAggregations().get(1).getType(), PostAggregation.Type.ORDER_BY);
+        Assert.assertEquals(query.getPostAggregations().get(2).getType(), PostAggregation.Type.CULLING);
 
-    @Test
-    public void testBuildQuantilesRegion() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT QUANTILE(ddd, REGION, 0, 0.9, +0.3) AS Q11 FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"start\":0.0,\"increment\":0.3,\"end\":0.9,\"type\":\"QUANTILE\"},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        Computation computation = (Computation) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildQuantilesManual() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT QUANTILE(ddd, MANUAL, 0, 0.3, 0.5, 0.8, 1.0) AS Q11 FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"type\":\"QUANTILE\",\"points\":[0.0,0.3,0.5,0.8,1.0]},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
+        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                      new ValueExpression(5),
+                                                                                                                      Operation.ADD)));
 
-    @Test
-    public void testBuildFrequenciesLinear() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT FREQ(ddd, LINEAR, 11) AS Q11 FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"numberOfPoints\":11,\"type\":\"PMF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
-    @Test
-    public void testBuildFrequenciesRegionNegative() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT FREQ(ddd, REGION, -100, 100, 40) AS Q11 FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"start\":-100.0,\"increment\":40.0,\"end\":100.0,\"type\":\"PMF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
 
-    @Test
-    public void testBuildFrequenciesManualNegativeDouble() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT FREQ(ddd, MANUAL, -100, -4e1, 40) AS Q11 FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"type\":\"PMF\",\"points\":[-100.0,-40.0,40.0]},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        Culling culling = (Culling) query.getPostAggregations().get(2);
 
-    @Test
-    public void testBuildCumFrequenciesLinear() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT CUMFREQ(ddd, LINEAR, 11) AS Q11 FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"newName\":\"Q11\",\"numberOfPoints\":11,\"type\":\"CDF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(culling.getTransientFields().size(), 1);
+        Assert.assertTrue(culling.getTransientFields().contains("abc + 5"));
     }
 
     @Test
-    public void testBuildDistributionWithoutAlias() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT CUMFREQ(ddd, LINEAR, 11) FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"type\":\"DISTRIBUTION\",\"attributes\":{\"numberOfPoints\":11,\"type\":\"CDF\"},\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawWithOrderBySameField() {
+        build("SELECT abc FROM STREAM() ORDER BY abc");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
 
-    @Test
-    public void testBuildTopK() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd, aaa.cc, COUNT(*) FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC LIMIT 3"),
-                "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildTopKAlias() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd.*, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) DESC LIMIT 3"),
-                "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
     }
 
     @Test
-    public void testBuildTopKWithOrderByAlias() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd.*, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY top3 DESC LIMIT 3"),
-                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                             "\"duration\":2000}");
-    }
+    public void testRawWithOrderByDifferentField() {
+        build("SELECT abc FROM STREAM() ORDER BY def");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("def", new FieldExpression("def")));
+        Assert.assertEquals(query.getPostAggregations().size(), 2);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
+        Assert.assertEquals(query.getPostAggregations().get(1).getType(), PostAggregation.Type.CULLING);
 
-    @Test
-    public void testBuildTopKThreshold() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) >= 1 ORDER BY COUNT(*) DESC LIMIT 3"),
-                "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
-                        "\"duration\":2000}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildTopKThresholdWithGreaterThan() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC LIMIT 3"),
-                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":2},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
-                             "\"duration\":2000}");
-    }
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
 
-    @Test
-    public void testBuildTopKThresholdWithAlias() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd AS d, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc HAVING top3 >= 1 ORDER BY COUNT(*) DESC LIMIT 3"),
-                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"d\"}}," +
-                             "\"duration\":2000}");
-    }
+        Culling culling = (Culling) query.getPostAggregations().get(1);
 
-    @Test
-    public void testBuildTopKFunction() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT TOP(3, ddd, aaa.cc) FROM STREAM(2000, TIME)"),
-                "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(culling.getTransientFields().size(), 1);
+        Assert.assertTrue(culling.getTransientFields().contains("def"));
     }
 
     @Test
-    public void testBuildTopKFunctionThresholdLimit() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT TOP(3, 1, ddd, aaa.cc) AS top3 FROM STREAM(2000, TIME) LIMIT 3"),
-                "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\",\"threshold\":1},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its alias name is supported in ORDER BY clause now\\E.*")
-    public void testBuildTopKInvalidOrderBy() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY AVG(*) DESC LIMIT 3"),
-                "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawWithOrderByMultiple() {
+        build("SELECT abc FROM STREAM() ORDER BY abc + 5, def DESC");
+        Assert.assertEquals(query.getProjection().getFields().size(), 3);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                new ValueExpression(5),
+                                                                                                                Operation.ADD)));
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("def", new FieldExpression("def")));
+        Assert.assertEquals(query.getPostAggregations().size(), 2);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
+        Assert.assertEquals(query.getPostAggregations().get(1).getType(), PostAggregation.Type.CULLING);
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only one field is supported in ORDER BY for TOP K\\E.*")
-    public void testBuildTopKOrderByMultipleFields() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*), top3 DESC LIMIT 3"),
-                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only DESC is supported in ORDER BY for TOP K\\E.*")
-    public void testBuildTopKOrderByASCOrder() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd, aaa.cc, COUNT(*) AS top3 FROM STREAM(2000, TIME) GROUP BY ddd, aaa.cc ORDER BY COUNT(*) ASC LIMIT 3"),
-                     "{\"aggregation\":{\"size\":3,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"top3\"},\"fields\":{\"aaa.cc\":\"aaa.cc\",\"ddd\":\"ddd\"}}," +
-                             "\"duration\":2000}");
-    }
-
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only COUNT(*) or its alias name is supported in HAVING clause now\\E.*")
-    public void testBuildTopKInvalidHaving() {
-        builder.buildJson(
-                "SELECT aaa, bbb, COUNT(*) FROM STREAM(2000, TIME) GROUP BY aaa, bbb HAVING AVG(*) >= 4 ORDER BY COUNT(*) DESC LIMIT 3;");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Only > or >= are supported in HAVING clause\\E.*")
-    public void testBuildTopKInvalidHavingOperation() {
-        builder.buildJson(
-                "SELECT aaa, bbb, COUNT(*) FROM STREAM(2000, TIME) GROUP BY aaa, bbb HAVING COUNT(*) < 4 ORDER BY COUNT(*) DESC LIMIT 3;");
-    }
+        Assert.assertEquals(orderBy.getFields().size(), 2);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
+        Assert.assertEquals(orderBy.getFields().get(0).getDirection(), OrderBy.Direction.ASC);
+        Assert.assertEquals(orderBy.getFields().get(1).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(1).getDirection(), OrderBy.Direction.DESC);
 
-    @Test
-    public void testBuildRawWindowEveryTime() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, FIRST, 3000, TIME) LIMIT 5 "),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
-                        "\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}}," +
-                        "\"duration\":2000}");
-    }
+        Culling culling = (Culling) query.getPostAggregations().get(1);
 
-    @Test
-    public void testBuildRawWindowEveryRecord() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 1, RECORD, FIRST, 1, RECORD) LIMIT 5 "),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
-                        "\"window\":{\"emit\":{\"type\":\"RECORD\",\"every\":1},\"include\":{\"type\":\"RECORD\",\"first\":1}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(culling.getTransientFields().size(), 2);
+        Assert.assertTrue(culling.getTransientFields().contains("abc + 5"));
+        Assert.assertTrue(culling.getTransientFields().contains("def"));
     }
 
     @Test
-    public void testBuildRawTumblingTime() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(TUMBLING, 3000, TIME) LIMIT 5 "),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
-                        "\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}}," +
-                        "\"duration\":2000}");
-    }
+    public void testSelectFieldWithType() {
+        build("SELECT abc : LIST[MAP[STRING]] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0).getName(), "abc");
 
-    @Test
-    public void testBuildRawTumblingRecord() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(TUMBLING, 3000, RECORD) LIMIT 5 "),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}}," +
-                        "\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
-                        "\"window\":{\"emit\":{\"type\":\"RECORD\",\"every\":3000},\"include\":{\"type\":\"RECORD\",\"first\":3000}}," +
-                        "\"duration\":2000}");
+        FieldExpression field = (FieldExpression) query.getProjection().getFields().get(0).getValue();
+        Assert.assertEquals(field.getType(), Type.LISTOFMAP);
+        Assert.assertEquals(field.getPrimitiveType(), Type.STRING);
     }
 
     @Test
-    public void testBuildRawEveryWindowIncludeAll() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, ALL) LIMIT 5 "),
-                "{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"}," +
-                        "\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"ALL\"}}," +
-                        "\"duration\":2000}");
-    }
+    public void testSelectStringValue() {
+        build("SELECT 'abc' FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0).getName(), "'abc'");
 
-    @Test
-    public void testBuildRawProjectionEqualDecimal() {
-        BulletQueryBuilder decimalBuilder = new BulletQueryBuilder(new BQLConfig("bullet_bql_for_test_decimal.yaml"));
-        assertJSONEquals(decimalBuilder.buildJson(
-                "SELECT aaa FROM STREAM(2000, TIME) WHERE aaa=5.12 LIMIT 3"),
-                "{\"projection\":{\"fields\":{\"aaa\":\"aaa\"}}," +
-                        "\"filters\":[{\"field\":\"aaa\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"5.12\"}],\"operation\":\"\\u003d\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":3,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
+        ValueExpression value = (ValueExpression) query.getProjection().getFields().get(0).getValue();
+        Assert.assertEquals(value.getValue(), "abc");
     }
 
     @Test
-    public void testBuildSingleStatement() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT * FROM STREAM(2000, TIME) LIMIT 1;  SELECT *"),
-                "{\"aggregation\":{\"size\":1,\"type\":\"RAW\"}," +
-                        "\"duration\":2000}");
-    }
+    public void testRawAliasWithOrderBy() {
+        build("SELECT abc AS def FROM STREAM() ORDER BY abc");
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def", new FieldExpression("abc"))));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "\\Qline 1:1: Please provide only 1 valid BQL statement\\E.*")
-    public void testBuildMultipleStatement() {
-        builder.buildJson(
-                "SELECT * FROM STREAM(2000, TIME) LIMIT 1; SELECT * FROM STREAM(4000, TIME);");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildComputation() {
-        assertJSONEquals(builder.buildJson("SELECT a + b FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"a + b\",\"type\":\"COMPUTATION\"}]}");
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
     }
 
     @Test
-    public void testBuildComputationWithAs() {
-        assertJSONEquals(builder.buildJson("SELECT a + 5 AS b FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5\",\"type\":\"LONG\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
-    }
+    public void testRawAliasWithOrderByAlias() {
+        build("SELECT abc AS def FROM STREAM() ORDER BY def");
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def", new FieldExpression("abc"))));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
 
-    @Test
-    public void testBuildComputationWithAsterisk() {
-        assertJSONEquals(builder.buildJson("SELECT *, a + -5.0 AS b FROM STREAM()"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildComputationWithTopK() {
-        assertJSONEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c, c * +100 FROM STREAM()"),
-                "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
-                        "\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}},\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"+100\",\"type\":\"LONG\"}}," +
-                        "\"operation\":\"*\"},\"newName\":\"c * +100\",\"type\":\"COMPUTATION\"}]}");
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
     }
 
     @Test
-    public void testBuildCastComputation() {
-        assertJSONEquals(builder.buildJson("SELECT CAST (a, FLOAT) AS b FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":" +
-                        "[{\"expression\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\",\"type\":\"FLOAT\"}},\"newName\":\"b\",\"type\":\"COMPUTATION\"}]}");
-    }
+    public void testRawAliasWithOrderByPrioritizeSimpleAlias1() {
+        build("SELECT abc AS def, def AS abc FROM STREAM() ORDER BY abc");
+        Assert.assertEquals(query.getProjection().getFields(), Arrays.asList(new Field("def", new FieldExpression("abc")),
+                                                                             new Field("abc", new FieldExpression("def"))));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
 
-    @Test
-    public void testBuildComputationPemdas() {
-        assertJSONEquals(builder.buildJson("SELECT CAST ((a) + b * ((c - (d))) / CAST ((g + (((f)))), FLOAT) - h, INTEGER) FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"left\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"c\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"d\"}},\"operation\":\"-\"},\"operation\":\"*\"},\"right\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"g\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"f\"}},\"type\":\"FLOAT\",\"operation\":\"+\"},\"operation\":\"/\"},\"operation\":\"+\"},\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"h\"}}," +
-                        "\"type\":\"INTEGER\",\"operation\":\"-\"},\"newName\":\"CAST (a + b * (c - d) / CAST ((g + f), FLOAT) - h, INTEGER)\",\"type\":\"COMPUTATION\"}]}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildComputationSubfield() {
-        assertJSONEquals(builder.buildJson("SELECT a.b * -5 FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a.b\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"-5\",\"type\":\"LONG\"}},\"operation\":\"*\"},\"newName\":\"a.b * -5\",\"type\":\"COMPUTATION\"}]}");
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
     }
 
     @Test
-    public void testBuildComputationDouble() {
-        assertJSONEquals(builder.buildJson("SELECT a + 5.0 FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
-    }
+    public void testRawAliasWithOrderByPrioritizeSimpleAlias2() {
+        build("SELECT abc AS def, def AS abc FROM STREAM() ORDER BY def");
+        Assert.assertEquals(query.getProjection().getFields(), Arrays.asList(new Field("def", new FieldExpression("abc")),
+                                                                             new Field("abc", new FieldExpression("def"))));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
 
-    @Test
-    public void testBuildComputationDecimal() {
-        BulletConfig config = new BulletConfig();
-        config.set(BQLConfig.BQL_DECIMAL_LITERAL_TREATMENT, "AS_DECIMAL");
-        BulletQueryBuilder decimalBuilder = new BulletQueryBuilder(config);
-        assertJSONEquals(decimalBuilder.buildJson("SELECT a + 5.0 FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"5.0\",\"type\":\"DOUBLE\"}},\"operation\":\"+\"},\"newName\":\"a + 5.0\",\"type\":\"COMPUTATION\"}]}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildComputationBoolean() {
-        assertJSONEquals(builder.buildJson("SELECT a + true FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"true\",\"type\":\"BOOLEAN\"}},\"operation\":\"+\"},\"newName\":\"a + true\",\"type\":\"COMPUTATION\"}]}");
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
     }
 
     @Test
-    public void testBuildComputationString() {
-        assertJSONEquals(builder.buildJson("SELECT a + 'hello' FROM STREAM()"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"VALUE\",\"value\":\"hello\",\"type\":\"STRING\"}},\"operation\":\"+\"},\"newName\":\"a + hello\",\"type\":\"COMPUTATION\"}]}");
-    }
+    public void testRawAliasWithOrderByNoNestedAlias() {
+        build("SELECT abc AS def, def AS abc FROM STREAM() ORDER BY abc + 5");
+        Assert.assertEquals(query.getProjection().getFields(), Arrays.asList(new Field("def", new FieldExpression("abc")),
+                                                                             new Field("abc", new FieldExpression("def")),
+                                                                             new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                       new ValueExpression(5),
+                                                                                                                       Operation.ADD))));
+        Assert.assertEquals(query.getPostAggregations().size(), 2);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.ORDER_BY);
+        Assert.assertEquals(query.getPostAggregations().get(1).getType(), PostAggregation.Type.CULLING);
 
-    @Test
-    public void testBuildOrderBy() {
-        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
-        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
-        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a DESC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
-        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a, b, c DESC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
-        assertJSONEquals(builder.buildJson("SELECT * FROM STREAM() ORDER BY a ASC, b, c DESC"),
-                "{\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"fields\":[{\"field\":\"a\",\"direction\":\"ASC\"},{\"field\":\"b\",\"direction\":\"ASC\"},{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
-    }
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
-    @Test
-    public void testBuildOrderByWithTopK() {
-        assertJSONEquals(builder.buildJson("SELECT TOP(5, 1, a, b) AS c FROM STREAM() ORDER BY c DESC"),
-                "{\"aggregation\":{\"size\":5,\"type\":\"TOP K\",\"attributes\":{\"newName\":\"c\",\"threshold\":1},\"fields\":{\"a\":\"a\",\"b\":\"b\"}}," +
-                        "\"postAggregations\":[{\"fields\":[{\"field\":\"c\",\"direction\":\"DESC\"}],\"type\":\"ORDERBY\"}]}");
-    }
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
 
-    @Test
-    public void testBuildOrderByWithComputation() {
-        assertJSONEquals(builder.buildJson("SELECT a + b AS c FROM STREAM() ORDER BY c"),
-                "{\"projection\":{\"fields\":{}},\"aggregation\":{\"type\":\"RAW\"},\"postAggregations\":[{\"expression\":{\"left\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"a\"}}," +
-                        "\"right\":{\"value\":{\"kind\":\"FIELD\",\"value\":\"b\"}},\"operation\":\"+\"},\"newName\":\"c\",\"type\":\"COMPUTATION\"},{\"fields\":[{\"field\":\"c\",\"direction\":\"ASC\"}],\"type\":\"ORDERBY\"}]}");
-    }
+        Culling culling = (Culling) query.getPostAggregations().get(1);
 
-    @Test
-    public void testBuildGroupByFilterProjectionWithNestedFields() {
-        assertJSONEquals(builder.buildJson(
-                "SELECT ddd.aa.b AS bv, aaa.12.b AS uc FROM STREAM(2000, TIME) WHERE ddd.aa.b IS NOT NULL GROUP BY ddd.aa.b, aaa.12.b LIMIT 10"),
-                "{\"filters\":[{\"field\":\"ddd.aa.b\",\"values\":[{\"kind\":\"VALUE\",\"value\":\"NULL\"}],\"operation\":\"!\\u003d\"}]," +
-                        "\"aggregation\":{\"size\":10,\"type\":\"GROUP\",\"fields\":{\"aaa.12.b\":\"uc\",\"ddd.aa.b\":\"bv\"}}," +
-                        "\"duration\":2000}");
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc + 5"));
     }
-    */
 }

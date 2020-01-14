@@ -5,313 +5,165 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import org.testng.annotations.BeforeClass;
+import org.mockito.Mockito;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 public class ASTVisitorTest {
     private static class MockASTVisitor extends ASTVisitor<Void, Void> {
     }
 
-    private ASTVisitor visitor;
+    private MockASTVisitor visitor;
 
-    @BeforeClass
+    @BeforeMethod
     public void setup() {
-        visitor = new MockASTVisitor();
+        visitor = Mockito.spy(new MockASTVisitor());
     }
-/*
+
     @Test
     public void testVisitQuery() {
-        BetweenPredicate betweenPredicate = simpleBetween();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(betweenPredicate);
-        verify(spy).visitBetweenPredicate(betweenPredicate, null);
-        verify(spy).visitExpression(betweenPredicate, null);
-    }
-
-    @Test
-    public void testVisitStatement() {
-        Statement query = simpleQuery(selectList(identifier("aaa")));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(query);
-        verify(spy).visitStatement(query, null);
-        verify(spy).visitQuery((Query) query, null);
-    }
-
-    @Test
-    public void testVisitComparisonExpression() {
-        ComparisonExpression comparison = (ComparisonExpression) equal(identifier("aaa"), identifier("bbb"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(comparison);
-        verify(spy).visitComparisonExpression(comparison, null);
-        verify(spy).visitExpression(comparison, null);
-    }
-
-    @Test
-    public void testVisitWithQuery() {
-        WithQuery withQuery = simpleWithQuery();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(withQuery);
-        verify(spy).visitWithQuery(withQuery, null);
-        verify(spy).visitNode(withQuery, null);
+        QueryNode query = new QueryNode(null, null, null, null, null, null, null, null);
+        visitor.process(query);
+        Mockito.verify(visitor).visitQuery(query, null);
     }
 
     @Test
     public void testVisitSelect() {
-        SelectNode select = selectList(identifier("aaa"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(select);
-        verify(spy).visitSelect(select, null);
-        verify(spy).visitNode(select, null);
+        SelectNode select = new SelectNode(false, null);
+        visitor.process(select);
+        Mockito.verify(visitor).visitSelect(select, null);
     }
 
     @Test
-    public void testVisitQuerySpecification() {
-        QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(querySpecification);
-        verify(spy).visitQuerySpecification(querySpecification, null);
-        verify(spy).visitQueryBody(querySpecification, null);
-    }
-
-    @Test
-    public void testVisitInPredicate() {
-        InPredicate inPredicate = simpleInPredicate();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(inPredicate);
-        verify(spy).visitInPredicate(inPredicate, null);
-        verify(spy).visitExpression(inPredicate, null);
-    }
-
-    @Test
-    public void testVisitValueListExpression() {
-        ListExpressionNode valueListExpression = simpleValueList();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(valueListExpression);
-        verify(spy).visitListExpression(valueListExpression, null);
-        verify(spy).visitExpression(valueListExpression, null);
-    }
-
-    @Test
-    public void testVisitLikePredicate() {
-        LikePredicate likePredicate = simpleLikePredicate();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(likePredicate);
-        verify(spy).visitLikePredicate(likePredicate, null);
-        verify(spy).visitExpression(likePredicate, null);
-    }
-
-    @Test
-    public void testVisitFunctionCall() {
-        FunctionCall functionCall = simpleFunctionCall();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(functionCall);
-        verify(spy).visitFunctionCall(functionCall, null);
-        verify(spy).visitExpression(functionCall, null);
-    }
-
-    @Test
-    public void testVisitBooleanLiteral() {
-        BooleanLiteralNode booleanLiteral = new BooleanLiteralNode("TRUE");
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(TRUE_LITERAL);
-        spy.process(FALSE_LITERAL);
-        spy.process(booleanLiteral);
-        verify(spy, times(2)).visitBooleanLiteral(TRUE_LITERAL, null);
-        verify(spy, times(2)).visitLiteral(TRUE_LITERAL, null);
-        verify(spy).visitBooleanLiteral(FALSE_LITERAL, null);
-        verify(spy).visitLiteral(FALSE_LITERAL, null);
-    }
-
-    @Test
-    public void testVisitDistribution() {
-        DistributionNode linearDistribution = linearQuantile((long) 10);
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(linearDistribution);
-        verify(spy).visitDistribution(linearDistribution, null);
-        verify(spy).visitExpression(linearDistribution, null);
-    }
-
-    @Test
-    public void testVisitTopK() {
-        TopKNode topK = simpleTopK((long) 10);
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(topK);
-        verify(spy).visitTopK(topK, null);
-        verify(spy).visitExpression(topK, null);
-    }
-
-    @Test
-    public void testVisitNullLiteral() {
-        NullLiteralNode nullLiteral = new NullLiteralNode();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(nullLiteral);
-        verify(spy).visitNullLiteral(nullLiteral, null);
-        verify(spy).visitLiteral(nullLiteral, null);
-    }
-
-    @Test
-    public void testVisitArithmeticUnary() {
-        ArithmeticUnaryExpression arithmeticUnary = new ArithmeticUnaryExpression(PLUS, new DoubleLiteralNode("5.5"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(arithmeticUnary);
-        verify(spy).visitArithmeticUnary(arithmeticUnary, null);
-        verify(spy).visitExpression(arithmeticUnary, null);
-    }
-
-    @Test
-    public void testVisitNotExpression() {
-        NotExpression notExpression = (NotExpression) logicalNot(equal(identifier("aaa"), identifier("bbb")));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(notExpression);
-        verify(spy).visitNotExpression(notExpression, null);
-        verify(spy).visitExpression(notExpression, null);
-    }
-
-    @Test
-    public void testVisitSingleColumn() {
-        SingleColumn singleColumn = (SingleColumn) unaliasedName("aaa");
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(singleColumn);
-        verify(spy).visitSingleColumn(singleColumn, null);
-        verify(spy).visitSelectItem(singleColumn, null);
-    }
-
-    @Test
-    public void testVisitIsNotNullPredicate() {
-        IsNotNullPredicate isNotNullPredicate = new IsNotNullPredicate(identifier("aaa"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(isNotNullPredicate);
-        verify(spy).visitIsNotNullPredicate(isNotNullPredicate, null);
-        verify(spy).visitExpression(isNotNullPredicate, null);
-    }
-
-    @Test
-    public void testVisitIsNullPredicate() {
-        IsNullPredicate isNullPredicate = new IsNullPredicate(identifier("aaa"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(isNullPredicate);
-        verify(spy).visitIsNullPredicate(isNullPredicate, null);
-        verify(spy).visitExpression(isNullPredicate, null);
-    }
-
-    @Test
-    public void testVisitIsNotEmptyPredicate() {
-        IsNotEmptyPredicate isNotEmptyPredicate = new IsNotEmptyPredicate(identifier("aaa"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(isNotEmptyPredicate);
-        verify(spy).visitIsNotEmptyPredicate(isNotEmptyPredicate, null);
-        verify(spy).visitExpression(isNotEmptyPredicate, null);
-    }
-
-    @Test
-    public void testVisitIsEmptyPredicate() {
-        IsEmptyPredicate isEmptyPredicate = new IsEmptyPredicate(identifier("aaa"));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(isEmptyPredicate);
-        verify(spy).visitIsEmptyPredicate(isEmptyPredicate, null);
-        verify(spy).visitExpression(isEmptyPredicate, null);
-    }
-
-    @Test
-    public void testVisitLogicalBinaryExpression() {
-        LogicalBinaryExpression logicalBinary = (LogicalBinaryExpression) and(
-                new IsNullPredicate(identifier("aaa")), new IsNotNullPredicate(identifier("bbb")));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(logicalBinary);
-        verify(spy).visitLogicalBinaryExpression(logicalBinary, null);
-        verify(spy).visitExpression(logicalBinary, null);
-    }
-
-    @Test
-    public void testVisitSortItem() {
-        SortItemNode sortItem = simpleSortItem();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(sortItem);
-        verify(spy).visitSortItem(sortItem, null);
-        verify(spy).visitNode(sortItem, null);
-    }
-
-    @Test
-    public void testVisitWindowing() {
-        WindowNode windowing = simpleWindowing();
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(windowing);
-        verify(spy).visitWindow(windowing, null);
-        verify(spy).visitNode(windowing, null);
+    public void testVisitSelectItem() {
+        SelectItemNode selectItem = new SelectItemNode(false, null, null);
+        visitor.process(selectItem);
+        Mockito.verify(visitor).visitSelectItem(selectItem, null);
     }
 
     @Test
     public void testVisitGroupBy() {
-        SimpleGroupBy simpleGroupBy = new SimpleGroupBy(singletonList(identifier("aaa")));
-        GroupByNode groupBy = new GroupByNode(true, singletonList(simpleGroupBy));
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(groupBy);
-        verify(spy).visitGroupBy(groupBy, null);
-        verify(spy).visitNode(groupBy, null);
+        GroupByNode groupBy = new GroupByNode(null);
+        visitor.process(groupBy);
+        Mockito.verify(visitor).visitGroupBy(groupBy, null);
     }
 
     @Test
-    public void testVisitSimpleGroupByTest() {
-        SimpleGroupBy simpleGroupBy = new SimpleGroupBy(singletonList(identifier("aaa")));
+    public void testVisitOrderBy() {
+        OrderByNode orderBy = new OrderByNode(null);
+        visitor.process(orderBy);
+        Mockito.verify(visitor).visitOrderBy(orderBy, null);
+    }
 
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(simpleGroupBy);
-        verify(spy).visitSimpleGroupBy(simpleGroupBy, null);
-        verify(spy).visitGroupingElement(simpleGroupBy, null);
-        verify(spy).visitNode(simpleGroupBy, null);
+    @Test
+    public void testVisitSortItem() {
+        SortItemNode sortItem = new SortItemNode(null, null);
+        visitor.process(sortItem);
+        Mockito.verify(visitor).visitSortItem(sortItem, null);
+    }
+
+    @Test
+    public void testVisitWindow() {
+        WindowNode window = new WindowNode(null, null, null);
+        visitor.process(window);
+        Mockito.verify(visitor).visitWindow(window, null);
+    }
+
+    @Test
+    public void testVisitWindowInclude() {
+        WindowIncludeNode windowInclude = new WindowIncludeNode("50", "TIME");
+        visitor.process(windowInclude);
+        Mockito.verify(visitor).visitWindowInclude(windowInclude, null);
+    }
+
+    @Test
+    public void testVisitListExpression() {
+        ListExpressionNode listExpression = new ListExpressionNode(null);
+        visitor.process(listExpression);
+        Mockito.verify(visitor).visitListExpression(listExpression, null);
+    }
+
+    @Test
+    public void testVisitNullPredicate() {
+        NullPredicateNode nullPredicate = new NullPredicateNode(null, false);
+        visitor.process(nullPredicate);
+        Mockito.verify(visitor).visitNullPredicate(nullPredicate, null);
+    }
+
+    @Test
+    public void testVisitUnaryExpression() {
+        UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, null);
+        visitor.process(unaryExpression);
+        Mockito.verify(visitor).visitUnaryExpression(unaryExpression, null);
+    }
+
+    @Test
+    public void testVisitNAryExpression() {
+        NAryExpressionNode nAryExpression = new NAryExpressionNode(null, null);
+        visitor.process(nAryExpression);
+        Mockito.verify(visitor).visitNAryExpression(nAryExpression, null);
+    }
+
+    @Test
+    public void testVisitGroupOperation() {
+        GroupOperationNode groupOperation = new GroupOperationNode("AVG", null);
+        visitor.process(groupOperation);
+        Mockito.verify(visitor).visitGroupOperation(groupOperation, null);
+    }
+
+    @Test
+    public void testVisitCountDistinct() {
+        CountDistinctNode countDistinct = new CountDistinctNode(null);
+        visitor.process(countDistinct);
+        Mockito.verify(visitor).visitCountDistinct(countDistinct, null);
+    }
+
+    @Test
+    public void testVisitDistribution() {
+        LinearDistributionNode distribution = new LinearDistributionNode(null, null, null);
+        visitor.process(distribution);
+        Mockito.verify(visitor).visitDistribution(distribution, null);
+    }
+
+    @Test
+    public void testVisitTopK() {
+        TopKNode topK = new TopKNode("50", null, null);
+        visitor.process(topK);
+        Mockito.verify(visitor).visitTopK(topK, null);
     }
 
     @Test
     public void testVisitCastExpression() {
-        CastExpressionNode castExpression = new CastExpressionNode(identifier("aaa"), "FLOAT");
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(castExpression);
-        verify(spy).visitCastExpression(castExpression, null);
-        verify(spy).visitNode(castExpression, null);
+        CastExpressionNode castExpression = new CastExpressionNode(null, "LONG");
+        visitor.process(castExpression);
+        Mockito.verify(visitor).visitCastExpression(castExpression, null);
     }
 
     @Test
     public void testVisitBinaryExpression() {
-        BinaryExpressionNode infixExpression = new BinaryExpressionNode(identifier("aaa"), new DoubleLiteralNode("5.0"), "+");
-
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(infixExpression);
-        verify(spy).visitBinaryExpression(infixExpression, null);
-        verify(spy).visitNode(infixExpression, null);
+        BinaryExpressionNode binaryExpression = new BinaryExpressionNode(null, null, null);
+        visitor.process(binaryExpression);
+        Mockito.verify(visitor).visitBinaryExpression(binaryExpression, null);
     }
 
     @Test
-    public void testVisitParensExpression() {
-        ParensExpression parensExpression = new ParensExpression(identifier("aaa"));
+    public void testVisitParenthesesExpression() {
+        ParenthesesExpressionNode parenthesesExpression = new ParenthesesExpressionNode(null);
+        visitor.process(parenthesesExpression);
+        Mockito.verify(visitor).visitParenthesesExpression(parenthesesExpression, null);
+    }
 
-        ASTTestVisitor spy = spy(visitor);
-        spy.process(parensExpression);
-        verify(spy).visitParensExpression(parensExpression, null);
-        verify(spy).visitNode(parensExpression, null);
-    }*/
+    @Test
+    public void testVisitIdentifier() {
+        IdentifierNode identifier = new IdentifierNode(null, false);
+        visitor.process(identifier);
+        Mockito.verify(visitor).visitIdentifier(identifier, null);
+    }
+
+    @Test
+    public void testVisitLiteral() {
+        LiteralNode literal = new LiteralNode(null);
+        visitor.process(literal);
+        Mockito.verify(visitor).visitLiteral(literal, null);
+    }
 }

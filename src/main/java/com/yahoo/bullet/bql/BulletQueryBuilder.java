@@ -12,7 +12,6 @@ import com.yahoo.bullet.bql.processor.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.tree.QueryNode;
-import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
 
@@ -45,13 +44,13 @@ public class BulletQueryBuilder {
         requireNonNull(bql);
 
         // Parse BQL to node tree.
-        QueryNode queryNode = bqlParser.createQueryNode(bql);
+        QueryNode node = bqlParser.createQueryNode(bql);
 
         // TODO debugging
-        System.out.println(ExpressionFormatter.format(queryNode));
+        //System.out.println(ExpressionFormatter.format(queryNode));
 
         // Process the query node into query components and validate components
-        ProcessedQuery processedQuery = queryProcessor.process(queryNode);
+        ProcessedQuery processedQuery = queryProcessor.process(node);
 
         // Build the query
         return queryExtractor.extractQuery(processedQuery);

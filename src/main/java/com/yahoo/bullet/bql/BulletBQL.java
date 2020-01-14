@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql;
 
-import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
 import lombok.extern.slf4j.Slf4j;
