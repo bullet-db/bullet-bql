@@ -59,7 +59,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         if (context.getQueryTypeSet().isEmpty()) {
             context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT);
         }
-        // TODO valueAggregateNodes vs nonValueAggregateNodes
+        // Set field expressions for group ops and count distinct to point to the correct field names
         for (GroupOperationNode groupOperationNode : context.getGroupOpNodes()) {
             FieldExpression expression = (FieldExpression) context.getExpression(groupOperationNode);
             String alias = context.getAliases().get(groupOperationNode);
@@ -200,9 +200,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         }
         super.visitNullPredicate(node, context);
 
-        UnaryExpression expression = new UnaryExpression();
-        expression.setOp(node.isNot() ? Operation.IS_NOT_NULL : Operation.IS_NULL);
-        expression.setOperand(context.getExpression(node.getExpression()));
+        Operation op = node.isNot() ? Operation.IS_NOT_NULL : Operation.IS_NULL;
+
+        UnaryExpression expression = new UnaryExpression(context.getExpression(node.getExpression()), op);
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().add(node.getExpression());
@@ -221,9 +221,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         }
         super.visitUnaryExpression(node, context);
 
-        UnaryExpression expression = new UnaryExpression();
-        expression.setOp(node.getOp());
-        expression.setOperand(context.getExpression(node.getExpression()));
+        UnaryExpression expression = new UnaryExpression(context.getExpression(node.getExpression()), node.getOp());
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().add(node.getExpression());
@@ -264,7 +262,6 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         super.visitGroupOperation(node, context);
 
         FieldExpression expression = new FieldExpression();
-        //expression.setField();
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().add(node.getExpression());
@@ -287,7 +284,6 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         super.visitCountDistinct(node, context);
 
         FieldExpression expression = new FieldExpression();
-        //expression.setField();
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().addAll(node.getExpressions());

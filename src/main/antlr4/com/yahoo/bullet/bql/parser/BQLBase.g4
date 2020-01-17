@@ -55,7 +55,6 @@ window
 include
     : includeUnit=ALL
     | includeType=FIRST ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
-//  | includeType=(FIRST | LAST) ',' INTEGER_VALUE ',' includeUnit=(TIME | RECORD)
     ;
 
 expression
@@ -170,6 +169,7 @@ nonReserved
     | MANUAL | REGION | LINEAR
     | QUANTILE | FREQ | CUMFREQ
     | TOP
+    | COUNT | SUM | AVG | MIN
     ;
 
 ALL: 'ALL';
@@ -252,7 +252,6 @@ CONCAT: '||';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
-//  | '"' ( ~'"' | '""' )* '"'
     ;
 
 INTEGER_VALUE
@@ -277,7 +276,7 @@ IDENTIFIER
     ;
 
 DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    : DIGIT NAME_LETTER+
     ;
 
 QUOTED_IDENTIFIER

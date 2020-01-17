@@ -60,6 +60,10 @@ public class ComputationExtractor {
         return new Computation(new Projection(fields));
     }
 
+    private Computation extractDistinct() {
+        return null;
+    }
+
     private Computation extractAggregate() {
         //List<Projection.Field> fields = processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
         //                                                                                    .map(this::toField)

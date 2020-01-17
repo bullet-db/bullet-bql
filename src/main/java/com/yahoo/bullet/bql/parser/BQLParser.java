@@ -12,6 +12,7 @@ package com.yahoo.bullet.bql.parser;
 
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.QueryNode;
+import lombok.AllArgsConstructor;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonToken;
@@ -25,13 +26,10 @@ import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import javax.inject.Inject;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Objects.requireNonNull;
 
 public class BQLParser {
     private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
@@ -40,26 +38,6 @@ public class BQLParser {
             throw new ParsingException(message, e, line, charPositionInLine);
         }
     };
-
-    private final EnumSet<IdentifierSymbol> allowedIdentifierSymbols;
-
-    /**
-     * Constructor that create a new {@link BQLParserOptions} with empty EnumSet of allowed {@link IdentifierSymbol}.
-     */
-    public BQLParser() {
-        this(new BQLParserOptions());
-    }
-
-    /**
-     * Constructor that requires a {@link BQLParserOptions}.
-     *
-     * @param options A non-null {@link BQLParserOptions} with a defined EnumSet of allowed {@link IdentifierSymbol}.
-     */
-    @Inject
-    public BQLParser(BQLParserOptions options) {
-        requireNonNull(options, "BQLParserOptions is null");
-        allowedIdentifierSymbols = EnumSet.copyOf(options.getAllowedIdentifierSymbols());
-    }
 
     /**
      * Create a {@link QueryNode} which is a {@link Node} Tree from given BQL String.
@@ -106,28 +84,14 @@ public class BQLParser {
         }
     }
 
+    @AllArgsConstructor
     private class PostProcessor extends BQLBaseBaseListener {
         private final List<String> ruleNames;
-
-        public PostProcessor(List<String> ruleNames) {
-            this.ruleNames = ruleNames;
-        }
-
-        @Override
-        public void exitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) throws ParsingException {
-            String identifier = context.IDENTIFIER().getText();
-            for (IdentifierSymbol identifierSymbol : EnumSet.complementOf(allowedIdentifierSymbols)) {
-                char symbol = identifierSymbol.getSymbol();
-                if (identifier.indexOf(symbol) >= 0) {
-                    throw new ParsingException("Identifiers must not contain '" + identifierSymbol.getSymbol() + "'", null, context.IDENTIFIER().getSymbol().getLine(), context.IDENTIFIER().getSymbol().getCharPositionInLine());
-                }
-            }
-        }
 
         @Override
         public void exitDigitIdentifier(BQLBaseParser.DigitIdentifierContext context) throws ParsingException {
             Token token = context.DIGIT_IDENTIFIER().getSymbol();
-            throw new ParsingException("Identifiers must not start with a digit; surround the identifier with double quotes", null, token.getLine(), token.getCharPositionInLine());
+            throw new ParsingException("Identifiers must not start with a digit; surround the identifier with double quotes.", null, token.getLine(), token.getCharPositionInLine());
         }
 
         @Override

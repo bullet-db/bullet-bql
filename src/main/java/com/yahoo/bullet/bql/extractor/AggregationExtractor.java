@@ -5,6 +5,8 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
+import com.yahoo.bullet.aggregations.CountDistinct;
+import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -17,6 +19,7 @@ import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.parsing.Aggregation;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +29,6 @@ import static com.yahoo.bullet.aggregations.TopK.NEW_NAME_FIELD;
 import static com.yahoo.bullet.aggregations.TopK.THRESHOLD_FIELD;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.OPERATIONS;
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.OPERATION_FIELD;
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.OPERATION_TYPE;
 import static com.yahoo.bullet.parsing.Aggregation.Type.COUNT_DISTINCT;
 import static com.yahoo.bullet.parsing.Aggregation.Type.DISTRIBUTION;
 import static com.yahoo.bullet.parsing.Aggregation.Type.GROUP;
@@ -77,11 +78,10 @@ public class AggregationExtractor {
         }
         List<Map<String, Object>> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
             Map<String, Object> operation = new HashMap<>();
-            operation.put(OPERATION_TYPE, node.getOp());
-            operation.put(NEW_NAME_FIELD, processedQuery.getAliasOrName(node));
+            operation.put(GroupOperation.OPERATION_TYPE, node.getOp());
+            operation.put(GroupOperation.OPERATION_NEW_NAME, processedQuery.getAliasOrName(node));
             if (node.getOp() != COUNT) {
-                // TODO this is going to be a bug
-                operation.put(OPERATION_FIELD, processedQuery.getAliasOrName(node.getExpression()));
+                operation.put(GroupOperation.OPERATION_FIELD, node.getExpression().getName());
             }
             return operation;
         }).collect(Collectors.toList());
@@ -99,12 +99,7 @@ public class AggregationExtractor {
         Aggregation aggregation = new Aggregation();
         aggregation.setType(COUNT_DISTINCT);
         aggregation.setFields(countDistinct.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, ExpressionNode::getName)));
-        //String alias = processedQuery.getAliasOrName(countDistinct);
-        //if (alias != null) {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put(NEW_NAME_FIELD, processedQuery.getAliasOrName(countDistinct));
-        aggregation.setAttributes(attributes);
-        //}
+        aggregation.setAttributes(Collections.singletonMap(CountDistinct.NEW_NAME_FIELD, processedQuery.getAliasOrName(countDistinct)));
         return aggregation;
     }
 
@@ -123,7 +118,7 @@ public class AggregationExtractor {
         TopKNode topK = processedQuery.getTopK();
 
         Aggregation aggregation = new Aggregation(topK.getSize(), TOP_K);
-        aggregation.setFields(topK.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, ExpressionNode::getName)));
+        aggregation.setFields(topK.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         Map<String, Object> attributes = new HashMap<>();
         if (topK.getThreshold() != null) {
             attributes.put(THRESHOLD_FIELD, topK.getThreshold());
@@ -146,12 +141,12 @@ public class AggregationExtractor {
             attributes.put(THRESHOLD_FIELD, ((LiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue());
         }
         String alias = processedQuery.getAliasOrName(processedQuery.getGroupOpNodes().iterator().next());
-        //if (alias != null) {
-        attributes.put(NEW_NAME_FIELD, alias);
-        //}
-        //if (!attributes.isEmpty()) {
+        if (alias != null) {
+            attributes.put(NEW_NAME_FIELD, alias);
+        }
+        if (!attributes.isEmpty()) {
             aggregation.setAttributes(attributes);
-        //}
+        }
         return aggregation;
     }
 }
