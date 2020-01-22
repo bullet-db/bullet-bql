@@ -44,9 +44,6 @@ public class BulletQueryBuilder {
         // Parse BQL to node tree.
         QueryNode node = bqlParser.createQueryNode(bql);
 
-        // TODO debugging
-        //System.out.println(ExpressionFormatter.format(queryNode));
-
         // Process the query node into query components and validate components
         ProcessedQuery processedQuery = queryProcessor.process(node);
 

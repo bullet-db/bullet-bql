@@ -51,16 +51,6 @@ public final class ExpressionFormatter {
             () -> new DecimalFormat("0.###################E0###", new DecimalFormatSymbols(Locale.US)));
 
     /**
-     * Parse an {@link ExpressionNode} to a formatted BQL String, with a List of {@link ExpressionNode} parameters.
-     *
-     * @param expression A non-null {@link ExpressionNode} will be parsed.
-     * @return A formatted BQL String represents the passed in {@link ExpressionNode}.
-     */
-    public static String formatExpression(ExpressionNode expression){
-        return formatExpression(expression, true);
-    }
-
-    /**
      * Parse an {@link ExpressionNode} to a BQL String, with a List of {@link ExpressionNode} parameters.
      * For a literal node, the BQL String can be generated with or without format.
      *
@@ -121,7 +111,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitSelect(SelectNode node, Void context) {
-            return "SELECT " + join(node.getSelectItems());
+            return "SELECT " + (node.isDistinct() ? "DISTINCT " : "") + join(node.getSelectItems());
         }
 
         @Override
