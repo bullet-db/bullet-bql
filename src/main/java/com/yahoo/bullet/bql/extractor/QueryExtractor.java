@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.BQLConfig;
 import com.yahoo.bullet.bql.processor.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.common.BulletConfig;
@@ -39,12 +38,12 @@ public class QueryExtractor {
     private final Long queryMaxDuration;
 
     /**
-     * The constructor with a {@link BQLConfig}.
+     * The constructor with a {@link BulletConfig}.
      *
-     * @param bqlConfig A {@link BQLConfig} for parsing BQL statement.
+     * @param bulletConfig A {@link BulletConfig}.
      */
-    public QueryExtractor(BQLConfig bqlConfig) {
-        queryMaxDuration = bqlConfig.getAs(BulletConfig.QUERY_MAX_DURATION, Long.class);
+    public QueryExtractor(BulletConfig bulletConfig) {
+        queryMaxDuration = bulletConfig.getAs(BulletConfig.QUERY_MAX_DURATION, Long.class);
     }
 
     /**

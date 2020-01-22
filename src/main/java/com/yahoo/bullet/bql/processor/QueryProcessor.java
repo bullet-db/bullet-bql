@@ -35,6 +35,7 @@ import com.yahoo.bullet.parsing.expressions.Operation;
 import com.yahoo.bullet.parsing.expressions.UnaryExpression;
 import com.yahoo.bullet.parsing.expressions.ValueExpression;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, ProcessedQuery> {
@@ -240,9 +241,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         }
         super.visitNAryExpression(node, context);
 
-        NAryExpression expression = new NAryExpression();
-        expression.setOp(node.getOp());
-        expression.setOperands(node.getExpressions().stream().map(context::getExpression).collect(Collectors.toList()));
+        List<Expression> operands = node.getExpressions().stream().map(context::getExpression).collect(Collectors.toList());
+
+        NAryExpression expression = new NAryExpression(operands, node.getOp());
 
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().addAll(node.getExpressions());

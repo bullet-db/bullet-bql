@@ -19,9 +19,9 @@ public class TransientFieldExtractor {
             case SELECT:
                 return extractSelect();
             case SELECT_ALL:
-                return extractSelectAll();
+                return extractAll();
             case SELECT_DISTINCT:
-                return null;
+                return extractDistinct();
             case GROUP:
             case COUNT_DISTINCT:
                 return extractAggregateValue();
@@ -31,7 +31,7 @@ public class TransientFieldExtractor {
             case SPECIAL_K:
                 return null;
         }
-        throw new ParsingException("Unsupported");
+        throw new ParsingException("Unreachable");
     }
 
     private Set<String> extractSelect() {
@@ -42,7 +42,16 @@ public class TransientFieldExtractor {
         return orderByFields;
     }
 
-    private Set<String> extractSelectAll() {
+    private Set<String> extractAll() {
+        Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
+                                                                             .filter(processedQuery::isNotFieldExpression)
+                                                                             .map(processedQuery::getAliasOrName)
+                                                                             .collect(Collectors.toSet());
+        orderByFields.removeAll(getAliasSelectFields());
+        return orderByFields;
+    }
+
+    private Set<String> extractDistinct() {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .filter(processedQuery::isNotFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
@@ -64,6 +73,7 @@ public class TransientFieldExtractor {
                 Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(),
                                             processedQuery.getAggregateNodes().stream()),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(processedQuery::isNotSimpleAliasFieldExpression)
                         .collect(Collectors.toSet());
         transientFields.removeAll(getSelectExpressions());
         return transientFields.stream().map(processedQuery::getAliasOrName).collect(Collectors.toSet());
@@ -85,12 +95,6 @@ public class TransientFieldExtractor {
     private Set<String> getAliasSelectFields() {
         return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                        .map(processedQuery::getAliasOrName)
-                                                       .collect(Collectors.toSet());
-    }
-
-    private Set<String> getNonAliasSelectFields() {
-        return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                       .map(ExpressionNode::getName)
                                                        .collect(Collectors.toSet());
     }
 

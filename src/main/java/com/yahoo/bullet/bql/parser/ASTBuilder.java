@@ -113,30 +113,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitInclude(BQLBaseParser.IncludeContext context) {
-        //Optional<IncludeType> type = getTextIfPresent(context.includeType).map(String::toUpperCase)
-        //                                                                  .map(IncludeType::valueOf);
-        //Optional<Long> number = getTextIfPresent(context.INTEGER_VALUE()).map(Long::parseLong);
-        //Unit unit = Unit.valueOf(context.includeUnit.getText().toUpperCase());
-        //return new WindowIncludeNode(type, number, unit);
         return new WindowIncludeNode(getTextIfPresent(context.INTEGER_VALUE()),
                                      context.includeUnit.getText());
     }
-/*
-    @Override
-    public Node visitValue(BQLBaseParser.ValueContext context) {
-        return visit(context.valueExpression());
-    }
 
-    @Override
-    public Node visitField(BQLBaseParser.FieldContext context) {
-        return visit(context.fieldExpression());
-    }
-
-    @Override
-    public Node visitList(BQLBaseParser.ListContext context) {
-        return visit(context.listExpression());
-    }
-*/
     @Override
     public Node visitFieldExpression(BQLBaseParser.FieldExpressionContext context) {
         return new FieldExpressionNode((IdentifierNode) visit(context.field),
@@ -157,23 +137,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new NullPredicateNode((ExpressionNode) visit(context.expression()),
                                      context.NOT() != null);
     }
-/*
-    @Override
-    public Node visitUnary(BQLBaseParser.UnaryContext context) {
-        return visit(context.unaryExpression());
-    }
-*/
+
     @Override
     public Node visitUnaryExpression(BQLBaseParser.UnaryExpressionContext context) {
         return new UnaryExpressionNode(getOperation(context.op),
-                                       (ExpressionNode) visit(context.expression()));
+                                       (ExpressionNode) visit(context.expression()),
+                                       context.parens != null);
     }
-/*
-    @Override
-    public Node visitFunction(BQLBaseParser.FunctionContext context) {
-        return visit(context.functionExpression());
-    }
-*/
 
     @Override
     public Node visitBinary(BQLBaseParser.BinaryContext context) {
@@ -187,12 +157,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new NAryExpressionNode(getOperation(context.op),
                                       visit(context.expression(), ExpressionNode.class));
     }
-/*
-    @Override
-    public Node visitAggregate(BQLBaseParser.AggregateContext context) {
-        return visit(context.aggregateExpression());
-    }
-*/
+
     @Override
     public Node visitGroupOperation(BQLBaseParser.GroupOperationContext context) {
         return new GroupOperationNode(context.op.getText(),

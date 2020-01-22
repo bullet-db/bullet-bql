@@ -13,6 +13,7 @@ public class FieldExpressionNode extends ExpressionNode {
     private final Integer index;
     private final IdentifierNode key;
     private final IdentifierNode subKey;
+    // Types not used for equals() and hashCode()
     private final Type type;
     private final Type primitiveType;
 

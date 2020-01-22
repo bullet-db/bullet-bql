@@ -11,6 +11,8 @@ import java.util.Objects;
 public class UnaryExpressionNode extends ExpressionNode {
     private final Operation op;
     private final ExpressionNode expression;
+    // Not used for equals() and hashCode()
+    private final boolean parenthesized;
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

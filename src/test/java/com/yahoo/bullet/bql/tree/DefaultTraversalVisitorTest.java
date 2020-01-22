@@ -120,7 +120,7 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitUnaryExpression() {
-        UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, new LiteralNode(5));
+        UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, new LiteralNode(5), false);
         visitor.process(unaryExpression);
         Mockito.verify(visitor).visitUnaryExpression(unaryExpression, null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) unaryExpression.getExpression(), null);

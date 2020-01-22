@@ -69,6 +69,11 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getFilter(), new FieldExpression("abc"));
     }
 
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*WHERE clause cannot contain aggregates\\.")
+    public void testWhereAggregatesNotAllowed() {
+        build("SELECT AVG(abc) FROM STREAM() WHERE AVG(abc) >= 5");
+    }
+
     @Test
     public void testWhereIgnoresAlias() {
         build("SELECT abc AS def FROM STREAM() WHERE abc");
@@ -92,6 +97,11 @@ public class BulletQueryBuilderTest {
     public void testMaxDuration() {
         build("SELECT * FROM STREAM(MAX, TIME)");
         Assert.assertEquals(query.getDuration(), (Long) Long.MAX_VALUE);
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*STREAM does not currently support record duration\\.")
+    public void testRecordDurationNotAllowed() {
+        build("SELECT * FROM STREAM(2000, TIME, 20, RECORD)");
     }
 
     @Test
@@ -129,9 +139,11 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testRawWithUnnecessaryParentheses() {
-        build("SELECT ((abc)) FROM STREAM()");
+        build("SELECT ((abc + 5)) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
-        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                new ValueExpression(5),
+                                                                                                                Operation.ADD)));
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
     }
 
@@ -265,7 +277,7 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testRawWithOrderByMultiple() {
-        build("SELECT abc FROM STREAM() ORDER BY abc + 5, def DESC");
+        build("SELECT abc FROM STREAM() ORDER BY abc + 5 ASC, def DESC");
         Assert.assertEquals(query.getProjection().getFields().size(), 3);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
         Assert.assertEquals(query.getProjection().getFields().get(1), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
@@ -467,11 +479,11 @@ public class BulletQueryBuilderTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def + 5");
 
         Culling culling = (Culling) query.getPostAggregations().get(2);
 
-        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("def"));
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("def + 5"));
     }
 
     @Test
@@ -549,6 +561,43 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testGroupByWithComputationAndOrderByComputation() {
+        // This creates a query that has an ORDER BY clause dependent on "abc" (which does not exist after the group by..)
+        build("SELECT abc + 5 FROM STREAM() GROUP BY abc + 5 ORDER BY (abc + 5) * 10");
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                                   new ValueExpression(5),
+                                                                                                                                   Operation.ADD))));
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.GROUP);
+        Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc + 5", "abc + 5"));
+        Assert.assertNull(query.getAggregation().getAttributes());
+        Assert.assertEquals(query.getPostAggregations().size(), 3);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Field field = new Field("(abc + 5) * 10", new BinaryExpression(new BinaryExpression(new FieldExpression("abc"),
+                                                                                            new ValueExpression(5),
+                                                                                            Operation.ADD),
+                                                                       new ValueExpression(10),
+                                                                       Operation.MUL));
+
+        Assert.assertEquals(computation.getProjection().getFields(), Collections.singletonList(field));
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
+
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getField(), "(abc + 5) * 10");
+
+        Culling culling = (Culling) query.getPostAggregations().get(2);
+
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("(abc + 5) * 10"));
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*GROUP BY clause cannot contain aggregates\\.")
+    public void testGroupByAggregatesNotAllowed() {
+        build("SELECT AVG(abc) FROM STREAM() GROUP BY AVG(abc)");
+    }
+
+    @Test
     public void testGroupOp() {
         build("SELECT AVG(abc) FROM STREAM()");
         Assert.assertNull(query.getProjection());
@@ -559,9 +608,9 @@ public class BulletQueryBuilderTest {
         List<Map<String, Object>> operations = (List<Map<String, Object>>) query.getAggregation().getAttributes().get(GroupOperation.OPERATIONS);
 
         Assert.assertEquals(operations.size(), 1);
-        Assert.assertEquals(operations.get(0).size(), 2);
+        Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(abc)");
 
         Assert.assertNull(query.getPostAggregations());
@@ -580,10 +629,14 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(abc)");
 
-        Assert.assertNull(query.getPostAggregations());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Culling culling = (Culling) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc"));
     }
 
     @Test
@@ -601,7 +654,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc + 5");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(abc + 5)");
 
         Assert.assertNull(query.getPostAggregations());
@@ -620,7 +673,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(abc)");
 
         Assert.assertEquals(query.getPostAggregations().size(), 2);
@@ -631,17 +684,20 @@ public class BulletQueryBuilderTest {
                                                                                                                                               new ValueExpression(5),
                                                                                                                                               Operation.ADD))));
 
-        Culling culling = (Culling) query.getPostAggregations().get(0);
+        Culling culling = (Culling) query.getPostAggregations().get(1);
 
         Assert.assertEquals(culling.getTransientFields(), Collections.singleton("AVG(abc)"));
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Aggregates cannot be nested\\.")
+    public void testGroupOpNestingNotAllowed() {
+        build("SELECT AVG(SUM(abc)) FROM STREAM()");
     }
 
     @Test
     public void testGroupByHaving() {
         build("SELECT AVG(abc) FROM STREAM() HAVING AVG(abc) >= 5");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
-                                                                                                                                   new ValueExpression(5),
-                                                                                                                                   Operation.ADD))));
+        Assert.assertNull(query.getProjection());
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.GROUP);
         Assert.assertNull(query.getAggregation().getFields());
         Assert.assertEquals(query.getAggregation().getAttributes().size(), 1);
@@ -651,7 +707,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(abc)");
 
         Assert.assertEquals(query.getPostAggregations().size(), 1);
@@ -661,6 +717,11 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(having.getExpression(), new BinaryExpression(new FieldExpression("AVG(abc)"),
                                                                          new ValueExpression(5),
                                                                          Operation.GREATER_THAN_OR_EQUALS));
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*HAVING clause is only supported for queries with group by operations\\.")
+    public void testNonGroupByHavingNotAllowed() {
+        build("SELECT * FROM STREAM() HAVING abc >= 5");
     }
 
     @Test
@@ -676,7 +737,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(abc)");
 
         Assert.assertEquals(query.getPostAggregations().size(), 1);
@@ -701,7 +762,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "avg");
 
         Assert.assertEquals(query.getPostAggregations().size(), 1);
@@ -726,7 +787,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "def");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(def)");
 
         Assert.assertEquals(query.getPostAggregations().size(), 2);
@@ -755,7 +816,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 3);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "def");
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "AVG");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.AVG);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "AVG(def)");
 
         Assert.assertEquals(query.getPostAggregations().size(), 2);
@@ -845,8 +906,18 @@ public class BulletQueryBuilderTest {
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Cannot have multiple count distincts\\.")
-    public void testMultipleCountDistinct() {
+    public void testCountDistinctMultipleNotAllowed() {
         build("SELECT COUNT(DISTINCT abc), COUNT(DISTINCT def) FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*LIMIT clause is not supported for queries with top k or count distinct\\.")
+    public void testCountDistinctLimitNotAllowed() {
+        build("SELECT COUNT(DISTINCT abc) FROM STREAM() LIMIT 10");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*ORDER BY clause is not supported for queries with top k or count distinct\\.")
+    public void testCountDistinctOrderByNotAllowed() {
+        build("SELECT COUNT(DISTINCT abc) FROM STREAM() ORDER BY COUNT(DISTINCT abc)");
     }
 
     @Test
@@ -888,6 +959,16 @@ public class BulletQueryBuilderTest {
         Assert.assertNull(query.getPostAggregations());
     }
 
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Cannot have multiple distributions\\.")
+    public void testDistributionMultipleNotAllowed() {
+        build("SELECT FREQ(abc, REGION, 2000, 20000, 500), CUMFREQ(abc, MANUAL, 20000, 2000, 15000, 45000) FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Distributions cannot be treated as values\\.")
+    public void testDistributionAsValueNotAllowed() {
+        build("SELECT QUANTILE(abc, LINEAR, 11) + 5 FROM STREAM()");
+    }
+
     @Test
     public void testDistributionWithComputation() {
         build("SELECT QUANTILE(abc + 5, LINEAR, 11) FROM STREAM()");
@@ -924,26 +1005,24 @@ public class BulletQueryBuilderTest {
         Assert.assertNull(query.getPostAggregations());
     }
 
-    @Test
-    public void testTopKTakesMinLimit1() {
-        build("SELECT TOP(10, abc) FROM STREAM() LIMIT 50");
-        Assert.assertNull(query.getProjection());
-        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
-        Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc", "abc"));
-        Assert.assertNull(query.getAggregation().getAttributes());
-        Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
-        Assert.assertNull(query.getPostAggregations());
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Cannot have multiple top k\\.")
+    public void testTopKMultipleNotAllowed() {
+        build("SELECT TOP(10, abc), TOP(10, def) FROM STREAM()");
     }
 
-    @Test
-    public void testTopKTakesMinLimit2() {
-        build("SELECT TOP(10, abc) FROM STREAM() LIMIT 5");
-        Assert.assertNull(query.getProjection());
-        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
-        Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc", "abc"));
-        Assert.assertNull(query.getAggregation().getAttributes());
-        Assert.assertEquals(query.getAggregation().getSize(), (Integer) 5);
-        Assert.assertNull(query.getPostAggregations());
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Top k cannot be treated as a value\\.")
+    public void testTopKAsValueNotAllowed() {
+        build("SELECT TOP(10, abc) + 5 FROM STREAM()");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*LIMIT clause is not supported for queries with top k or count distinct\\.")
+    public void testTopKLimitNotAllowed() {
+        build("SELECT TOP(10, abc) FROM STREAM() LIMIT 10");
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*ORDER BY clause is not supported for queries with top k or count distinct\\.")
+    public void testTopKOrderByNotAllowed() {
+        build("SELECT TOP(10, abc) FROM STREAM() ORDER BY abc");
     }
 
     @Test
@@ -962,9 +1041,11 @@ public class BulletQueryBuilderTest {
     @Test
     public void testTopKWithComputations() {
         build("SELECT TOP(10, abc, def + 5) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def + 5", new BinaryExpression(new FieldExpression("def"),
-                                                                                                                                   new ValueExpression(5),
-                                                                                                                                   Operation.ADD))));
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("def + 5", new BinaryExpression(new FieldExpression("def"),
+                                                                                                                new ValueExpression(5),
+                                                                                                                Operation.ADD)));
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
         Assert.assertEquals(query.getAggregation().getFields().size(), 2);
         Assert.assertEquals(query.getAggregation().getFields().get("abc"), "abc");
@@ -977,9 +1058,11 @@ public class BulletQueryBuilderTest {
     @Test
     public void testTopKWithAdditionalFields() {
         build("SELECT TOP(10, abc, def + 5), abc + 5, count + 5 FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def + 5", new BinaryExpression(new FieldExpression("def"),
-                                                                                                                                   new ValueExpression(5),
-                                                                                                                                   Operation.ADD))));
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", new FieldExpression("abc")));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("def + 5", new BinaryExpression(new FieldExpression("def"),
+                                                                                                                new ValueExpression(5),
+                                                                                                                Operation.ADD)));
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
         Assert.assertEquals(query.getAggregation().getFields().size(), 2);
         Assert.assertEquals(query.getAggregation().getFields().get("abc"), "abc");
@@ -1062,7 +1145,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc", "abc"));
         Assert.assertEquals(query.getAggregation().getAttributes().size(), 2);
         Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.NEW_NAME_FIELD), "COUNT(*)");
-        Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.THRESHOLD_FIELD), 100L);
+        Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.THRESHOLD_FIELD), 100);
         Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());
     }
@@ -1086,7 +1169,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc", "abc"));
         Assert.assertEquals(query.getAggregation().getAttributes().size(), 2);
         Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.NEW_NAME_FIELD), "count");
-        Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.THRESHOLD_FIELD), 50L);
+        Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.THRESHOLD_FIELD), 50);
         Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());
     }
@@ -1099,7 +1182,7 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc", "abc"));
         Assert.assertEquals(query.getAggregation().getAttributes().size(), 2);
         Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.NEW_NAME_FIELD), "count");
-        Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.THRESHOLD_FIELD), 50L);
+        Assert.assertEquals(query.getAggregation().getAttributes().get(TopK.THRESHOLD_FIELD), 50);
         Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());
     }
@@ -1107,13 +1190,20 @@ public class BulletQueryBuilderTest {
     @Test
     public void testSpecialKWithComputationAndAlias() {
         build("SELECT abc + 5 AS def, COUNT(*) FROM STREAM() GROUP BY abc + 5 ORDER BY COUNT(*) DESC LIMIT 10");
-
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                                                   new ValueExpression(5),
+                                                                                                                                   Operation.ADD))));
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+        Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc + 5", "def"));
+        Assert.assertEquals(query.getAggregation().getAttributes(), Collections.singletonMap(TopK.NEW_NAME_FIELD, "COUNT(*)"));
+        Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
+        Assert.assertNull(query.getPostAggregations());
     }
 
     @Test
     public void testNotSpecialKMissingLimit() {
         build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc ORDER BY COUNT(*) DESC");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc", new FieldExpression("abc"))));
+        Assert.assertNull(query.getProjection());
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.GROUP);
         Assert.assertEquals(query.getAggregation().getFields(), Collections.singletonMap("abc", "abc"));
         Assert.assertEquals(query.getAggregation().getAttributes().size(), 1);
@@ -1122,7 +1212,7 @@ public class BulletQueryBuilderTest {
 
         Assert.assertEquals(operations.size(), 1);
         Assert.assertEquals(operations.get(0).size(), 2);
-        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), "COUNT");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.COUNT);
         Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "COUNT(*)");
 
         Assert.assertEquals(query.getPostAggregations().size(), 1);
@@ -1133,6 +1223,56 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(orderBy.getFields().get(0).getField(), "COUNT(*)");
         Assert.assertEquals(orderBy.getFields().get(0).getDirection(), OrderBy.Direction.DESC);
     }
+
+    @Test
+    public void testNotSpecialKNotCount() {
+        build("SELECT abc, AVG(abc) FROM STREAM() GROUP BY abc ORDER BY AVG(abc) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+    }
+
+    @Test
+    public void testNotSpecialKFieldsNotSelected() {
+        build("SELECT COUNT(*) FROM STREAM() GROUP BY abc ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+    }
+
+    @Test
+    public void testNotSpecialKCountNotSelected() {
+        build("SELECT abc FROM STREAM() GROUP BY abc ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+    }
+
+    @Test
+    public void testNotSpecialKNotCountOrderBy() {
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc ORDER BY abc DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+    }
+
+    @Test
+    public void testNotSpecialKNotOrderByDesc() {
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc ORDER BY COUNT(*) ASC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+    }
+
+    @Test
+    public void testNotSpecialKBadHaving() {
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING abc >= 5 ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) > 5 ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) >= abc ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+
+        build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) >= '5' ORDER BY COUNT(*) DESC LIMIT 10");
+        Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
+    }
+
+
 
     @Test
     public void testQuotedField() {
@@ -1201,7 +1341,96 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
-    public void testUnaryExpression() {
+    public void testSignedNumbers() {
+        build("SELECT 5 AS a, -5 AS b, 5L AS c, -5L AS d, 5.0 AS e, -5.0 AS f, 5.0f AS g, -5.0f AS h FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 8);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("a", new ValueExpression(5)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("b", new ValueExpression(-5)));
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("c", new ValueExpression(5L)));
+        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("d", new ValueExpression(-5L)));
+        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("e", new ValueExpression(5.0)));
+        Assert.assertEquals(query.getProjection().getFields().get(5), new Field("f", new ValueExpression(-5.0)));
+        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("g", new ValueExpression(5.0f)));
+        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("h", new ValueExpression(-5.0f)));
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testBinaryOperations() {
+        build("SELECT a + 5, a - 5, a * 5, a / 5, a = 5, a != 5, a > 5, a < 5, a >= 5, a <= 5, " +
+              "RLIKE(a, 5), SIZEIS(a, 5), CONTAINSKEY(a, 5), CONTAINSVALUE(a, 5), FILTER(a, 5), " +
+              "a AND 5, a OR 5, a XOR 5 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 18);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("a + 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.ADD)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("a - 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.SUB)));
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("a * 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.MUL)));
+        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("a / 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.DIV)));
+        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("a = 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.EQUALS)));
+        Assert.assertEquals(query.getProjection().getFields().get(5), new Field("a != 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                               new ValueExpression(5),
+                                                                                                               Operation.NOT_EQUALS)));
+        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("a > 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.GREATER_THAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("a < 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                              new ValueExpression(5),
+                                                                                                              Operation.LESS_THAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(8), new Field("a >= 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                               new ValueExpression(5),
+                                                                                                               Operation.GREATER_THAN_OR_EQUALS)));
+        Assert.assertEquals(query.getProjection().getFields().get(9), new Field("a <= 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                               new ValueExpression(5),
+                                                                                                               Operation.LESS_THAN_OR_EQUALS)));
+        Assert.assertEquals(query.getProjection().getFields().get(10), new Field("RLIKE(a, 5)", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                     new ValueExpression(5),
+                                                                                                                     Operation.REGEX_LIKE)));
+        Assert.assertEquals(query.getProjection().getFields().get(11), new Field("SIZEIS(a, 5)", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                      new ValueExpression(5),
+                                                                                                                      Operation.SIZE_IS)));
+        Assert.assertEquals(query.getProjection().getFields().get(12), new Field("CONTAINSKEY(a, 5)", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                           new ValueExpression(5),
+                                                                                                                           Operation.CONTAINS_KEY)));
+        Assert.assertEquals(query.getProjection().getFields().get(13), new Field("CONTAINSVALUE(a, 5)", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                             new ValueExpression(5),
+                                                                                                                             Operation.CONTAINS_VALUE)));
+        Assert.assertEquals(query.getProjection().getFields().get(14), new Field("FILTER(a, 5)", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                      new ValueExpression(5),
+                                                                                                                      Operation.FILTER)));
+        Assert.assertEquals(query.getProjection().getFields().get(15), new Field("a AND 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                 new ValueExpression(5),
+                                                                                                                 Operation.AND)));
+        Assert.assertEquals(query.getProjection().getFields().get(16), new Field("a OR 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                new ValueExpression(5),
+                                                                                                                Operation.OR)));
+        Assert.assertEquals(query.getProjection().getFields().get(17), new Field("a XOR 5", new BinaryExpression(new FieldExpression("a"),
+                                                                                                                 new ValueExpression(5),
+                                                                                                                 Operation.XOR)));
+    }
+
+    @Test
+    public void testTypes() {
+        build("SELECT a : STRING, b : LIST[STRING], c : MAP[STRING], d : LIST[MAP[STRING]], e : MAP[MAP[STRING]] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 5);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("a", new FieldExpression("a", null, null, null, Type.STRING, null)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("b", new FieldExpression("b", null, null, null, Type.LIST, Type.STRING)));
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("c", new FieldExpression("c", null, null, null, Type.MAP, Type.STRING)));
+        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("d", new FieldExpression("d", null, null, null, Type.LISTOFMAP, Type.STRING)));
+        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("e", new FieldExpression("e", null, null, null, Type.MAPOFMAP, Type.STRING)));
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testUnaryExpressionSizeOf() {
         build("SELECT SIZEOF(abc) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
 
@@ -1209,6 +1438,17 @@ public class BulletQueryBuilderTest {
 
         Assert.assertEquals(field.getName(), "SIZEOF(abc)");
         Assert.assertEquals(field.getValue(), new UnaryExpression(new FieldExpression("abc"), Operation.SIZE_OF));
+    }
+
+    @Test
+    public void testUnaryExpressionNot() {
+        build("SELECT NOT abc FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "NOT abc");
+        Assert.assertEquals(field.getValue(), new UnaryExpression(new FieldExpression("abc"), Operation.NOT));
     }
 
     @Test
@@ -1242,13 +1482,27 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testIfExpression() {
+        build("SELECT IF(abc, 5, 10) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "IF(abc, 5, 10)");
+        Assert.assertEquals(field.getValue(), new NAryExpression(Arrays.asList(new FieldExpression("abc"),
+                                                                               new ValueExpression(5),
+                                                                               new ValueExpression(10)),
+                                                                 Operation.IF));
+    }
+
+    @Test
     public void testCastExpression() {
         build("SELECT CAST(abc : INTEGER AS DOUBLE) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
 
         Field field = query.getProjection().getFields().get(0);
 
-        Assert.assertEquals(field.getName(), "CAST(abc : INTEGER AS DOUBLE)");
+        Assert.assertEquals(field.getName(), "CAST(abc AS DOUBLE)");
         Assert.assertEquals(field.getValue(), new CastExpression(new FieldExpression("abc", null, null, null, Type.INTEGER, null), Type.DOUBLE));
     }
 
@@ -1270,7 +1524,7 @@ public class BulletQueryBuilderTest {
 
         Field field = query.getProjection().getFields().get(0);
 
-        Assert.assertEquals(field.getName(), "abc IS NULL");
+        Assert.assertEquals(field.getName(), "abc IS NOT NULL");
         Assert.assertEquals(field.getValue(), new UnaryExpression(new FieldExpression("abc"), Operation.IS_NOT_NULL));
     }
 
@@ -1278,5 +1532,10 @@ public class BulletQueryBuilderTest {
     public void testNullValue() {
         build("SELECT NULL FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("NULL", new ValueExpression(null))));
+    }
+
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Query matches more than one query type:.*")
+    public void testTooManyQueryTypes() {
+        build("SELECT * FROM STREAM() GROUP BY abc");
     }
 }

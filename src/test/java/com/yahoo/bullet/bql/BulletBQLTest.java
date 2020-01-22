@@ -9,34 +9,39 @@ import org.junit.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 
 import static org.testng.Assert.assertEquals;
 
 public class BulletBQLTest {
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    private final PrintStream originalOut = System.out;
+    private final InputStream systemIn = System.in;
+    private final PrintStream systemOut = System.out;
 
     @BeforeClass
-    public void setUpStreams() {
+    public void setup() {
         System.setOut(new PrintStream(outContent));
     }
 
     @AfterClass
     public void restoreStreams() {
-        System.setOut(originalOut);
+        System.setIn(systemIn);
+        System.setOut(systemOut);
     }
 
     @Test
-    public void testMain() throws Exception {
-        /*
-        String[] args = new String[]{"SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, FIRST, 3000, TIME) LIMIT 5"};
-        BulletBQL.main(args);
+    public void testMain() {
+        String bql = "SELECT * FROM STREAM()\n\n";
+
+        System.setIn(new ByteArrayInputStream(bql.getBytes()));
+
+        BulletBQL.main(null);
+
         String printOut = outContent.toString();
-        assertEquals(printOut, "\n############################## Bullet Query ##############################\n"
-                               + "\n{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"},\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}},\"duration\":2000}\n"
-                               + "\n##########################################################################\n\n");
-       */
+        assertEquals(printOut, "{\"aggregation\":{\"size\":500,\"type\":\"RAW\"},\"duration\":9223372036854775807}\n" +
+                               "Optional.empty\n");
     }
 }

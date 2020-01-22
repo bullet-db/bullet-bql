@@ -99,7 +99,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitUnaryExpression() {
-        UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, null);
+        UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, null, false);
         visitor.process(unaryExpression);
         Mockito.verify(visitor).visitUnaryExpression(unaryExpression, null);
     }

@@ -20,18 +20,16 @@ import static java.util.Objects.requireNonNull;
 public class BulletQueryBuilder {
     private static final Gson GSON = new GsonBuilder().create();
     private final QueryProcessor queryProcessor = new QueryProcessor();
-    private final BQLParser bqlParser;
+    private final BQLParser bqlParser = new BQLParser();
     private final QueryExtractor queryExtractor;
 
     /**
      * Constructor that initializes a BulletQueryBuilder.
      *
-     * @param config A {@link BulletConfig} that will merge with {@link BQLConfig}.
+     * @param config A {@link BulletConfig}.
      */
     public BulletQueryBuilder(BulletConfig config) {
-        bqlParser = new BQLParser();
-        BQLConfig bqlConfig = new BQLConfig(requireNonNull(config));
-        queryExtractor = new QueryExtractor(bqlConfig);
+        queryExtractor = new QueryExtractor(config);
     }
 
     /**

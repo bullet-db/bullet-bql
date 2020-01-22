@@ -22,17 +22,14 @@ import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
-import com.yahoo.bullet.bql.tree.LinearDistributionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
-import com.yahoo.bullet.bql.tree.ManualDistributionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.OrderByNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
-import com.yahoo.bullet.bql.tree.RegionDistributionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
@@ -48,7 +45,6 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
     private static final ThreadLocal<DecimalFormat> DOUBLE_FORMATTER = ThreadLocal.withInitial(
@@ -198,6 +194,9 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitUnaryExpression(UnaryExpressionNode node, Void context) {
+            if (node.isParenthesized()) {
+                return node.getOp().getName() + "(" + process(node.getExpression()) + ")";
+            }
             return node.getOp().getName() + " " + process(node.getExpression());
         }
 
@@ -241,7 +240,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitCastExpression(CastExpressionNode node, Void context) {
-            return "CAST (" + process(node.getExpression()) + " AS " + node.getCastType() + ")";
+            return "CAST(" + process(node.getExpression()) + " AS " + node.getCastType() + ")";
         }
 
         @Override
@@ -249,7 +248,7 @@ public final class ExpressionFormatter {
             if (node.getOp().isInfix()) {
                 return process(node.getLeft()) + " " + node.getOp() + " " + process(node.getRight());
             }
-            return node.getOp() + "(" + process(node.getLeft()) + ", " + process(node.getRight());
+            return node.getOp() + "(" + process(node.getLeft()) + ", " + process(node.getRight()) + ")";
         }
 
         @Override
@@ -294,44 +293,8 @@ public final class ExpressionFormatter {
         s = s.replace("'", "''");
         return "'" + s + "'";
     }
-    /*
-    static String formatGroupBy(List<GroupingElement> groupingElements) {
-        return formatGroupBy(groupingElements, Optional.empty());
-    }
 
-    static String formatGroupBy(List<GroupingElement> groupingElements, Optional<List<ExpressionNode>> parameters) {
-        ImmutableList.Builder<String> resultStrings = ImmutableList.builder();
-
-        for (GroupingElement groupingElement : groupingElements) {
-            String result = "";
-            Set<ExpressionNode> columns = ImmutableSet.copyOf(((SimpleGroupBy) groupingElement).getColumnExpressions());
-            if (columns.size() == 1) {
-                result = formatExpression(getOnlyElement(columns));
-            } else {
-                result = formatGroupingSet(columns);
-            }
-            resultStrings.add(result);
-        }
-        return Joiner.on(", ").join(resultStrings.build());
-    }
-    */
     public static String format(Node node) {
         return new Formatter(true).process(node);
     }
-
-    static String formatStream(StreamNode node) {
-        return new Formatter(true).process(node);
-    }
-
-    static String formatOrderBy(OrderByNode node) {
-        return new Formatter(true).process(node);
-    }
-
-    static String formatWindowing(WindowNode node) {
-        return new Formatter(true).process(node);
-    }
-
-    //private static String formatGroupingSet(Set<ExpressionNode> groupingSet) {
-    //    return format("(%s)", Joiner.on(", ").join(groupingSet.stream().map(ExpressionFormatter::formatExpression).iterator()));
-    //}
 }

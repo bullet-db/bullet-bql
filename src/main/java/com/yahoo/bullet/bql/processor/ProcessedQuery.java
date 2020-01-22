@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 
-@Getter @Setter
+@Getter
 public class ProcessedQuery {
     public enum QueryType {
         TOP_K,
@@ -44,15 +44,28 @@ public class ProcessedQuery {
 
     private Set<QueryType> queryTypeSet = EnumSet.noneOf(QueryType.class);
 
+    @Setter
     private Long timeDuration;
+    @Setter
     private Long recordDuration;
+    @Setter
     private Integer limit;
 
+    @Setter
     private boolean windowed;
+    @Setter
     private Long emitEvery;
+    @Setter
     private Window.Unit emitType;
+    @Setter
     private Long first;
+    @Setter
     private Window.Unit includeUnit;
+
+    @Setter
+    private ExpressionNode whereNode;
+    @Setter
+    private ExpressionNode havingNode;
 
     private Map<ExpressionNode, Expression> expressionNodes = new HashMap<>();
     private Map<ExpressionNode, String> aliases = new HashMap<>();
@@ -68,9 +81,6 @@ public class ProcessedQuery {
     private Set<CountDistinctNode> countDistinctNodes = new HashSet<>();
     private Set<DistributionNode> distributionNodes = new HashSet<>();
     private Set<TopKNode> topKNodes = new HashSet<>();
-
-    private ExpressionNode whereNode;
-    private ExpressionNode havingNode;
 
     public ProcessedQuery validate() {
         if (queryTypeSet.size() != 1) {
@@ -88,8 +98,11 @@ public class ProcessedQuery {
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
             throw new ParsingException("Aggregates cannot be nested.");
         }
-        if (distributionNodes.stream().anyMatch(subExpressionNodes::contains) || topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            throw new ParsingException("Distributions and top k cannot be treated as values.");
+        if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
+            throw new ParsingException("Distributions cannot be treated as values.");
+        }
+        if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
+            throw new ParsingException("Top k cannot be treated as a value.");
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
             throw new ParsingException("WHERE clause cannot contain aggregates.");
@@ -178,11 +191,11 @@ public class ProcessedQuery {
         String alias = aliases.get(node);
         return alias != null ? alias : node.getName();
     }
-
+/*
     public List<SelectItemNode> getSuperAggregateSelectNodes() {
         return selectNodes.stream().filter(node -> isSuperAggregate(node.getExpression())).collect(Collectors.toList());
     }
-
+*/
     public List<SelectItemNode> getNonAggregateSelectNodes() {
         return selectNodes.stream().filter(node -> !isAggregate(node.getExpression())).collect(Collectors.toList());
     }
@@ -198,12 +211,11 @@ public class ProcessedQuery {
     public boolean isSuperAggregate(ExpressionNode node) {
         return superAggregateNodes.contains(node);
     }
-/*
-    public boolean isGroupOrCountDistinct(ExpressionNode node) {
-        return (node instanceof GroupOperationNode && groupOpNodes.contains(node)) ||
-               (node instanceof CountDistinctNode && countDistinctNodes.contains(node));
+
+    public boolean isNotGroupByNode(ExpressionNode node) {
+        return !groupByNodes.contains(node);
     }
-*/
+
     public boolean isSimpleFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {

@@ -27,9 +27,9 @@ public class ComputationExtractor {
             case SELECT:
                 return null;
             case SELECT_ALL:
-                return extractSelectAll();
+                return extractAll();
             case SELECT_DISTINCT:
-                return null;
+                return extractDistinct();
             case GROUP:
             case COUNT_DISTINCT:
             case DISTRIBUTION:
@@ -46,10 +46,10 @@ public class ComputationExtractor {
             case SPECIAL_K:
                 return extractSpecialK();
         }
-        throw new ParsingException("Unsupported");
+        throw new ParsingException("Unreachable");
     }
 
-    private Computation extractSelectAll() {
+    private Computation extractAll() {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
@@ -61,7 +61,11 @@ public class ComputationExtractor {
     }
 
     private Computation extractDistinct() {
-        return null;
+        List<Projection.Field> fields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
+                                                                                 .filter(processedQuery::isNotSimpleFieldExpression)
+                                                                                 .map(this::toField)
+                                                                                 .collect(Collectors.toList());
+        return new Computation(new Projection(fields));
     }
 
     private Computation extractAggregate() {
@@ -71,6 +75,7 @@ public class ComputationExtractor {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(processedQuery::isNotGroupByNode)
                         .filter(processedQuery::isNotFieldExpression)
                         .distinct()
                         .map(this::toField)

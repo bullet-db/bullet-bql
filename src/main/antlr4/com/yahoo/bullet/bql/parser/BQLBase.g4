@@ -95,7 +95,8 @@ listExpression
     ;
 
 unaryExpression
-    : op=(NOT | SIZEOF) operand=expression
+    : op=(NOT | SIZEOF) parens='(' operand=expression ')'
+    | op=(NOT | SIZEOF) operand=expression
     ;
 
 functionExpression

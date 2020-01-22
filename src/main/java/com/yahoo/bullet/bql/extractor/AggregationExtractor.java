@@ -58,7 +58,7 @@ public class AggregationExtractor {
             case SPECIAL_K:
                 return extractSpecialK();
         }
-        throw new ParsingException("Unsupported");
+        throw new ParsingException("Unreachable");
     }
 
     private Aggregation extractRaw() {

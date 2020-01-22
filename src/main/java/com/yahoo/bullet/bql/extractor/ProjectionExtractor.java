@@ -33,7 +33,7 @@ public class ProjectionExtractor {
             case SELECT:
                 return extractSelect();
             case SELECT_ALL:
-                return extractSelectAll();
+                return extractAll();
             case SELECT_DISTINCT:
                 return extractDistinct();
             case GROUP:
@@ -47,7 +47,7 @@ public class ProjectionExtractor {
             case SPECIAL_K:
                 return extractSpecialK();
         }
-        throw new ParsingException("Unsupported");
+        throw new ParsingException("Unreachable");
     }
 
     private Projection extractSelect() {
@@ -60,7 +60,7 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
-    private Projection extractSelectAll() {
+    private Projection extractAll() {
         List<ExpressionNode> expressions =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)).collect(Collectors.toList());
@@ -132,7 +132,7 @@ public class ProjectionExtractor {
         if (processedQuery.getGroupByNodes().stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
         }
-        List<Projection.Field> fields = processedQuery.getGroupByNodes().stream().map(this::toAliasedField).collect(Collectors.toList());
+        List<Projection.Field> fields = processedQuery.getGroupByNodes().stream().map(this::toNonAliasedField).collect(Collectors.toList());
         return new Projection(fields);
     }
 
