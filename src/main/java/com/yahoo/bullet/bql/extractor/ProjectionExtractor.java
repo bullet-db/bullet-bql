@@ -50,6 +50,12 @@ public class ProjectionExtractor {
         throw new ParsingException("Unreachable");
     }
 
+    /**
+     * Need to project all SELECT fields and any ORDER BY fields that are not simple alias fields. For example, if we
+     * select a field "abc" AS "def" and order by "def", we don't want to end up projecting "def" along with "abc" since
+     * the order by was actually referring to "abc". If "abc" wasn't aliased as "def", we would want to project "def"
+     * for order by though. So, anything else that shows up in ORDER BY needs to be projected.
+     */
     private Projection extractSelect() {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
@@ -60,21 +66,33 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
+    /**
+     * For SELECT *, we decide whether or not the query will have computations. If the query doesn't have any computations,
+     * we can just pass the record through. If there are computations, we return a projection with null fields which
+     * will copy the record instead.
+     */
     private Projection extractAll() {
         List<ExpressionNode> expressions =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)).collect(Collectors.toList());
-        // If the only additional fields selected (including ORDER BY) are simple field expressions, then no additional computations will be made
-        if (expressions.stream().allMatch(processedQuery::isSimpleFieldExpression)) {
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .collect(Collectors.toList());
+        // If the only additional fields selected (including ORDER BY) are simple field expressions and none of
+        // them have aliases, then no additional computations will be made
+        if (expressions.stream().allMatch(processedQuery::isSimpleFieldExpression) &&
+            expressions.stream().noneMatch(processedQuery::hasAlias)) {
             return null;
         }
         // Perform a copy when there are additional fields selected
         return new Projection();
     }
 
+    /**
+     * Project the select fields without their aliases since they'll be renamed in the aggregation instead.
+     */
     private Projection extractDistinct() {
-        // Project DISTINCT expressions UNLESS all expressions are simple field expressions
         List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
+        // If all select fields are simple field expressions, then there's no need to project anything.
+        // Order by computations are done afterward and won't clobber the original record since the aggregation creates a new record.
         if (expressions.stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
         }
@@ -82,14 +100,19 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
+    /**
+     * Project group by fields and any fields with aggregates (without their aliases since they'll be renamed in
+     * the aggregation). We care about select or order by fields, since those are computed afterwards.
+     */
     private Projection extractGroup() {
-        // Project GROUP BY fields
         Set<ExpressionNode> requiredNodes = new HashSet<>(processedQuery.getGroupByNodes());
 
-        // Project aggregate inner expressions (need to filter for non-null because COUNT(*) does not have an inner expression)
-        requiredNodes.addAll(processedQuery.getGroupOpNodes().stream().map(GroupOperationNode::getExpression).filter(Objects::nonNull).collect(Collectors.toSet()));
+        // Project aggregate fields (need to filter for non-null because COUNT(*) does not have a field)
+        requiredNodes.addAll(processedQuery.getGroupOpNodes().stream().map(GroupOperationNode::getExpression)
+                                                                      .filter(Objects::nonNull)
+                                                                      .collect(Collectors.toSet()));
 
-        // If inner expressions are all simple field expressions, we don't need to project anything
+        // If the group by and aggregate fields are all simple field expressions, then we don't need to project anything
         if (requiredNodes.stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
         }
@@ -97,8 +120,12 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
+    /**
+     * Project count distinct fields. Ignore any possible aliasing, e.g. SELECT abc AS def, COUNT(DISTINCT abc) FROM STREAM();
+     * since the other select fields are computed afterward. If the to-be-projected fields are all simple field expressions,
+     * then there's no need to project anything.
+     */
     private Projection extractCountDistinct() {
-        // Project COUNT DISTINCT inner expressions UNLESS all inner expressions are simple field expressions
         CountDistinctNode countDistinct = processedQuery.getCountDistinct();
         if (countDistinct.getExpressions().stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
@@ -107,8 +134,10 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
+    /**
+     * Same as count distinct.
+     */
     private Projection extractDistribution() {
-        // Project DISTRIBUTION inner expression unless it's a simple field expression
         DistributionNode distribution = processedQuery.getDistribution();
         if (processedQuery.isSimpleFieldExpression(distribution.getExpression())) {
             return null;
@@ -117,8 +146,10 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
+    /**
+     * Same as count distinct and distribution.
+     */
     private Projection extractTopK() {
-        // Project Top K inner expressions
         TopKNode topK = processedQuery.getTopK();
         if (topK.getExpressions().stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
@@ -127,8 +158,10 @@ public class ProjectionExtractor {
         return new Projection(fields);
     }
 
+    /**
+     * Same as count distinct, distribution, and top k. Ignoring aggregate since guaranteed to have only COUNT(*).
+     */
     private Projection extractSpecialK() {
-        // Project GROUP BY fields
         if (processedQuery.getGroupByNodes().stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
         }

@@ -10,6 +10,7 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import com.yahoo.bullet.parsing.OrderBy;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -18,9 +19,13 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 @Getter
 @RequiredArgsConstructor
 public class SortItemNode extends Node {
+    @Getter
+    @RequiredArgsConstructor
     public enum Ordering {
-        ASCENDING,
-        DESCENDING
+        ASCENDING(OrderBy.Direction.ASC),
+        DESCENDING(OrderBy.Direction.DESC);
+
+        private final OrderBy.Direction direction;
     }
 
     private final ExpressionNode expression;
@@ -30,24 +35,7 @@ public class SortItemNode extends Node {
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitSortItem(this, context);
     }
-/*
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (!(obj instanceof SortItemNode)) {
-            return false;
-        }
-        SortItemNode other = (SortItemNode) obj;
-        return Objects.equals(expression, other.expression) && ordering == other.ordering;
-    }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(expression, ordering);
-    }
-*/
     @Override
     public String toString() {
         return toStringHelper(this).add("expression", expression)

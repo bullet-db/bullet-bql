@@ -260,7 +260,6 @@ public final class ExpressionFormatter {
             if (value == null) {
                 return "NULL";
             }
-            // TODO delete?
             if (withFormat) {
                 if (value instanceof Double || value instanceof Float) {
                     return DOUBLE_FORMATTER.get().format(value);

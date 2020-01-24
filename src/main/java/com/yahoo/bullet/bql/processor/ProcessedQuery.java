@@ -125,6 +125,7 @@ public class ProcessedQuery {
                 throw new ParsingException("LIMIT clause is not supported for queries with top k or count distinct.");
             }
         }
+        // TODO Maybe throw for group aggregate if a computation uses a field that the query doesn't group by
         setIfSpecialK();
         return this;
     }
@@ -183,6 +184,10 @@ public class ProcessedQuery {
         return expressionNodes.get(node);
     }
 
+    public boolean hasAlias(ExpressionNode node) {
+        return aliases.containsKey(node);
+    }
+
     public String getAlias(ExpressionNode node) {
         return aliases.get(node);
     }
@@ -191,11 +196,7 @@ public class ProcessedQuery {
         String alias = aliases.get(node);
         return alias != null ? alias : node.getName();
     }
-/*
-    public List<SelectItemNode> getSuperAggregateSelectNodes() {
-        return selectNodes.stream().filter(node -> isSuperAggregate(node.getExpression())).collect(Collectors.toList());
-    }
-*/
+
     public List<SelectItemNode> getNonAggregateSelectNodes() {
         return selectNodes.stream().filter(node -> !isAggregate(node.getExpression())).collect(Collectors.toList());
     }
@@ -225,6 +226,17 @@ public class ProcessedQuery {
         return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
     }
 
+    public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
+        Expression expression = expressionNodes.get(node);
+        if (!(expression instanceof FieldExpression)) {
+            return false;
+        }
+        FieldExpression fieldExpression = (FieldExpression) expression;
+        return fieldExpression.getIndex() == null &&
+                fieldExpression.getKey() == null &&
+                aliases.values().contains(fieldExpression.getField());
+    }
+
     public boolean isNotSimpleFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
@@ -232,10 +244,6 @@ public class ProcessedQuery {
         }
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() != null || fieldExpression.getKey() != null;
-    }
-
-    public boolean isNotFieldExpression(ExpressionNode node) {
-        return !(expressionNodes.get(node) instanceof FieldExpression);
     }
 
     public boolean isNotSimpleAliasFieldExpression(ExpressionNode node) {

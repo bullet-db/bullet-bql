@@ -170,6 +170,20 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testRawAllWithAlias() {
+        build("SELECT *, abc AS def FROM STREAM()");
+        Assert.assertNotNull(query.getProjection());
+        Assert.assertNull(query.getProjection().getFields());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregation.Type.COMPUTATION);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
+        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("def", new FieldExpression("abc")));
+    }
+
+    @Test
     public void testRawAllWithComputation() {
         build("SELECT *, abc + 5 FROM STREAM()");
         Assert.assertNotNull(query.getProjection());

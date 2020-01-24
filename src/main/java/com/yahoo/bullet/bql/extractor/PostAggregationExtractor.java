@@ -1,0 +1,78 @@
+package com.yahoo.bullet.bql.extractor;
+
+import com.yahoo.bullet.bql.processor.ProcessedQuery;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.parsing.Computation;
+import com.yahoo.bullet.parsing.Culling;
+import com.yahoo.bullet.parsing.Having;
+import com.yahoo.bullet.parsing.OrderBy;
+import com.yahoo.bullet.parsing.PostAggregation;
+import com.yahoo.bullet.parsing.expressions.Expression;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class PostAggregationExtractor {
+    private final ComputationExtractor computationExtractor = new ComputationExtractor();
+    private final TransientFieldExtractor transientFieldExtractor = new TransientFieldExtractor();
+
+    public List<PostAggregation> extractPostAggregations(ProcessedQuery processedQuery) {
+        List<PostAggregation> postAggregations = new ArrayList<>();
+
+        extractHaving(processedQuery, postAggregations);
+        extractComputations(processedQuery, postAggregations);
+        extractOrderBy(processedQuery, postAggregations);
+        extractTransientFields(processedQuery, postAggregations);
+
+        return !postAggregations.isEmpty() ? postAggregations : null;
+    }
+
+    private void extractHaving(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
+        // Special K has a HAVING clause, but it's subsumed by Top K
+        if (processedQuery.getHavingNode() != null && processedQuery.getQueryType() != ProcessedQuery.QueryType.SPECIAL_K) {
+            postAggregations.add(new Having(processedQuery.getExpression(processedQuery.getHavingNode())));
+        }
+    }
+
+    private void extractComputations(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
+        Computation computation = computationExtractor.extractComputation(processedQuery);
+        if (computation != null && !computation.getProjection().getFields().isEmpty()) {
+            postAggregations.add(computation);
+        }
+    }
+
+    /**
+     * If an order by field references an alias (by itself), then we won't replace it with an alias that might exist, e.g.
+     * SELECT abc AS def, def AS abc FROM STREAM() ORDER BY abc; will order by "abc" and won't be replaced by "def" .
+     */
+    private void extractOrderBy(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
+        // Special K has an ORDER BY clause, but it's subsumed by Top K
+        if (processedQuery.getOrderByNodes().isEmpty() || processedQuery.getQueryType() == ProcessedQuery.QueryType.SPECIAL_K) {
+            return;
+        }
+
+        List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {
+            OrderBy.SortItem sortItem = new OrderBy.SortItem();
+            ExpressionNode expression = node.getExpression();
+            if (processedQuery.isSimpleAliasFieldExpression(expression)) {
+                sortItem.setField(expression.getName());
+            } else {
+                sortItem.setField(processedQuery.getAliasOrName(expression));
+            }
+            sortItem.setDirection(node.getOrdering().getDirection());
+            return sortItem;
+        }).collect(Collectors.toList());
+
+        postAggregations.add(new OrderBy(fields));
+    }
+
+    private void extractTransientFields(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
+        Set<String> transientFields = transientFieldExtractor.extractTransientFields(processedQuery);
+        if (transientFields != null && !transientFields.isEmpty()) {
+            postAggregations.add(new Culling(transientFields));
+        }
+    }
+}

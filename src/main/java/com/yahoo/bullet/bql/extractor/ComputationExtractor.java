@@ -25,6 +25,7 @@ public class ComputationExtractor {
         this.processedQuery = processedQuery;
         switch (processedQuery.getQueryType()) {
             case SELECT:
+                // No computations since everything is handled in the initial projection.
                 return null;
             case SELECT_ALL:
                 return extractAll();
@@ -35,24 +36,49 @@ public class ComputationExtractor {
             case DISTRIBUTION:
             case TOP_K:
                 return extractAggregate();
-            //case GROUP:
-            //    return extractGroup();
-            //case COUNT_DISTINCT:
-            //    return extractCountDistinct();
-            //case DISTRIBUTION:
-            //    return extractDistribution();
-            //case TOP_K:
-            //    return extractTopK();
             case SPECIAL_K:
                 return extractSpecialK();
         }
         throw new ParsingException("Unreachable");
     }
 
+    /**
+     * Mirrors the projection logic. If the record is passed through, there should be no computations.
+     */
     private Computation extractAll() {
         List<Projection.Field> fields =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(expression -> processedQuery.isNotSimpleFieldExpression(expression) || processedQuery.hasAlias(expression))
+                        .distinct()
+                        .map(this::toField)
+                        .collect(Collectors.toList());
+        return new Computation(new Projection(fields));
+    }
+
+    /**
+     * For SELECT DISTINCT, we only need to consider the computations in ORDER BY. Ignore any clauses that are just
+     * simple field expressions or a repeat of a select field.
+     */
+    private Computation extractDistinct() {
+        Set<ExpressionNode> orderByFields =
+                processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
+                                                         .filter(processedQuery::isNotSimpleFieldExpression)
+                                                         .collect(Collectors.toSet());
+        orderByFields.removeAll(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
+                                                                        .collect(Collectors.toList()));
+        List<Projection.Field> fields = orderByFields.stream().map(this::toField).collect(Collectors.toList());
+        return new Computation(new Projection(fields));
+    }
+
+    /**
+     *
+     */
+    private Computation extractAggregate() {
+        List<Projection.Field> fields =
+                Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
+                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
+                        .filter(processedQuery::isNotGroupByNode)
                         .filter(processedQuery::isNotSimpleFieldExpression)
                         .distinct()
                         .map(this::toField)
@@ -60,59 +86,10 @@ public class ComputationExtractor {
         return new Computation(new Projection(fields));
     }
 
-    private Computation extractDistinct() {
-        List<Projection.Field> fields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
-                                                                                 .filter(processedQuery::isNotSimpleFieldExpression)
-                                                                                 .map(this::toField)
-                                                                                 .collect(Collectors.toList());
-        return new Computation(new Projection(fields));
-    }
-
-    private Computation extractAggregate() {
-        //List<Projection.Field> fields = processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
-        //                                                                                    .map(this::toField)
-        //                                                                                    .collect(Collectors.toList());
-        List<Projection.Field> fields =
-                Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .filter(processedQuery::isNotGroupByNode)
-                        .filter(processedQuery::isNotFieldExpression)
-                        .distinct()
-                        .map(this::toField)
-                        .collect(Collectors.toList());
-        return new Computation(new Projection(fields));
-    }
-/*
-    private Computation extractGroup() {
-        List<Projection.Field> fields = processedQuery.getSuperAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                              .map(this::toField)
-                                                                                              .collect(Collectors.toList());
-        return new Computation(new Projection(fields));
-    }
-
-    private Computation extractCountDistinct() {
-        List<Projection.Field> fields = processedQuery.getSuperAggregateSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                              .map(this::toField)
-                                                                                              .collect(Collectors.toList());
-        return new Computation(new Projection(fields));
-    }
-
-    private Computation extractDistribution() {
-        List<Projection.Field> fields = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                .filter(Objects::nonNull)
-                                                                                .map(this::toField)
-                                                                                .collect(Collectors.toList());
-        return new Computation(new Projection(fields));
-    }
-
-    private Computation extractTopK() {
-        List<Projection.Field> fields = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
-                                                                                .filter(Objects::nonNull)
-                                                                                .map(this::toField)
-                                                                                .collect(Collectors.toList());
-        return new Computation(new Projection(fields));
-    }
-*/
+    /**
+     * For Special K, the computations are what's left over from the select fields after removing all the group by and
+     * aggregate fields.
+     */
     private Computation extractSpecialK() {
         Set<ExpressionNode> computationNodes = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
         computationNodes.removeAll(processedQuery.getGroupByNodes());

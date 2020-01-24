@@ -24,75 +24,75 @@ public class TransientFieldExtractor {
                 return extractDistinct();
             case GROUP:
             case COUNT_DISTINCT:
-                return extractAggregateValue();
+                return extractAggregate();
             case DISTRIBUTION:
+                return extractDistribution();
             case TOP_K:
-                return extractAggregateNonValue();
+                return extractTopK();
             case SPECIAL_K:
+                // Doesn't have transient fields since selected fields and order by fields are fixed
                 return null;
         }
         throw new ParsingException("Unreachable");
     }
 
+    /**
+     * Remove every order by field that's not a select field.
+     */
     private Set<String> extractSelect() {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getAliasSelectFields());
+        orderByFields.removeAll(getSelectExpressionNames());
         return orderByFields;
     }
 
     private Set<String> extractAll() {
-        Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
-                                                                             .filter(processedQuery::isNotFieldExpression)
-                                                                             .map(processedQuery::getAliasOrName)
-                                                                             .collect(Collectors.toSet());
-        orderByFields.removeAll(getAliasSelectFields());
-        return orderByFields;
+        return getDisjointedComplexOrderByFields();
     }
 
+    /**
+     * Remove every order by field that's not a select field, but don't remove simple field expressions.
+     */
     private Set<String> extractDistinct() {
-        Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
-                                                                             .filter(processedQuery::isNotFieldExpression)
-                                                                             .map(processedQuery::getAliasOrName)
-                                                                             .collect(Collectors.toSet());
-        orderByFields.removeAll(getAliasSelectFields());
-        return orderByFields;
+        return getDisjointedComplexOrderByFields();
     }
 
-    private Set<String> extractAggregateValue() {
-        //Set<String> transientFields =
-        //        Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(),
-        //                                    processedQuery.getAggregateNodes().stream()),
-        //                      processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-        //                .map(processedQuery::getAliasOrName)
-        //                .collect(Collectors.toSet());
-        //transientFields.removeAll(getNonAliasSelectFields());
-
-        Set<ExpressionNode> transientFields =
+    /**
+     * Remove every field that's not a select field.
+     */
+    private Set<String> extractAggregate() {
+        Set<String> transientFields =
                 Stream.concat(Stream.concat(processedQuery.getGroupByNodes().stream(),
                                             processedQuery.getAggregateNodes().stream()),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                        .filter(processedQuery::isNotSimpleAliasFieldExpression)
+                        .map(processedQuery::getAliasOrName)
                         .collect(Collectors.toSet());
-        transientFields.removeAll(getSelectExpressions());
-        return transientFields.stream().map(processedQuery::getAliasOrName).collect(Collectors.toSet());
-        //                .map(processedQuery::getAliasOrName)
-        //                .collect(Collectors.toSet());
-        //transientFields.removeAll(getNonAliasSelectFields());
-        //return transientFields;
+        transientFields.removeAll(getSelectExpressionNames());
+        return transientFields;
     }
 
-    private Set<String> extractAggregateNonValue() {
-        // TODO same as extractSelectAll()
+    private Set<String> extractDistribution() {
+        return getDisjointedComplexOrderByFields();
+    }
+
+    private Set<String> extractTopK() {
+        return getDisjointedComplexOrderByFields();
+    }
+
+    /**
+     * Remove every order by field that's not a select field, but don't remove simple field expressions.
+     */
+    private Set<String> getDisjointedComplexOrderByFields() {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
+                                                                             .filter(processedQuery::isNotSimpleFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getAliasSelectFields());
+        orderByFields.removeAll(getSelectExpressionNames());
         return orderByFields;
     }
 
-    private Set<String> getAliasSelectFields() {
+    private Set<String> getSelectExpressionNames() {
         return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                        .map(processedQuery::getAliasOrName)
                                                        .collect(Collectors.toSet());
