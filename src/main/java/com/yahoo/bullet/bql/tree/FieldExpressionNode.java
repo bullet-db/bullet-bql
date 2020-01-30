@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.typesystem.Type;
@@ -13,7 +18,7 @@ public class FieldExpressionNode extends ExpressionNode {
     private final Integer index;
     private final IdentifierNode key;
     private final IdentifierNode subKey;
-    // Types not used for equals() and hashCode()
+    // Types ignored for equals() and hashCode()
     private final Type type;
     private final Type primitiveType;
 

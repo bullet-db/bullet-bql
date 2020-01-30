@@ -16,6 +16,13 @@ public class TopKNode extends ExpressionNode {
     private final Long threshold;
     private final List<ExpressionNode> expressions;
 
+    /**
+     * Constructs a TopKNode from a {@link String} size, {@link String} threshold, and a list of {@link ExpressionNode}.
+     *
+     * @param size The size of the TopKNode as a {@link String}.
+     * @param threshold The threshold of the TopKNode as a {@link String} (optional).
+     * @param expressions The list of {@link ExpressionNode} to Top K by.
+     */
     public TopKNode(String size, String threshold, List<ExpressionNode> expressions) {
         this.size = Integer.parseInt(size);
         this.threshold = threshold != null ? Long.parseLong(threshold) : null;

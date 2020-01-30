@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
@@ -11,6 +16,12 @@ public class GroupOperationNode extends ExpressionNode {
     private final GroupOperationType op;
     private final ExpressionNode expression;
 
+    /**
+     * Constructs a GroupOperationNode from a {@link String} operation and an {@link ExpressionNode}.
+     *
+     * @param op The group operation as a {@link String}.
+     * @param expression The group operation operand.
+     */
     public GroupOperationNode(String op, ExpressionNode expression) {
         this.op = GroupOperationType.valueOf(op.toUpperCase());
         this.expression = expression;

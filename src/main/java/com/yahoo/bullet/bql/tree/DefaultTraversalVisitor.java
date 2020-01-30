@@ -128,6 +128,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
         return null;
     }
 
+    /**
+     * Helper to process nodes with a given context.
+     *
+     * @param context Context with which to process {@link Node}.
+     * @return A consumer for processing {@link Node}.
+     */
     protected Consumer<Node> process(C context) {
         return node -> process(node, context);
     }

@@ -32,7 +32,7 @@ selectItem
     ;
 
 stream
-    : STREAM '(' (timeDuration=(INTEGER_VALUE | MAX) ',' TIME (',' recordDuration=(INTEGER_VALUE | MAX) ',' RECORD)?)? ')'
+    : STREAM '(' (timeDuration=(INTEGER_VALUE | MAX) ',' TIME)? ')'
     ;
 
 groupBy
@@ -58,27 +58,31 @@ include
     ;
 
 expression
-    : valueExpression                                                                       #value
-    | fieldExpression                                                                       #field
-    | listExpression                                                                        #list
-    | expression IS NULL                                                                    #nullPredicate
-    | expression IS NOT NULL                                                                #nullPredicate
-    | unaryExpression                                                                       #unary
-    | functionExpression                                                                    #function
-    | left=expression op=(ASTERISK | SLASH) right=expression                                #infix
-    | left=expression op=(PLUS | MINUS) right=expression                                    #infix
-    | left=expression op=(LT | LTE | GT | GTE) right=expression                             #infix
-    | left=expression op=(EQ | NEQ) right=expression                                        #infix
-    | left=expression op=(AND | XOR) right=expression                                       #infix
-    | left=expression op=OR right=expression                                                #infix
-    | '(' expression ')'                                                                    #parentheses
+    : valueExpression                                                                                                   #value
+    | fieldExpression                                                                                                   #field
+    | listExpression                                                                                                    #list
+    | expression IS NULL                                                                                                #nullPredicate
+    | expression IS NOT NULL                                                                                            #nullPredicate
+    | unaryExpression                                                                                                   #unary
+    | functionExpression                                                                                                #function
+    | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
+    | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
+    | left=expression op=(LT | LTE | GT | GTE) right=expression                                                         #infix
+    | left=expression op=(EQ | NEQ) right=expression                                                                    #infix
+    | left=expression op=(AND | XOR) right=expression                                                                   #infix
+    | left=expression op=OR right=expression                                                                            #infix
+    | '(' expression ')'                                                                                                #parentheses
+    ;
+
+expressions
+    : expression (',' expression)*
     ;
 
 valueExpression
-    : NULL                                                                                  #nullLiteral
-    | number                                                                                #numericLiteral
-    | booleanValue                                                                          #booleanLiteral
-    | STRING                                                                                #stringLiteral
+    : NULL                                                                                                              #nullLiteral
+    | number                                                                                                            #numericLiteral
+    | booleanValue                                                                                                      #booleanLiteral
+    | STRING                                                                                                            #stringLiteral
     ;
 
 fieldExpression
@@ -91,7 +95,7 @@ fieldExpression
 
 listExpression
     : '[' ']'
-    | '[' expression (',' expression)* ']'
+    | '[' expressions ']'
     ;
 
 unaryExpression
@@ -100,22 +104,18 @@ unaryExpression
     ;
 
 functionExpression
-    : binaryFunction '(' left=expression ',' right=expression ')'                           #binary
-    | op=(AND | OR | IF) '(' expression (',' expression)* ')'                               #nAry
-    | aggregateExpression                                                                   #aggregate
-    | CAST '(' expression AS primitiveType ')'                                              #cast
-    ;
-
-binaryFunction
-    : op=(RLIKE | SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
+    : op=(RLIKE | SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER) '(' left=expression ',' right=expression ')'           #binary
+    | op=IF '(' expressions ')'                                                                                         #nAry
+    | aggregateExpression                                                                                               #aggregate
+    | CAST '(' expression AS primitiveType ')'                                                                          #cast
     ;
 
 aggregateExpression
-    : op=COUNT '(' ASTERISK ')'                                                             #groupOperation
-    | op=(SUM | AVG | MIN | MAX) '(' expression ')'                                         #groupOperation
-    | COUNT '(' DISTINCT expression ( ',' expression )* ')'                                 #countDistinct
-    | distributionType '(' expression ',' inputMode ')'                                     #distribution
-    | TOP '(' topKConfig ')'                                                                #topK
+    : op=COUNT '(' ASTERISK ')'                                                                                         #groupOperation
+    | op=(SUM | AVG | MIN | MAX) '(' expression ')'                                                                     #groupOperation
+    | COUNT '(' DISTINCT expressions ')'                                                                                #countDistinct
+    | distributionType '(' expression ',' inputMode ')'                                                                 #distribution
+    | TOP '(' size=INTEGER_VALUE (',' threshold=INTEGER_VALUE)? ',' expressions ')'                                     #topK
     ;
 
 distributionType
@@ -128,15 +128,11 @@ inputMode
     | iMode=MANUAL ',' number (',' number)*
     ;
 
-topKConfig
-    : size=INTEGER_VALUE (',' threshold=INTEGER_VALUE)? ',' expression (',' expression)*
-    ;
-
 identifier
-    : IDENTIFIER                                                                            #unquotedIdentifier
-    | nonReserved                                                                           #unquotedIdentifier
-    | QUOTED_IDENTIFIER                                                                     #quotedIdentifier
-    | DIGIT_IDENTIFIER                                                                      #digitIdentifier
+    : IDENTIFIER                                                                                                        #unquotedIdentifier
+    | nonReserved                                                                                                       #unquotedIdentifier
+    | QUOTED_IDENTIFIER                                                                                                 #quotedIdentifier
+    | DIGIT_IDENTIFIER                                                                                                  #digitIdentifier
     ;
 
 number

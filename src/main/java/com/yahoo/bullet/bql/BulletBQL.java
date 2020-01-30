@@ -14,7 +14,7 @@ import java.io.InputStreamReader;
 
 @Slf4j
 public class BulletBQL {
-    private static BulletQueryBuilder BULLET_QUERY_BUILDER = new BulletQueryBuilder(new BulletConfig());
+    private static BulletQueryBuilder BULLET_QUERY_BUILDER = new BulletQueryBuilder(new BQLConfig());
 
     /**
      * Print out a Bullet JSON by parsing BQL using default BulletConfig.

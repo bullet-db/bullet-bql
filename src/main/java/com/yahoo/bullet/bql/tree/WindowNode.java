@@ -9,8 +9,6 @@ import com.yahoo.bullet.parsing.Window.Unit;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 @Getter
 @RequiredArgsConstructor
 public class WindowNode extends Node {
@@ -21,13 +19,5 @@ public class WindowNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitWindow(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("emitEvery", emitEvery)
-                                   .add("emitType", emitType)
-                                   .add("windowInclude", windowInclude)
-                                   .toString();
     }
 }

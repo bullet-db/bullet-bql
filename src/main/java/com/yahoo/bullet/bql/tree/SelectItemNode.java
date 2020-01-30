@@ -13,8 +13,6 @@ package com.yahoo.bullet.bql.tree;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Objects;
-
 @Getter
 @RequiredArgsConstructor
 public class SelectItemNode extends Node {
@@ -46,8 +44,4 @@ public class SelectItemNode extends Node {
         return Objects.hash(all, expression, alias);
     }
 */
-    @Override
-    public String toString() {
-        return null;
-    }
 }

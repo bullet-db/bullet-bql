@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.processor;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
@@ -10,7 +15,7 @@ import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
-import com.yahoo.bullet.parsing.Window;
+import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.expressions.Expression;
 import com.yahoo.bullet.parsing.expressions.FieldExpression;
 import com.yahoo.bullet.parsing.expressions.Operation;
@@ -47,21 +52,9 @@ public class ProcessedQuery {
     @Setter
     private Long timeDuration;
     @Setter
-    private Long recordDuration;
-    @Setter
     private Integer limit;
-
     @Setter
-    private boolean windowed;
-    @Setter
-    private Long emitEvery;
-    @Setter
-    private Window.Unit emitType;
-    @Setter
-    private Long first;
-    @Setter
-    private Window.Unit includeUnit;
-
+    private WindowNode window;
     @Setter
     private ExpressionNode whereNode;
     @Setter
@@ -82,7 +75,11 @@ public class ProcessedQuery {
     private Set<DistributionNode> distributionNodes = new HashSet<>();
     private Set<TopKNode> topKNodes = new HashSet<>();
 
-    public ProcessedQuery validate() {
+    /**
+     * Validates the query components.
+     */
+    public void validate() {
+        // TODO Optional List BulletErrors ?
         if (queryTypeSet.size() != 1) {
             throw new ParsingException("Query matches more than one query type: " + queryTypeSet);
         }
@@ -110,9 +107,6 @@ public class ProcessedQuery {
         if (groupByNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
             throw new ParsingException("GROUP BY clause cannot contain aggregates.");
         }
-        if (recordDuration != null) {
-            throw new ParsingException("STREAM does not currently support record duration.");
-        }
         QueryType queryType = getQueryType();
         if (havingNode != null && queryType != QueryType.GROUP) {
             throw new ParsingException("HAVING clause is only supported for queries with group by operations.");
@@ -125,9 +119,7 @@ public class ProcessedQuery {
                 throw new ParsingException("LIMIT clause is not supported for queries with top k or count distinct.");
             }
         }
-        // TODO Maybe throw for group aggregate if a computation uses a field that the query doesn't group by
         setIfSpecialK();
-        return this;
     }
 
     private void setIfSpecialK() {
@@ -164,59 +156,138 @@ public class ProcessedQuery {
         queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
     }
 
+    /**
+     * Returns the query type.
+     *
+     * @return A {@link QueryType}.
+     */
     public QueryType getQueryType() {
         return queryTypeSet.iterator().next();
     }
 
+    /**
+     * Returns the count distinct node.
+     *
+     * @return A {@link CountDistinctNode}.
+     */
     public CountDistinctNode getCountDistinct() {
         return countDistinctNodes.iterator().next();
     }
 
+    /**
+     * Returns the distribution node.
+     *
+     * @return A {@link DistributionNode}.
+     */
     public DistributionNode getDistribution() {
         return distributionNodes.iterator().next();
     }
 
+    /**
+     * Returns the top k node.
+     *
+     * @return A {@link TopKNode}.
+     */
     public TopKNode getTopK() {
         return topKNodes.iterator().next();
     }
 
+    /**
+     * Returns the expression mapped to the given {@link ExpressionNode}.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return An {@link Expression}.
+     */
     public Expression getExpression(ExpressionNode node) {
         return expressionNodes.get(node);
     }
 
+    /**
+     * Returns whether or not the given {@link ExpressionNode} has an alias.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the node has an alias and false otherwise.
+     */
     public boolean hasAlias(ExpressionNode node) {
         return aliases.containsKey(node);
     }
 
+    /**
+     * Returns the alias of the given {@link ExpressionNode}.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return The alias of the given node if it exists and null otherwise.
+     */
     public String getAlias(ExpressionNode node) {
         return aliases.get(node);
     }
 
+    /**
+     * Returns the alias or name of the given {@link ExpressionNode}.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return The alias of the given node if it exists and its name otherwise.
+     */
     public String getAliasOrName(ExpressionNode node) {
         String alias = aliases.get(node);
         return alias != null ? alias : node.getName();
     }
 
+    /**
+     * Returns the list of select items that are not aggregates.
+     *
+     * @return The list of select items that are not aggregates.
+     */
     public List<SelectItemNode> getNonAggregateSelectNodes() {
         return selectNodes.stream().filter(node -> !isAggregate(node.getExpression())).collect(Collectors.toList());
     }
 
+    /**
+     * Returns whether or not the given node is an aggregate or contains aggregates.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is an aggregate or contains aggregates and false otherwise.
+     */
     public boolean isAggregateOrSuperAggregate(ExpressionNode node) {
         return aggregateNodes.contains(node) || superAggregateNodes.contains(node);
     }
 
+    /**
+     * Returns whether or not the given node is an aggregate.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is an aggregate and false otherwise.
+     */
     public boolean isAggregate(ExpressionNode node) {
         return aggregateNodes.contains(node);
     }
 
+    /**
+     * Returns whether or not the given node contains aggregates.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node contains aggregates and false otherwise.
+     */
     public boolean isSuperAggregate(ExpressionNode node) {
         return superAggregateNodes.contains(node);
     }
 
+    /**
+     * Returns whether or not the given node is not a group by node.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is not a group by node and false otherwise.
+     */
     public boolean isNotGroupByNode(ExpressionNode node) {
         return !groupByNodes.contains(node);
     }
 
+    /**
+     * Returns whether or not the given node is a simple field expression.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is a simple field expression and false otherwise.
+     */
     public boolean isSimpleFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
@@ -226,6 +297,22 @@ public class ProcessedQuery {
         return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
     }
 
+    /**
+     * Returns whether or not the given node is not a simple field expression.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is not a simple field expression and false otherwise.
+     */
+    public boolean isNotSimpleFieldExpression(ExpressionNode node) {
+        return !isSimpleFieldExpression(node);
+    }
+
+    /**
+     * Returns whether or not the given node is a simple field expression that references an alias.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is a simple field expression that references an alias and false otherwise.
+     */
     public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
@@ -237,23 +324,13 @@ public class ProcessedQuery {
                 aliases.values().contains(fieldExpression.getField());
     }
 
-    public boolean isNotSimpleFieldExpression(ExpressionNode node) {
-        Expression expression = expressionNodes.get(node);
-        if (!(expression instanceof FieldExpression)) {
-            return true;
-        }
-        FieldExpression fieldExpression = (FieldExpression) expression;
-        return fieldExpression.getIndex() != null || fieldExpression.getKey() != null;
-    }
-
+    /**
+     * Returns whether or not the given node is not a simple field expression that references an alias.
+     *
+     * @param node An {@link ExpressionNode}.
+     * @return True if the given node is not a simple field expression that references an alias and false otherwise.
+     */
     public boolean isNotSimpleAliasFieldExpression(ExpressionNode node) {
-        Expression expression = expressionNodes.get(node);
-        if (!(expression instanceof FieldExpression)) {
-            return true;
-        }
-        FieldExpression fieldExpression = (FieldExpression) expression;
-        return fieldExpression.getIndex() != null ||
-               fieldExpression.getKey() != null ||
-               !aliases.values().contains(fieldExpression.getField());
+        return !isSimpleAliasFieldExpression(node);
     }
 }

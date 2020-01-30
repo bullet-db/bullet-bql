@@ -23,6 +23,16 @@ public class RegionDistributionNode extends DistributionNode {
     private final Double end;
     private final Double increment;
 
+    /**
+     * Constructs a RegionDistributionNode from a {@link Type}, {@link ExpressionNode}, {@link Double} start,
+     * a {@link Double} end, and {@link Double} increment.
+     *
+     * @param type The distribution type.
+     * @param expression The distribution variable.
+     * @param start The start of the range.
+     * @param end The end of the range.
+     * @param increment The interval between points.
+     */
     public RegionDistributionNode(Type type, ExpressionNode expression, Double start, Double end, Double increment) {
         super(type, expression);
         this.start = start;

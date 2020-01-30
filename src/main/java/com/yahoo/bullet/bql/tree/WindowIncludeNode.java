@@ -8,30 +8,24 @@ package com.yahoo.bullet.bql.tree;
 import com.yahoo.bullet.parsing.Window.Unit;
 import lombok.Getter;
 
-import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 @Getter
 public class WindowIncludeNode extends Node {
-    private final Long number;
-    private final Unit unit;
+    private final Long first;
+    private final Unit includeUnit;
 
-    public WindowIncludeNode(String number, String unit) {
-        this.number = number != null ? Long.parseLong(number) : null;
-        this.unit = Unit.valueOf(unit.toUpperCase());
+    /**
+     * Constructs a WindowIncludeNode from a {@link String} first and a {@link String} include unit.
+     *
+     * @param first The first as a {@link String}.
+     * @param includeUnit The include unit as a {@link String}.
+     */
+    public WindowIncludeNode(String first, String includeUnit) {
+        this.first = first != null ? Long.parseLong(first) : null;
+        this.includeUnit = Unit.valueOf(includeUnit.toUpperCase());
     }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitWindowInclude(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("number", number)
-                                   .add("unit", unit)
-                                   .omitNullValues()
-                                   .toString();
     }
 }

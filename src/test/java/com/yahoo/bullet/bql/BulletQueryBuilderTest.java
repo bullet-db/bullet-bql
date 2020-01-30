@@ -10,11 +10,11 @@ import com.yahoo.bullet.aggregations.Distribution;
 import com.yahoo.bullet.aggregations.TopK;
 import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.parser.ParsingException;
-import com.yahoo.bullet.common.BulletConfig;
 
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Culling;
+import com.yahoo.bullet.parsing.Field;
 import com.yahoo.bullet.parsing.Having;
 import com.yahoo.bullet.parsing.OrderBy;
 import com.yahoo.bullet.parsing.PostAggregation;
@@ -38,15 +38,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static com.yahoo.bullet.parsing.Projection.Field;
-
 public class BulletQueryBuilderTest {
     private BulletQueryBuilder builder;
     private Query query;
 
     @BeforeClass
     public void setup() {
-        builder = new BulletQueryBuilder(new BulletConfig());
+        builder = new BulletQueryBuilder(new BQLConfig());
     }
 
     private void build(String bql) {
@@ -99,8 +97,8 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getDuration(), (Long) Long.MAX_VALUE);
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*STREAM does not currently support record duration\\.")
-    public void testRecordDurationNotAllowed() {
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*mismatched input.*")
+    public void testRecordDurationNotParsed() {
         build("SELECT * FROM STREAM(2000, TIME, 20, RECORD)");
     }
 
@@ -179,8 +177,8 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("def", new FieldExpression("abc")));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("def", new FieldExpression("abc")));
     }
 
     @Test
@@ -193,10 +191,10 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
-                                                                                                                      new ValueExpression(5),
-                                                                                                                      Operation.ADD)));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                      new ValueExpression(5),
+                                                                                                      Operation.ADD)));
     }
 
     @Test
@@ -209,8 +207,8 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc[0]", new FieldExpression("abc", 0)));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc[0]", new FieldExpression("abc", 0)));
     }
 
     @Test
@@ -238,10 +236,10 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
-                                                                                                                      new ValueExpression(5),
-                                                                                                                      Operation.ADD)));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                      new ValueExpression(5),
+                                                                                                      Operation.ADD)));
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
@@ -485,10 +483,10 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("def + 5", new BinaryExpression(new FieldExpression("def"),
-                                                                                                                      new ValueExpression(5),
-                                                                                                                      Operation.ADD)));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("def + 5", new BinaryExpression(new FieldExpression("def"),
+                                                                                                      new ValueExpression(5),
+                                                                                                      Operation.ADD)));
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
@@ -594,7 +592,7 @@ public class BulletQueryBuilderTest {
                                                                        new ValueExpression(10),
                                                                        Operation.MUL));
 
-        Assert.assertEquals(computation.getProjection().getFields(), Collections.singletonList(field));
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(field));
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
@@ -694,7 +692,7 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields(), Collections.singletonList(new Field("AVG(abc) + 5", new BinaryExpression(new FieldExpression("AVG(abc)"),
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc) + 5", new BinaryExpression(new FieldExpression("AVG(abc)"),
                                                                                                                                               new ValueExpression(5),
                                                                                                                                               Operation.ADD))));
 
@@ -878,9 +876,9 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields(), Collections.singletonList(new Field("COUNT(DISTINCT abc) + 5", new BinaryExpression(new FieldExpression("COUNT(DISTINCT abc)"),
-                                                                                                                                                         new ValueExpression(5),
-                                                                                                                                                         Operation.ADD))));
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("COUNT(DISTINCT abc) + 5", new BinaryExpression(new FieldExpression("COUNT(DISTINCT abc)"),
+                                                                                                                                         new ValueExpression(5),
+                                                                                                                                         Operation.ADD))));
     }
 
     @Test
@@ -894,9 +892,9 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields(), Collections.singletonList(new Field("COUNT(DISTINCT abc) + 5", new BinaryExpression(new FieldExpression("COUNT(DISTINCT abc)"),
-                                                                                                                                                         new ValueExpression(5),
-                                                                                                                                                         Operation.ADD))));
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("COUNT(DISTINCT abc) + 5", new BinaryExpression(new FieldExpression("COUNT(DISTINCT abc)"),
+                                                                                                                                         new ValueExpression(5),
+                                                                                                                                         Operation.ADD))));
 
         Culling culling = (Culling) query.getPostAggregations().get(1);
 
@@ -914,9 +912,9 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields(), Collections.singletonList(new Field("COUNT(DISTINCT abc) + 5", new BinaryExpression(new FieldExpression("count"),
-                                                                                                                                                         new ValueExpression(5),
-                                                                                                                                                         Operation.ADD))));
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("COUNT(DISTINCT abc) + 5", new BinaryExpression(new FieldExpression("count"),
+                                                                                                                                         new ValueExpression(5),
+                                                                                                                                         Operation.ADD))));
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Cannot have multiple count distincts\\.")
@@ -1087,13 +1085,13 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 2);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
-                                                                                                                      new ValueExpression(5),
-                                                                                                                      Operation.ADD)));
-        Assert.assertEquals(computation.getProjection().getFields().get(1), new Field("count + 5", new BinaryExpression(new FieldExpression("count"),
-                                                                                                                        new ValueExpression(5),
-                                                                                                                        Operation.ADD)));
+        Assert.assertEquals(computation.getFields().size(), 2);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", new BinaryExpression(new FieldExpression("abc"),
+                                                                                                      new ValueExpression(5),
+                                                                                                      Operation.ADD)));
+        Assert.assertEquals(computation.getFields().get(1), new Field("count + 5", new BinaryExpression(new FieldExpression("count"),
+                                                                                                        new ValueExpression(5),
+                                                                                                        Operation.ADD)));
     }
 
     @Test
@@ -1108,10 +1106,10 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getProjection().getFields().size(), 1);
-        Assert.assertEquals(computation.getProjection().getFields().get(0), new Field("top + 5", new BinaryExpression(new FieldExpression("top"),
-                                                                                                                      new ValueExpression(5),
-                                                                                                                      Operation.ADD)));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("top + 5", new BinaryExpression(new FieldExpression("top"),
+                                                                                                      new ValueExpression(5),
+                                                                                                      Operation.ADD)));
     }
 
     @Test
@@ -1481,22 +1479,6 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testNAryExpression() {
-        build("SELECT AND(abc, def, one, true, false) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
-
-        Field field = query.getProjection().getFields().get(0);
-
-        Assert.assertEquals(field.getName(), "AND(abc, def, one, true, false)");
-        Assert.assertEquals(field.getValue(), new NAryExpression(Arrays.asList(new FieldExpression("abc"),
-                                                                               new FieldExpression("def"),
-                                                                               new FieldExpression("one"),
-                                                                               new ValueExpression(true),
-                                                                               new ValueExpression(false)),
-                                                                 Operation.AND));
-    }
-
-    @Test
-    public void testIfExpression() {
         build("SELECT IF(abc, 5, 10) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
 

@@ -14,9 +14,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 @Getter
 @RequiredArgsConstructor
@@ -26,10 +23,5 @@ public class OrderByNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitOrderBy(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("sortItems", sortItems).toString();
     }
 }

@@ -19,6 +19,14 @@ import static com.yahoo.bullet.aggregations.Distribution.TYPE;
 public class LinearDistributionNode extends DistributionNode {
     private final Long numberOfPoints;
 
+    /**
+     * Constructs a LinearDistributionNode from a {@link Type}, {@link ExpressionNode}, and a {@link Long} number of
+     * points.
+     *
+     * @param type The distribution type.
+     * @param expression The distribution variable.
+     * @param numberOfPoints The number of evenly-spaced points in the returned distribution.
+     */
     public LinearDistributionNode(Type type, ExpressionNode expression, Long numberOfPoints) {
         super(type, expression);
         this.numberOfPoints = numberOfPoints;

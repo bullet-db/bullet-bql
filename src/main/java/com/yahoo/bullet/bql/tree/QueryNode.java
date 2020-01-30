@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
@@ -20,10 +25,5 @@ public class QueryNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitQuery(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return null;
     }
 }

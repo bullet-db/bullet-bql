@@ -15,6 +15,12 @@ public class CastExpressionNode extends ExpressionNode {
     private final ExpressionNode expression;
     private final Type castType;
 
+    /**
+     * Constructs a CastExpressionNode from an {@link ExpressionNode} and a {@link String} cast type.
+     *
+     * @param expression The {@link ExpressionNode} to cast.
+     * @param castType The cast type as a {@link String}.
+     */
     public CastExpressionNode(ExpressionNode expression, String castType) {
         this.expression = expression;
         this.castType = Type.valueOf(castType.toUpperCase());

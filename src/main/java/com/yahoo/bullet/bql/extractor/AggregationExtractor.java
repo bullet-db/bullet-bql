@@ -37,65 +37,62 @@ import static com.yahoo.bullet.parsing.Aggregation.Type.TOP_K;
 
 @Slf4j
 public class AggregationExtractor {
-    private ProcessedQuery processedQuery;
-
-    public Aggregation extractAggregation(ProcessedQuery processedQuery) {
-        this.processedQuery = processedQuery;
+    static Aggregation extractAggregation(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {
             case SELECT:
             case SELECT_ALL:
-                return extractRaw();
+                return extractRaw(processedQuery);
             case SELECT_DISTINCT:
-                return extractDistinct();
+                return extractDistinct(processedQuery);
             case GROUP:
-                return extractGroup();
+                return extractGroup(processedQuery);
             case COUNT_DISTINCT:
-                return extractCountDistinct();
+                return extractCountDistinct(processedQuery);
             case DISTRIBUTION:
-                return extractDistribution();
+                return extractDistribution(processedQuery);
             case TOP_K:
-                return extractTopK();
+                return extractTopK(processedQuery);
             case SPECIAL_K:
-                return extractSpecialK();
+                return extractSpecialK(processedQuery);
         }
-        throw new ParsingException("Unreachable");
+        throw new ParsingException("Unknown query type");
     }
 
-    private Aggregation extractRaw() {
+    private static Aggregation extractRaw(ProcessedQuery processedQuery) {
         return new Aggregation(processedQuery.getLimit(), RAW);
     }
 
-    /**
-     * For SELECT DISTINCT, the GROUP BY fields are exactly the SELECT items. They're mapped as expression/field name
-     * to alias (if it exists; otherwise, just name). If there are non-field expressions (i.e. computations), all fields
-     * will be projected.
-     */
-    private Aggregation extractDistinct() {
+    /*
+    For SELECT DISTINCT, the GROUP BY fields are exactly the SELECT items. They're mapped as expression/field name
+    to alias (if it exists; otherwise, just name). If there are non-field expressions (i.e. computations), all fields
+    will be projected.
+    */
+    private static Aggregation extractDistinct(ProcessedQuery processedQuery) {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
         aggregation.setFields(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         return aggregation;
     }
 
-    /**
-     * The GROUP BY fields can be given aliases if they are SELECT'd AS some alias.
-     * Aggregate operations with an argument take the expression by name, so these expressions will be projected into
-     * the record beforehand.
-     */
-    private Aggregation extractGroup() {
+    /*
+    The GROUP BY fields can be given aliases if they are SELECT'd AS some alias.
+    Aggregate operations with an argument take the expression by name, so these expressions will be projected into
+    the record beforehand.
+    */
+    private static Aggregation extractGroup(ProcessedQuery processedQuery) {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
         if (!processedQuery.getGroupByNodes().isEmpty()) {
             aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         }
         List<Map<String, Object>> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
-            Map<String, Object> operation = new HashMap<>();
-            operation.put(GroupOperation.OPERATION_TYPE, node.getOp());
-            operation.put(GroupOperation.OPERATION_NEW_NAME, processedQuery.getAliasOrName(node));
-            if (node.getOp() != COUNT) {
-                // Use name and not alias since fields aren't renamed until after aggregation
-                operation.put(GroupOperation.OPERATION_FIELD, node.getExpression().getName());
-            }
-            return operation;
-        }).collect(Collectors.toList());
+                Map<String, Object> operation = new HashMap<>();
+                operation.put(GroupOperation.OPERATION_TYPE, node.getOp());
+                operation.put(GroupOperation.OPERATION_NEW_NAME, processedQuery.getAliasOrName(node));
+                if (node.getOp() != COUNT) {
+                    // Use name and not alias since fields aren't renamed until after aggregation
+                    operation.put(GroupOperation.OPERATION_FIELD, node.getExpression().getName());
+                }
+                return operation;
+            }).collect(Collectors.toList());
         if (!operations.isEmpty()) {
             Map<String, Object> attributes = new HashMap<>();
             attributes.put(OPERATIONS, operations);
@@ -105,7 +102,7 @@ public class AggregationExtractor {
     }
 
     // No aliases for the COUNT DISTINCT fields since they don't show up in the returned record.
-    private Aggregation extractCountDistinct() {
+    private static Aggregation extractCountDistinct(ProcessedQuery processedQuery) {
         CountDistinctNode countDistinct = processedQuery.getCountDistinct();
 
         Aggregation aggregation = new Aggregation();
@@ -117,7 +114,7 @@ public class AggregationExtractor {
     }
 
     // No alias for the field since it doesn't show up in the returned record.
-    private Aggregation extractDistribution() {
+    private static Aggregation extractDistribution(ProcessedQuery processedQuery) {
         DistributionNode distribution = processedQuery.getDistribution();
         String name = distribution.getExpression().getName();
 
@@ -129,7 +126,7 @@ public class AggregationExtractor {
     }
 
     // Fields get mapped to their aliases (if they exist; otherwise just their names)
-    private Aggregation extractTopK() {
+    private static Aggregation extractTopK(ProcessedQuery processedQuery) {
         TopKNode topK = processedQuery.getTopK();
 
         Aggregation aggregation = new Aggregation(topK.getSize(), TOP_K);
@@ -150,7 +147,7 @@ public class AggregationExtractor {
     }
 
     // Special K assumes the HAVING clause must be of the form COUNT(*) >= X
-    private Aggregation extractSpecialK() {
+    private static Aggregation extractSpecialK(ProcessedQuery processedQuery) {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), TOP_K);
         aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
         Map<String, Object> attributes = new HashMap<>();

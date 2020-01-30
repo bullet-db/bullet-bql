@@ -14,8 +14,6 @@ import com.yahoo.bullet.parsing.OrderBy;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 @Getter
 @RequiredArgsConstructor
 public class SortItemNode extends Node {
@@ -34,12 +32,5 @@ public class SortItemNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitSortItem(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("expression", expression)
-                                   .add("ordering", ordering)
-                                   .toString();
     }
 }

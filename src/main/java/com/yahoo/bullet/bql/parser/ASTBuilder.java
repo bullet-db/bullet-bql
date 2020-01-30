@@ -46,6 +46,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -81,8 +82,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitStream(BQLBaseParser.StreamContext context) {
-        return new StreamNode(getTextIfPresent(context.timeDuration),
-                              getTextIfPresent(context.recordDuration));
+        return new StreamNode(getTextIfPresent(context.timeDuration));
     }
 
     @Override
@@ -129,7 +129,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitListExpression(BQLBaseParser.ListExpressionContext context) {
-        return new ListExpressionNode(visit(context.expression(), ExpressionNode.class));
+        return new ListExpressionNode(visitExpressionsList(context.expressions()));
     }
 
     @Override
@@ -149,13 +149,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitBinary(BQLBaseParser.BinaryContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                        (ExpressionNode) visit(context.right),
-                                       getOperation(context.binaryFunction().op));
+                                       getOperation(context.op));
     }
 
     @Override
     public Node visitNAry(BQLBaseParser.NAryContext context) {
         return new NAryExpressionNode(getOperation(context.op),
-                                      visit(context.expression(), ExpressionNode.class));
+                                      visitExpressionsList(context.expressions()));
     }
 
     @Override
@@ -166,14 +166,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitCountDistinct(BQLBaseParser.CountDistinctContext context) {
-        return new CountDistinctNode(visit(context.expression(), ExpressionNode.class));
+        return new CountDistinctNode(visitExpressionsList(context.expressions()));
     }
 
     @Override
     public Node visitDistribution(BQLBaseParser.DistributionContext context) {
         Distribution.Type type = getDistributionType(context);
         ExpressionNode expression = (ExpressionNode) visit(context.expression());
-        switch(context.inputMode().iMode.getType()) {
+        switch (context.inputMode().iMode.getType()) {
             case BQLBaseLexer.LINEAR: {
                 Long numberOfPoints = Long.parseLong(context.inputMode().numberOfPoints.getText());
                 return new LinearDistributionNode(type, expression, numberOfPoints);
@@ -194,14 +194,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTopK(BQLBaseParser.TopKContext context) {
-        return visit(context.topKConfig());
-    }
-
-    @Override
-    public Node visitTopKConfig(BQLBaseParser.TopKConfigContext context) {
         return new TopKNode(context.size.getText(),
                             getTextIfPresent(context.threshold),
-                            visit(context.expression(), ExpressionNode.class));
+                            visitExpressionsList(context.expressions()));
     }
 
     @Override
@@ -296,11 +291,20 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                                 .collect(Collectors.toList());
     }
 
+    private List<ExpressionNode> visitExpressionsList(BQLBaseParser.ExpressionsContext context) {
+        if (context == null) {
+            return Collections.emptyList();
+        }
+        return visit(context.expression(), ExpressionNode.class);
+    }
+
     private static String unquoteSingle(String value) {
+        // "" -> "
         return value.substring(1, value.length() - 1).replace("''", "'");
     }
 
     private static String unquoteDouble(String value) {
+        // '' -> '
         return value.substring(1, value.length() - 1).replace("\"\"", "\"");
     }
 

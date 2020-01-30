@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.processor;
 
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
@@ -23,7 +28,6 @@ import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
-import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.expressions.BinaryExpression;
 import com.yahoo.bullet.parsing.expressions.CastExpression;
@@ -79,7 +83,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
                 expression.setField(countDistinctNode.getName());
             }
         }
-        return context.validate();
+        context.validate();
+        return context;
     }
 
     @Override
@@ -107,12 +112,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     @Override
     protected ProcessedQuery visitStream(StreamNode node, ProcessedQuery context) {
         String timeDuration = node.getTimeDuration();
-        String recordDuration = node.getRecordDuration();
         if (timeDuration != null) {
             context.setTimeDuration(timeDuration.equalsIgnoreCase("MAX") ? Long.MAX_VALUE : Long.parseLong(timeDuration));
-        }
-        if (recordDuration != null) {
-            context.setRecordDuration(recordDuration.equalsIgnoreCase("MAX") ? Long.MAX_VALUE : Long.parseLong(recordDuration));
         }
         return context;
     }
@@ -139,16 +140,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitWindow(WindowNode node, ProcessedQuery context) {
-        context.setWindowed(true);
-        context.setEmitEvery(node.getEmitEvery());
-        context.setEmitType(node.getEmitType());
-        return super.visitWindow(node, context);
-    }
-
-    @Override
-    protected ProcessedQuery visitWindowInclude(WindowIncludeNode node, ProcessedQuery context) {
-        context.setFirst(node.getNumber());
-        context.setIncludeUnit(node.getUnit());
+        context.setWindow(node);
         return context;
     }
 
@@ -289,7 +281,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         context.getExpressionNodes().put(node, expression);
         context.getSubExpressionNodes().addAll(node.getExpressions());
 
-        if(node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
+        if (node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
             context.getSuperAggregateNodes().add(node);
         }
         context.getAggregateNodes().add(node);
@@ -327,7 +319,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         context.getSubExpressionNodes().addAll(node.getExpressions());
 
-        if(node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
+        if (node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
             context.getSuperAggregateNodes().add(node);
         }
         context.getAggregateNodes().add(node);

@@ -15,8 +15,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 @Getter
 @RequiredArgsConstructor
 public class GroupByNode extends Node {
@@ -25,10 +23,5 @@ public class GroupByNode extends Node {
     @Override
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitGroupBy(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("expressions", expressions).toString();
     }
 }

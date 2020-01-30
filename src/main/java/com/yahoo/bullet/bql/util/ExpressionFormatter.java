@@ -10,7 +10,6 @@
  */
 package com.yahoo.bullet.bql.util;
 
-import com.google.common.base.Joiner;
 import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -45,10 +44,12 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
     private static final ThreadLocal<DecimalFormat> DOUBLE_FORMATTER = ThreadLocal.withInitial(
             () -> new DecimalFormat("0.###################E0###", new DecimalFormatSymbols(Locale.US)));
+    private static final String DELIMITER = ", ";
 
     /**
      * Parse an {@link ExpressionNode} to a BQL String, with a List of {@link ExpressionNode} parameters.
@@ -127,10 +128,7 @@ public final class ExpressionFormatter {
             if (node.getTimeDuration() == null) {
                 return "STREAM()";
             }
-            if (node.getRecordDuration() == null) {
-                return "STREAM(" + node.getTimeDuration() + ", TIME)";
-            }
-            return "STREAM(" + node.getTimeDuration() + ", TIME, " + node.getRecordDuration() + ", RECORD)";
+            return "STREAM(" + node.getTimeDuration() + ", TIME)";
         }
 
         @Override
@@ -158,10 +156,10 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitWindowInclude(WindowIncludeNode node, Void context) {
-            if (node.getUnit() == Window.Unit.ALL) {
-                return node.getUnit().toString();
+            if (node.getIncludeUnit() == Window.Unit.ALL) {
+                return node.getIncludeUnit().toString();
             }
-            return "FIRST, " + node.getNumber() + ", " + node.getUnit();
+            return "FIRST, " + node.getFirst() + ", " + node.getIncludeUnit();
         }
 
         @Override
@@ -273,8 +271,8 @@ public final class ExpressionFormatter {
             return value.toString();
         }
 
-        private String join(List list) {
-            return Joiner.on(", ").join(list.stream().map(node -> process((Node) node)).iterator());
+        private <T extends Node> String join(List<T> list) {
+            return list.stream().map(this::process).collect(Collectors.joining(DELIMITER));
         }
     }
 
@@ -283,6 +281,12 @@ public final class ExpressionFormatter {
         return "'" + s + "'";
     }
 
+    /**
+     * Formats the given {@link Node} as a {@link String}.
+     *
+     * @param node The {@link Node} to format.
+     * @return The string representation of the given {@link Node}.
+     */
     public static String format(Node node) {
         return new Formatter(true).process(node);
     }

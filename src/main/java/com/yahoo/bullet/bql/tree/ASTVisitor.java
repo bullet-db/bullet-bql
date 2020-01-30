@@ -10,8 +10,6 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import javax.annotation.Nullable;
-
 public abstract class ASTVisitor<R, C> {
     /**
      * Process a {@link Node}, which will trigger visitor pattern.
@@ -30,7 +28,7 @@ public abstract class ASTVisitor<R, C> {
      * @param context A {@link C}.
      * @return A {@link R}.
      */
-    public R process(Node node, @Nullable C context) {
+    public R process(Node node, C context) {
         return node != null ? node.accept(this, context) : null;
     }
 

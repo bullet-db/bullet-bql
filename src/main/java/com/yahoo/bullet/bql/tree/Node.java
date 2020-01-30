@@ -23,7 +23,4 @@ public abstract class Node {
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitNode(this, context);
     }
-
-    @Override
-    public abstract String toString();
 }

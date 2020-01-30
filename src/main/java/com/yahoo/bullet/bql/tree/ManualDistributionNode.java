@@ -25,9 +25,9 @@ public class ManualDistributionNode extends DistributionNode {
     /**
      * Constructor that requires a List of {@link ExpressionNode} columns, a {@link Type} and a List of Double points.
      *
-     * @param type    A {@link Type}.
+     * @param type A {@link Type}.
      * @param expression An {@link ExpressionNode}.
-     * @param points  A List of Double.
+     * @param points A List of Double.
      */
     public ManualDistributionNode(Type type, ExpressionNode expression, List<Double> points) {
         super(type, expression);

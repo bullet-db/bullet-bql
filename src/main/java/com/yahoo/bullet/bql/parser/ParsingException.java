@@ -28,7 +28,6 @@ public class ParsingException extends RuntimeException {
      */
     public ParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {
         super(message, cause);
-
         this.line = line;
         this.charPositionInLine = charPositionInLine;
     }
@@ -41,16 +40,6 @@ public class ParsingException extends RuntimeException {
     public ParsingException(String message) {
         this(message, null, 1, 0);
     }
-
-    ///**
-    // * Constructor to initialize ParsingException with a message and {@link NodeLocation}.
-    // *
-    // * @param message      The error message to be associated with the ParsingException.
-    // * @param nodeLocation The {@link NodeLocation} that contains line number and char position in line.
-    // */
-    //public ParsingException(String message, NodeLocation nodeLocation) {
-    //    this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
-    //}
 
     @Override
     public String getMessage() {

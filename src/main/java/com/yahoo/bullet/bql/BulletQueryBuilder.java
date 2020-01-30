@@ -12,10 +12,9 @@ import com.yahoo.bullet.bql.processor.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.tree.QueryNode;
-import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
 
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 public class BulletQueryBuilder {
     private static final Gson GSON = new GsonBuilder().create();
@@ -26,9 +25,9 @@ public class BulletQueryBuilder {
     /**
      * Constructor that initializes a BulletQueryBuilder.
      *
-     * @param config A {@link BulletConfig}.
+     * @param config A {@link BQLConfig}.
      */
-    public BulletQueryBuilder(BulletConfig config) {
+    public BulletQueryBuilder(BQLConfig config) {
         queryExtractor = new QueryExtractor(config);
     }
 
@@ -39,13 +38,23 @@ public class BulletQueryBuilder {
      * @return A Bullet {@link Query}.
      */
     public Query buildQuery(String bql) {
-        requireNonNull(bql);
+        Objects.requireNonNull(bql);
 
         // Parse BQL to node tree.
         QueryNode node = bqlParser.createQueryNode(bql);
 
         // Process the query node into query components and validate components
         ProcessedQuery processedQuery = queryProcessor.process(node);
+
+        // Could separately validate
+
+        // Type-checking expression nodes? type-checking the expressions
+
+        // Need schema
+
+        // TODO Could have processedQuery#getErrors()
+        // Would have to throw from here to get the errors...
+
 
         // Build the query
         return queryExtractor.extractQuery(processedQuery);
@@ -56,15 +65,17 @@ public class BulletQueryBuilder {
      *
      * @param bql The BQL String that contains query.
      * @return A Bullet JSON String.
-     * @throws NullPointerException          when bql is null.
-     * @throws IllegalArgumentException      when bql argument is not valid.
-     * @throws UnsupportedOperationException when bql operation is not valid.
-     * @throws AssertionError                when DecimalLiteralTreatment is not valid.
      */
     public String buildJson(String bql) {
         return toJson(buildQuery(bql));
     }
 
+    /**
+     * Build a JSON from a {@link Query}.
+     *
+     * @param query A {@link Query}.
+     * @return A JSON String.
+     */
     public String toJson(Query query) {
         return GSON.toJson(query);
     }

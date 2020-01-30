@@ -14,9 +14,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 @Getter
 @RequiredArgsConstructor
@@ -27,30 +24,5 @@ public class SelectNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitSelect(this, context);
-    }
-/*
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (!(obj instanceof SelectNode)) {
-            return false;
-        }
-        SelectNode other = (SelectNode) obj;
-        return distinct == other.distinct && Objects.equals(selectItems, other.selectItems);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(distinct, selectItems);
-    }
-*/
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("distinct", distinct)
-                                   .add("selectItems", selectItems)
-                                   .omitNullValues()
-                                   .toString();
     }
 }
