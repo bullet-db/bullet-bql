@@ -40,10 +40,7 @@ import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.Window;
 import lombok.AllArgsConstructor;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
