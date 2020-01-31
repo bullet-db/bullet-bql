@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -154,6 +155,26 @@ public class ProcessedQuery {
             }
         }
         queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
+    }
+
+    void addExpression(ExpressionNode node, Expression expression) {
+        expressionNodes.put(node, expression);
+    }
+
+    void addExpression(ExpressionNode node, Expression expression, ExpressionNode subNode) {
+        addExpression(node, expression);
+        subExpressionNodes.add(subNode);
+        if (isAggregateOrSuperAggregate(subNode)) {
+            superAggregateNodes.add(node);
+        }
+    }
+
+    void addExpression(ExpressionNode node, Expression expression, List<ExpressionNode> subNodes) {
+        expressionNodes.put(node, expression);
+        subExpressionNodes.addAll(subNodes);
+        if (subNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
+            superAggregateNodes.add(node);
+        }
     }
 
     /**

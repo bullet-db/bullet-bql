@@ -39,6 +39,7 @@ import com.yahoo.bullet.parsing.expressions.Operation;
 import com.yahoo.bullet.parsing.expressions.UnaryExpression;
 import com.yahoo.bullet.parsing.expressions.ValueExpression;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -165,9 +166,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
                                                          node.getSubKey() != null ? node.getSubKey().getValue() : null,
                                                          node.getType(),
                                                          node.getPrimitiveType());
-
-        context.getExpressionNodes().put(node, expression);
-
+        context.addExpression(node, expression);
         return context;
     }
 
@@ -175,14 +174,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitListExpression(ListExpressionNode node, ProcessedQuery context) {
         super.visitListExpression(node, context);
 
-        ListExpression list = new ListExpression(node.getExpressions().stream().map(context::getExpression).collect(Collectors.toList()));
+        ListExpression listExpression = new ListExpression(node.getExpressions().stream().map(context::getExpression).collect(Collectors.toList()));
 
-        context.getExpressionNodes().put(node, list);
-        context.getSubExpressionNodes().addAll(node.getExpressions());
-
-        if (node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, listExpression, node.getExpressions());
 
         return context;
     }
@@ -195,12 +189,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         UnaryExpression expression = new UnaryExpression(context.getExpression(node.getExpression()), op);
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().add(node.getExpression());
-
-        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, expression, node.getExpression());
 
         return context;
     }
@@ -211,12 +200,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         UnaryExpression expression = new UnaryExpression(context.getExpression(node.getExpression()), node.getOp());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().add(node.getExpression());
-
-        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, expression, node.getExpression());
 
         return context;
     }
@@ -229,12 +213,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         NAryExpression expression = new NAryExpression(operands, node.getOp());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().addAll(node.getExpressions());
-
-        if (node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, expression, node.getExpressions());
 
         return context;
     }
@@ -243,14 +222,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitGroupOperation(GroupOperationNode node, ProcessedQuery context) {
         super.visitGroupOperation(node, context);
 
-        FieldExpression expression = new FieldExpression();
+        context.addExpression(node, new FieldExpression(), node.getExpression());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().add(node.getExpression());
-
-        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
-            context.getSuperAggregateNodes().add(node);
-        }
         context.getAggregateNodes().add(node);
         context.getGroupOpNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.GROUP);
@@ -262,14 +235,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitCountDistinct(CountDistinctNode node, ProcessedQuery context) {
         super.visitCountDistinct(node, context);
 
-        FieldExpression expression = new FieldExpression();
+        context.addExpression(node, new FieldExpression(), node.getExpressions());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().addAll(node.getExpressions());
-
-        if (node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
-            context.getSuperAggregateNodes().add(node);
-        }
         context.getAggregateNodes().add(node);
         context.getCountDistinctNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.COUNT_DISTINCT);
@@ -281,11 +248,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitDistribution(DistributionNode node, ProcessedQuery context) {
         super.visitDistribution(node, context);
 
-        context.getSubExpressionNodes().add(node.getExpression());
+        context.addExpression(node, null, node.getExpression());
 
-        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
-            context.getSuperAggregateNodes().add(node);
-        }
         context.getAggregateNodes().add(node);
         context.getDistributionNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.DISTRIBUTION);
@@ -297,11 +261,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitTopK(TopKNode node, ProcessedQuery context) {
         super.visitTopK(node, context);
 
-        context.getSubExpressionNodes().addAll(node.getExpressions());
+        context.addExpression(node, null, node.getExpressions());
 
-        if (node.getExpressions().stream().anyMatch(context::isAggregateOrSuperAggregate)) {
-            context.getSuperAggregateNodes().add(node);
-        }
         context.getAggregateNodes().add(node);
         context.getTopKNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.TOP_K);
@@ -315,12 +276,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         CastExpression expression = new CastExpression(context.getExpression(node.getExpression()), node.getCastType());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().add(node.getExpression());
-
-        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, expression, node.getExpression());
 
         return context;
     }
@@ -333,13 +289,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
                                                            context.getExpression(node.getRight()),
                                                            node.getOp());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().add(node.getLeft());
-        context.getSubExpressionNodes().add(node.getRight());
-
-        if (context.isAggregateOrSuperAggregate(node.getLeft()) || context.isAggregateOrSuperAggregate(node.getRight())) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, expression, Arrays.asList(node.getLeft(), node.getRight()));
 
         return context;
     }
@@ -350,19 +300,14 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         Expression expression = context.getExpression(node.getExpression());
 
-        context.getExpressionNodes().put(node, expression);
-        context.getSubExpressionNodes().add(node.getExpression());
-
-        if (context.isAggregateOrSuperAggregate(node.getExpression())) {
-            context.getSuperAggregateNodes().add(node);
-        }
+        context.addExpression(node, expression, node.getExpression());
 
         return context;
     }
 
     @Override
     protected ProcessedQuery visitLiteral(LiteralNode node, ProcessedQuery context) {
-        context.getExpressionNodes().put(node, new ValueExpression(node.getValue()));
+        context.addExpression(node, new ValueExpression(node.getValue()));
 
         return context;
     }
