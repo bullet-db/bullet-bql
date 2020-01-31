@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 @RequiredArgsConstructor
@@ -23,5 +24,22 @@ public class GroupByNode extends Node {
     @Override
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitGroupBy(this, context);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof GroupByNode)) {
+            return false;
+        }
+        GroupByNode other = (GroupByNode) obj;
+        return Objects.equals(expressions, other.expressions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(expressions);
     }
 }

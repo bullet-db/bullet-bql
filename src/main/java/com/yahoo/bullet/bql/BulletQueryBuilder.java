@@ -61,16 +61,6 @@ public class BulletQueryBuilder {
     }
 
     /**
-     * Build a Bullet JSON from BQL string.
-     *
-     * @param bql The BQL String that contains query.
-     * @return A Bullet JSON String.
-     */
-    public String buildJson(String bql) {
-        return toJson(buildQuery(bql));
-    }
-
-    /**
      * Build a JSON from a {@link Query}.
      *
      * @param query A {@link Query}.

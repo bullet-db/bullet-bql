@@ -6,7 +6,6 @@
 package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.aggregations.Distribution.Type;
-import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +15,7 @@ import java.util.stream.Collectors;
 
 import static com.yahoo.bullet.aggregations.Distribution.POINTS;
 import static com.yahoo.bullet.aggregations.Distribution.TYPE;
-import static java.util.Objects.requireNonNull;
 
-@Getter
 public class ManualDistributionNode extends DistributionNode {
     private final List<Double> points;
 
@@ -31,7 +28,7 @@ public class ManualDistributionNode extends DistributionNode {
      */
     public ManualDistributionNode(Type type, ExpressionNode expression, List<Double> points) {
         super(type, expression);
-        this.points = requireNonNull(points, "points is null");
+        this.points = points;
     }
 
     @Override

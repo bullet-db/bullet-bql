@@ -6,26 +6,17 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
 
 @Getter
+@RequiredArgsConstructor
 public class GroupOperationNode extends ExpressionNode {
     private final GroupOperationType op;
     private final ExpressionNode expression;
-
-    /**
-     * Constructs a GroupOperationNode from a {@link String} operation and an {@link ExpressionNode}.
-     *
-     * @param op The group operation as a {@link String}.
-     * @param expression The group operation operand.
-     */
-    public GroupOperationNode(String op, ExpressionNode expression) {
-        this.op = GroupOperationType.valueOf(op.toUpperCase());
-        this.expression = expression;
-    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

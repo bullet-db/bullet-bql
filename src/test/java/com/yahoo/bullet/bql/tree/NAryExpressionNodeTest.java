@@ -12,7 +12,7 @@ import java.util.Collections;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class NAryExpressionNodeTest extends ExpressionNodeTest {
+public class NAryExpressionNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
         testEqualsAndHashCode(() -> new NAryExpressionNode(Operation.AND, Collections.singletonList(identifier("abc"))),

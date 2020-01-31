@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class NullPredicateNodeTest extends ExpressionNodeTest {
+public class NullPredicateNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
         testEqualsAndHashCode(() -> new NullPredicateNode(identifier("abc"), true),

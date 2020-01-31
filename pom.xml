@@ -69,15 +69,6 @@
             <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>com.yahoo.bullet</groupId>
-            <artifactId>bullet-core</artifactId>
-            <version>${bullet.core.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        -->
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
@@ -96,7 +87,6 @@
             <version>1.16.4</version>
             <scope>provided</scope>
         </dependency>
-
     </dependencies>
 
     <build>

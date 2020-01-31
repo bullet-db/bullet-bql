@@ -1284,8 +1284,6 @@ public class BulletQueryBuilderTest {
         Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
     }
 
-
-
     @Test
     public void testQuotedField() {
         build("SELECT \"abc\" FROM STREAM()");
@@ -1365,6 +1363,15 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getProjection().getFields().get(6), new Field("g", new ValueExpression(5.0f)));
         Assert.assertEquals(query.getProjection().getFields().get(7), new Field("h", new ValueExpression(-5.0f)));
         Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testBoolean() {
+        build("SELECT true, false FROM STREAM()");
+        build("SELECT true, false FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("true", new ValueExpression(true)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("false", new ValueExpression(false)));
     }
 
     @Test
@@ -1465,8 +1472,8 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testListExpression() {
-        build("SELECT [abc, def, one, 5] FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        build("SELECT [abc, def, one, 5], [] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
 
         Field field = query.getProjection().getFields().get(0);
 
@@ -1475,6 +1482,11 @@ public class BulletQueryBuilderTest {
                                                                                new FieldExpression("def"),
                                                                                new FieldExpression("one"),
                                                                                new ValueExpression(5))));
+
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "[]");
+        Assert.assertEquals(field.getValue(), new ListExpression(Collections.emptyList()));
     }
 
     @Test

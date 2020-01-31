@@ -8,6 +8,8 @@ package com.yahoo.bullet.bql.tree;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Objects;
+
 @Getter
 @RequiredArgsConstructor
 public class StreamNode extends Node {
@@ -16,5 +18,22 @@ public class StreamNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitStream(this, context);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof StreamNode)) {
+            return false;
+        }
+        StreamNode other = (StreamNode) obj;
+        return Objects.equals(timeDuration, other.timeDuration);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(timeDuration);
     }
 }

@@ -10,21 +10,14 @@
  */
 package com.yahoo.bullet.bql.parser;
 
+import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.IntStream;
 import org.antlr.v4.runtime.misc.Interval;
 
+@RequiredArgsConstructor
 public class CaseInsensitiveStream implements CharStream {
     private final CharStream stream;
-
-    /**
-     * Constructor that requires a {@link CharStream}. Currently is used to construct {@link BQLBaseLexer}.
-     *
-     * @param stream A {@link CharStream}.
-     */
-    public CaseInsensitiveStream(CharStream stream) {
-        this.stream = stream;
-    }
 
     @Override
     public String getText(Interval interval) {

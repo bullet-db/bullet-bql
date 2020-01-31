@@ -16,11 +16,17 @@ public abstract class Node {
      *
      * @param visitor An implementation of {@link ASTVisitor}.
      * @param context A {@link C} that passed in.
-     * @param <R>     The return type of {@link ASTVisitor#process(Node, Object)}.
-     * @param <C>     The context type of {@link ASTVisitor#process(Node, Object)}.
+     * @param <R> The return type of {@link ASTVisitor#process(Node, Object)}.
+     * @param <C> The context type of {@link ASTVisitor#process(Node, Object)}.
      * @return A {@link R}.
      */
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitNode(this, context);
     }
+
+    @Override
+    public abstract boolean equals(Object obj);
+
+    @Override
+    public abstract int hashCode();
 }

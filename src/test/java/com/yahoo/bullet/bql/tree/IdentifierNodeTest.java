@@ -7,7 +7,7 @@ package com.yahoo.bullet.bql.tree;
 
 import org.testng.annotations.Test;
 
-public class IdentifierNodeTest extends ExpressionNodeTest {
+public class IdentifierNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
         testEqualsAndHashCode(() -> new IdentifierNode("abc", true),

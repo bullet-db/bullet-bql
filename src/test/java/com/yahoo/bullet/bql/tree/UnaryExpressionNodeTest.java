@@ -10,7 +10,7 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class UnaryExpressionNodeTest extends ExpressionNodeTest {
+public class UnaryExpressionNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
         testEqualsAndHashCode(() -> new UnaryExpressionNode(Operation.SIZE_OF, identifier("abc"), false),

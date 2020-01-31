@@ -7,25 +7,35 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.parsing.Window.Unit;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+import java.util.Objects;
 
 @Getter
+@RequiredArgsConstructor
 public class WindowIncludeNode extends Node {
     private final Long first;
     private final Unit includeUnit;
 
-    /**
-     * Constructs a WindowIncludeNode from a {@link String} first and a {@link String} include unit.
-     *
-     * @param first The first as a {@link String}.
-     * @param includeUnit The include unit as a {@link String}.
-     */
-    public WindowIncludeNode(String first, String includeUnit) {
-        this.first = first != null ? Long.parseLong(first) : null;
-        this.includeUnit = Unit.valueOf(includeUnit.toUpperCase());
-    }
-
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitWindowInclude(this, context);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof WindowIncludeNode)) {
+            return false;
+        }
+        WindowIncludeNode other = (WindowIncludeNode) obj;
+        return Objects.equals(first, other.first) && includeUnit == other.includeUnit;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(first, includeUnit);
     }
 }

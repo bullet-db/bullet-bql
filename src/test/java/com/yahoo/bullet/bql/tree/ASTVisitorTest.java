@@ -5,6 +5,9 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import com.yahoo.bullet.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.parsing.Window;
+import com.yahoo.bullet.typesystem.Type;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -71,7 +74,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitWindowInclude() {
-        WindowIncludeNode windowInclude = new WindowIncludeNode("50", "TIME");
+        WindowIncludeNode windowInclude = new WindowIncludeNode(50L, Window.Unit.TIME);
         visitor.process(windowInclude);
         Mockito.verify(visitor).visitWindowInclude(windowInclude, null);
     }
@@ -113,7 +116,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitGroupOperation() {
-        GroupOperationNode groupOperation = new GroupOperationNode("AVG", null);
+        GroupOperationNode groupOperation = new GroupOperationNode(GroupOperation.GroupOperationType.AVG, null);
         visitor.process(groupOperation);
         Mockito.verify(visitor).visitGroupOperation(groupOperation, null);
     }
@@ -134,14 +137,14 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitTopK() {
-        TopKNode topK = new TopKNode("50", null, null);
+        TopKNode topK = new TopKNode(50, null, null);
         visitor.process(topK);
         Mockito.verify(visitor).visitTopK(topK, null);
     }
 
     @Test
     public void testVisitCastExpression() {
-        CastExpressionNode castExpression = new CastExpressionNode(null, "LONG");
+        CastExpressionNode castExpression = new CastExpressionNode(null, Type.LONG);
         visitor.process(castExpression);
         Mockito.verify(visitor).visitCastExpression(castExpression, null);
     }

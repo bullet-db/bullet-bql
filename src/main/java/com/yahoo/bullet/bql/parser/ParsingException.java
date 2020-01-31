@@ -21,9 +21,9 @@ public class ParsingException extends RuntimeException {
     /**
      * Constructor to initialize ParsingException with a message, reason, line number and char position in line.
      *
-     * @param message            The error message to be associated with the ParsingException.
-     * @param cause              The reason for the ParsingException.
-     * @param line               The line number of the reason.
+     * @param message The error message to be associated with the ParsingException.
+     * @param cause The reason for the ParsingException.
+     * @param line The line number of the reason.
      * @param charPositionInLine The char position in line of the reason.
      */
     public ParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {

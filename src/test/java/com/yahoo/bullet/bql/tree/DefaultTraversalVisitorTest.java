@@ -5,7 +5,10 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import com.yahoo.bullet.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.parsing.Window;
 import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.typesystem.Type;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -94,7 +97,7 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitWindow() {
-        WindowNode window = new WindowNode(null, null, new WindowIncludeNode("50", "TIME"));
+        WindowNode window = new WindowNode(null, null, new WindowIncludeNode(50L, Window.Unit.TIME));
         visitor.process(window);
         Mockito.verify(visitor).visitWindow(window, null);
         Mockito.verify(visitor).visitWindowInclude(window.getWindowInclude(), null);
@@ -138,7 +141,7 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitGroupOperation() {
-        GroupOperationNode groupOperation = new GroupOperationNode("AVG", new LiteralNode(5));
+        GroupOperationNode groupOperation = new GroupOperationNode(GroupOperation.GroupOperationType.AVG, new LiteralNode(5));
         visitor.process(groupOperation);
         Mockito.verify(visitor).visitGroupOperation(groupOperation, null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) groupOperation.getExpression(), null);
@@ -164,8 +167,8 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitTopK() {
-        TopKNode topK = new TopKNode("50", "50", Arrays.asList(new LiteralNode(5),
-                                                               new LiteralNode(6)));
+        TopKNode topK = new TopKNode(50, 50L, Arrays.asList(new LiteralNode(5),
+                                                            new LiteralNode(6)));
         visitor.process(topK);
         Mockito.verify(visitor).visitTopK(topK, null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) topK.getExpressions().get(0), null);
@@ -174,7 +177,7 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitCastExpression() {
-        CastExpressionNode castExpression = new CastExpressionNode(new LiteralNode(5), "LONG");
+        CastExpressionNode castExpression = new CastExpressionNode(new LiteralNode(5), Type.LONG);
         visitor.process(castExpression);
         Mockito.verify(visitor).visitCastExpression(castExpression, null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) castExpression.getExpression(), null);

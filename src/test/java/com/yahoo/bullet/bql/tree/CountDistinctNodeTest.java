@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 
-public class CountDistinctNodeTest extends ExpressionNodeTest {
+public class CountDistinctNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
         testEqualsAndHashCode(() -> new CountDistinctNode(Collections.singletonList(new LiteralNode(5))),

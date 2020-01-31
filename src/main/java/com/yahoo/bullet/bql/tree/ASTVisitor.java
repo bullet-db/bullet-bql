@@ -24,7 +24,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Process a {@link Node} with context, which will trigger visitor pattern.
      *
-     * @param node    A {@link Node}.
+     * @param node A {@link Node}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -35,7 +35,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link Node} with passed in context.
      *
-     * @param node    A {@link Node}.
+     * @param node A {@link Node}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -46,7 +46,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link QueryNode} with passed in context.
      *
-     * @param node    A {@link QueryNode}.
+     * @param node A {@link QueryNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -57,7 +57,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link SelectNode} with passed in context.
      *
-     * @param node    A {@link SelectNode}.
+     * @param node A {@link SelectNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -68,7 +68,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link SelectItemNode} with passed in context.
      *
-     * @param node    A {@link SelectItemNode}.
+     * @param node A {@link SelectItemNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -79,7 +79,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link StreamNode} with passed in context.
      *
-     * @param node    A {@link StreamNode}.
+     * @param node A {@link StreamNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -90,7 +90,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link GroupByNode} with passed in context.
      *
-     * @param node    A {@link GroupByNode}.
+     * @param node A {@link GroupByNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -101,7 +101,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit an {@link OrderByNode} with passed in context.
      *
-     * @param node    An {@link OrderByNode}.
+     * @param node An {@link OrderByNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -112,7 +112,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link SortItemNode} with passed in context.
      *
-     * @param node    A {@link SortItemNode}.
+     * @param node A {@link SortItemNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -123,7 +123,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link WindowNode} with passed in context.
      *
-     * @param node    A {@link WindowNode}.
+     * @param node A {@link WindowNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -134,7 +134,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link WindowIncludeNode} with passed in context.
      *
-     * @param node    A {@link WindowIncludeNode}.
+     * @param node A {@link WindowIncludeNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -145,7 +145,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit an {@link ExpressionNode} with passed in context.
      *
-     * @param node    An {@link ExpressionNode}.
+     * @param node An {@link ExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -156,7 +156,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit an {@link FieldExpressionNode} with passed in context.
      *
-     * @param node    A {@link FieldExpressionNode}.
+     * @param node A {@link FieldExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -167,7 +167,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link ListExpressionNode} with passed in context.
      *
-     * @param node    A {@link ListExpressionNode}.
+     * @param node A {@link ListExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -178,7 +178,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link NullPredicateNode} with passed in context.
      *
-     * @param node    A {@link NullPredicateNode}.
+     * @param node A {@link NullPredicateNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -189,7 +189,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link UnaryExpressionNode} with passed in context.
      *
-     * @param node    A {@link UnaryExpressionNode}.
+     * @param node A {@link UnaryExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -200,7 +200,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link NAryExpressionNode} with passed in context.
      *
-     * @param node    A {@link NAryExpressionNode}.
+     * @param node A {@link NAryExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -211,7 +211,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link GroupOperationNode} with passed in context.
      *
-     * @param node    A {@link GroupOperationNode}.
+     * @param node A {@link GroupOperationNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -222,7 +222,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link CountDistinctNode} with passed in context.
      *
-     * @param node    A {@link CountDistinctNode}.
+     * @param node A {@link CountDistinctNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -233,7 +233,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link DistributionNode} with passed in context.
      *
-     * @param node    A {@link DistributionNode}.
+     * @param node A {@link DistributionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -244,7 +244,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link TopKNode} with passed in context.
      *
-     * @param node    A {@link TopKNode}.
+     * @param node A {@link TopKNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -255,7 +255,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link CastExpressionNode} with passed in context.
      *
-     * @param node    A {@link CastExpressionNode}.
+     * @param node A {@link CastExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -266,7 +266,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link BinaryExpressionNode} with passed in context.
      *
-     * @param node    A {@link BinaryExpressionNode}.
+     * @param node A {@link BinaryExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -277,7 +277,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link ParenthesesExpressionNode} with passed in context.
      *
-     * @param node    A {@link ParenthesesExpressionNode}.
+     * @param node A {@link ParenthesesExpressionNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -288,7 +288,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit an {@link IdentifierNode} with passed in context.
      *
-     * @param node    An {@link IdentifierNode}.
+     * @param node An {@link IdentifierNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */
@@ -299,7 +299,7 @@ public abstract class ASTVisitor<R, C> {
     /**
      * Visit a {@link LiteralNode} with passed in context.
      *
-     * @param node    A {@link LiteralNode}.
+     * @param node A {@link LiteralNode}.
      * @param context A {@link C}.
      * @return A {@link R}.
      */

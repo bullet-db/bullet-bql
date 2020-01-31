@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class FieldExpressionNodeTest extends ExpressionNodeTest {
+public class FieldExpressionNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
         testEqualsAndHashCode(() -> new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), null, null),

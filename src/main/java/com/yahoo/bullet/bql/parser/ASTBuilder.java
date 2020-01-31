@@ -11,6 +11,7 @@
 package com.yahoo.bullet.bql.parser;
 
 import com.yahoo.bullet.aggregations.Distribution;
+import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
@@ -113,8 +114,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitInclude(BQLBaseParser.IncludeContext context) {
-        return new WindowIncludeNode(getTextIfPresent(context.INTEGER_VALUE()),
-                                     context.includeUnit.getText());
+        Long first = context.INTEGER_VALUE() != null ? Long.parseLong(context.INTEGER_VALUE().getText()) : null;
+        Unit includeUnit = Unit.valueOf(context.includeUnit.getText().toUpperCase());
+        return new WindowIncludeNode(first, includeUnit);
     }
 
     @Override
@@ -160,8 +162,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGroupOperation(BQLBaseParser.GroupOperationContext context) {
-        return new GroupOperationNode(context.op.getText(),
-                                      (ExpressionNode) visitIfPresent(context.expression()));
+        GroupOperation.GroupOperationType op = GroupOperation.GroupOperationType.valueOf(context.op.getText().toUpperCase());
+        return new GroupOperationNode(op, (ExpressionNode) visitIfPresent(context.expression()));
     }
 
     @Override
@@ -194,15 +196,16 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTopK(BQLBaseParser.TopKContext context) {
-        return new TopKNode(context.size.getText(),
-                            getTextIfPresent(context.threshold),
-                            visitExpressionsList(context.expressions()));
+        Integer size = Integer.parseInt(context.size.getText());
+        Long threshold = context.threshold != null ? Long.parseLong(context.threshold.getText()) : null;
+        return new TopKNode(size, threshold, visitExpressionsList(context.expressions()));
     }
 
     @Override
     public Node visitCast(BQLBaseParser.CastContext context) {
+        Type castType = Type.valueOf(context.primitiveType().getText().toUpperCase());
         return new CastExpressionNode((ExpressionNode) visit(context.expression()),
-                                      context.primitiveType().getText());
+                                      castType);
     }
 
     @Override

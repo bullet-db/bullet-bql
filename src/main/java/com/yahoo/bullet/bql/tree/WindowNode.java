@@ -9,6 +9,8 @@ import com.yahoo.bullet.parsing.Window.Unit;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Objects;
+
 @Getter
 @RequiredArgsConstructor
 public class WindowNode extends Node {
@@ -19,5 +21,24 @@ public class WindowNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitWindow(this, context);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof WindowNode)) {
+            return false;
+        }
+        WindowNode other = (WindowNode) obj;
+        return Objects.equals(emitEvery, other.emitEvery) &&
+               emitType == other.emitType &&
+               Objects.equals(windowInclude, other.windowInclude);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(emitEvery, emitType, windowInclude);
     }
 }

@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-@Getter
 @RequiredArgsConstructor
 public abstract class DistributionNode extends ExpressionNode {
     public static final String QUANTILE = "QUANTILE";
@@ -20,6 +19,7 @@ public abstract class DistributionNode extends ExpressionNode {
     public static final String CUMFREQ = "CUMFREQ";
 
     protected final Type type;
+    @Getter
     protected final ExpressionNode expression;
 
     /**

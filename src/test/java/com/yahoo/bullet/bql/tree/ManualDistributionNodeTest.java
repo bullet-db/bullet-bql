@@ -15,7 +15,7 @@ import java.util.Map;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class ManualDistributionNodeTest extends ExpressionNodeTest {
+public class ManualDistributionNodeTest extends NodeTest {
     private ManualDistributionNode node;
 
     @BeforeClass

@@ -6,7 +6,6 @@
 package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.aggregations.Distribution.Type;
-import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +16,6 @@ import static com.yahoo.bullet.aggregations.Distribution.RANGE_INCREMENT;
 import static com.yahoo.bullet.aggregations.Distribution.RANGE_START;
 import static com.yahoo.bullet.aggregations.Distribution.TYPE;
 
-@Getter
 public class RegionDistributionNode extends DistributionNode {
     private final Double start;
     private final Double end;

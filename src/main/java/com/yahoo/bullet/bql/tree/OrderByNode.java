@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 @RequiredArgsConstructor
@@ -23,5 +24,22 @@ public class OrderByNode extends Node {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitOrderBy(this, context);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof OrderByNode)) {
+            return false;
+        }
+        OrderByNode other = (OrderByNode) obj;
+        return Objects.equals(sortItems, other.sortItems);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sortItems);
     }
 }

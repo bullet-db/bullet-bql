@@ -13,23 +13,9 @@ package com.yahoo.bullet.bql.tree;
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 
 public abstract class ExpressionNode extends Node {
-    /**
-     * Accessible for {@link ASTVisitor}, use {@link ASTVisitor#process(Node, Object)} instead.
-     */
     @Override
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitExpression(this, context);
-    }
-
-    @Override
-    public abstract boolean equals(Object obj);
-
-    @Override
-    public abstract int hashCode();
-
-    @Override
-    public final String toString() {
-        return toString(true);
     }
 
     /**
@@ -37,11 +23,7 @@ public abstract class ExpressionNode extends Node {
      *
      * @return A String.
      */
-    public final String getName() {
-        return toString(false);
-    }
-
-    private String toString(boolean withFormat) {
-        return ExpressionFormatter.formatExpression(this, withFormat);
+    public String getName() {
+        return ExpressionFormatter.format(this, false);
     }
 }

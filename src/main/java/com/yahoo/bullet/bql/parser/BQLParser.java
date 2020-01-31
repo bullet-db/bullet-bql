@@ -42,11 +42,9 @@ public class BQLParser {
     /**
      * Create a {@link QueryNode} which is a {@link Node} Tree from given BQL String.
      *
-     * @param bql            A BQL String.
+     * @param bql A BQL String.
      * @return A {@link QueryNode} which is a {@link Node} Tree.
-     * @throws ParsingException              when statement is not valid.
-     * @throws IllegalArgumentException      when statement argument is not valid.
-     * @throws UnsupportedOperationException when statement operation is not valid.
+     * @throws ParsingException when query is not valid.
      */
     public QueryNode createQueryNode(String bql) {
         return (QueryNode) invokeParser(bql, BQLBaseParser::query);

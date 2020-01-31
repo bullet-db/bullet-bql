@@ -47,24 +47,9 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 public final class ExpressionFormatter {
-    private static final ThreadLocal<DecimalFormat> DOUBLE_FORMATTER = ThreadLocal.withInitial(
-            () -> new DecimalFormat("0.###################E0###", new DecimalFormatSymbols(Locale.US)));
-    private static final String DELIMITER = ", ";
-
-    /**
-     * Parse an {@link ExpressionNode} to a BQL String, with a List of {@link ExpressionNode} parameters.
-     * For a literal node, the BQL String can be generated with or without format.
-     *
-     * @param expression A non-null {@link ExpressionNode} will be parsed.
-     * @param withFormat A boolean which decides if the parsed BQL String of a literal node has format or not.
-     * @return A BQL String represents the passed in {@link ExpressionNode}.
-     */
-    public static String formatExpression(ExpressionNode expression, boolean withFormat) {
-        return new Formatter(withFormat).process(expression);
-    }
-
     @AllArgsConstructor
     public static class Formatter extends ASTVisitor<String, Void> {
+        private static final String DELIMITER = ", ";
         private boolean withFormat;
 
         @Override
@@ -258,15 +243,8 @@ public final class ExpressionFormatter {
             if (value == null) {
                 return "NULL";
             }
-            if (withFormat) {
-                if (value instanceof Double || value instanceof Float) {
-                    return DOUBLE_FORMATTER.get().format(value);
-                } else if (value instanceof String) {
-                    return formatStringLiteral((String) value);
-                }
-            }
             if (value instanceof String) {
-                return "'" + value + "'";
+                return formatStringLiteral((String) value, withFormat);
             }
             return value.toString();
         }
@@ -274,20 +252,23 @@ public final class ExpressionFormatter {
         private <T extends Node> String join(List<T> list) {
             return list.stream().map(this::process).collect(Collectors.joining(DELIMITER));
         }
-    }
 
-    private static String formatStringLiteral(String s) {
-        s = s.replace("'", "''");
-        return "'" + s + "'";
+        private static String formatStringLiteral(String s, boolean withFormat) {
+            if (withFormat) {
+                s = s.replace("'", "''");
+            }
+            return "'" + s + "'";
+        }
     }
 
     /**
      * Formats the given {@link Node} as a {@link String}.
      *
      * @param node The {@link Node} to format.
+     * @param withFormat A boolean which decides if the parsed BQL String of a literal node has format or not.
      * @return The string representation of the given {@link Node}.
      */
-    public static String format(Node node) {
-        return new Formatter(true).process(node);
+    public static String format(Node node, boolean withFormat) {
+        return new Formatter(withFormat).process(node);
     }
 }

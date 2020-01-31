@@ -5,15 +5,16 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import com.yahoo.bullet.typesystem.Type;
 import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class CastExpressionNodeTest extends ExpressionNodeTest {
+public class CastExpressionNodeTest extends NodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new CastExpressionNode(identifier("abc"), "INTEGER"),
-                              new CastExpressionNode(identifier("def"), "INTEGER"),
-                              new CastExpressionNode(identifier("abc"), "FLOAT"));
+        testEqualsAndHashCode(() -> new CastExpressionNode(identifier("abc"), Type.INTEGER),
+                              new CastExpressionNode(identifier("def"), Type.INTEGER),
+                              new CastExpressionNode(identifier("abc"), Type.FLOAT));
     }
 }
