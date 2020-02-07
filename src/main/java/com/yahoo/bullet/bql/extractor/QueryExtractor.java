@@ -6,7 +6,7 @@
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.BQLConfig;
-import com.yahoo.bullet.bql.processor.ProcessedQuery;
+import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Query;
 import lombok.extern.slf4j.Slf4j;
@@ -43,31 +43,31 @@ public class QueryExtractor {
         return query;
     }
 
-    private static void extractAggregation(ProcessedQuery processedQuery, Query query) {
+    public static void extractAggregation(ProcessedQuery processedQuery, Query query) {
         query.setAggregation(AggregationExtractor.extractAggregation(processedQuery));
     }
 
-    private static void extractDuration(ProcessedQuery processedQuery, Query query, Long queryMaxDuration) {
+    public static void extractDuration(ProcessedQuery processedQuery, Query query, Long queryMaxDuration) {
         if (processedQuery.getTimeDuration() != null) {
             query.setDuration(Math.min(processedQuery.getTimeDuration(), queryMaxDuration));
         }
     }
 
-    private static void extractFilter(ProcessedQuery processedQuery, Query query) {
+    public static void extractFilter(ProcessedQuery processedQuery, Query query) {
         if (processedQuery.getWhereNode() != null) {
             query.setFilter(processedQuery.getExpression(processedQuery.getWhereNode()));
         }
     }
 
-    private static void extractProjection(ProcessedQuery processedQuery, Query query) {
+    public static void extractProjection(ProcessedQuery processedQuery, Query query) {
         query.setProjection(ProjectionExtractor.extractProjection(processedQuery));
     }
 
-    private static void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
+    public static void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
         query.setPostAggregations(PostAggregationExtractor.extractPostAggregations(processedQuery));
     }
 
-    private static void extractWindow(ProcessedQuery processedQuery, Query query) {
+    public static void extractWindow(ProcessedQuery processedQuery, Query query) {
         if (processedQuery.getWindow() != null) {
             query.setWindow(WindowExtractor.extractWindow(processedQuery));
         }

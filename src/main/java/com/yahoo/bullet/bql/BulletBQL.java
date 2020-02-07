@@ -30,7 +30,12 @@ public class BulletBQL {
                 if (line.isEmpty()) {
                     return;
                 }
-                Query query = BULLET_QUERY_BUILDER.buildQuery(line);
+                BQLResult result = BULLET_QUERY_BUILDER.buildQuery(line);
+                if (result.hasErrors()) {
+                    System.out.println(result.getErrors());
+                    continue;
+                }
+                Query query = result.getQuery();
                 query.configure(config);
                 System.out.println(BULLET_QUERY_BUILDER.toJson(query));
                 System.out.println(query.initialize());

@@ -3,7 +3,7 @@
  *  Licensed under the terms of the Apache License, Version 2.0.
  *  See the LICENSE file associated with the project for terms.
  */
-package com.yahoo.bullet.bql.processor;
+package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -92,8 +92,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
                 expression.setField(countDistinctNode.getName());
             }
         }
-        context.validate();
-        return context;
+        return context.validate();
     }
 
     @Override

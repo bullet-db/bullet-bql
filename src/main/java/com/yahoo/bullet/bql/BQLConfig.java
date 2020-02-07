@@ -31,7 +31,6 @@ public class BQLConfig extends BulletConfig {
      * @param config The {@link Config} to copy settings from.
      */
     public BQLConfig(Config config) {
-        super();
         merge(config);
         VALIDATOR.validate(this);
         log.info("Merged settings:\n {}", this);

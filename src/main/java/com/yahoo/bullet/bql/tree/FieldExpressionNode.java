@@ -22,6 +22,14 @@ public class FieldExpressionNode extends ExpressionNode {
     private final Type type;
     private final Type primitiveType;
 
+    public boolean hasIndexOrKey() {
+        return index != null || key != null;
+    }
+
+    public boolean hasSubKey() {
+        return subKey != null;
+    }
+
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitFieldExpression(this, context);

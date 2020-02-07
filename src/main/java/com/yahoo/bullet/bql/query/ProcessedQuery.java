@@ -3,9 +3,8 @@
  *  Licensed under the terms of the Apache License, Version 2.0.
  *  See the LICENSE file associated with the project for terms.
  */
-package com.yahoo.bullet.bql.processor;
+package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
@@ -16,6 +15,7 @@ import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
+import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.expressions.Expression;
 import com.yahoo.bullet.parsing.expressions.FieldExpression;
 import com.yahoo.bullet.parsing.expressions.Operation;
@@ -44,7 +44,8 @@ public class ProcessedQuery {
         SELECT_DISTINCT,
         SELECT_ALL,
         SELECT,
-        SPECIAL_K
+        SPECIAL_K,
+        INVALID
     }
 
     private Set<QueryType> queryTypeSet = EnumSet.noneOf(QueryType.class);
@@ -75,85 +76,98 @@ public class ProcessedQuery {
     private Set<DistributionNode> distributionNodes = new HashSet<>();
     private Set<TopKNode> topKNodes = new HashSet<>();
 
+    private List<BulletError> errors = new ArrayList<>();
+
     /**
      * Validates the query components.
      */
-    public void validate() {
-        // TODO Optional List BulletErrors ?
+    public ProcessedQuery validate() {
         if (queryTypeSet.size() != 1) {
-            throw new ParsingException("Query matches more than one query type: " + queryTypeSet);
+            errors.add(new BulletError("Query does not match exactly one query type: " + queryTypeSet, null));
         }
         if (countDistinctNodes.size() > 1) {
-            throw new ParsingException("Cannot have multiple count distincts.");
+            errors.add(new BulletError("Cannot have multiple count distincts.", null));
         }
         if (distributionNodes.size() > 1) {
-            throw new ParsingException("Cannot have multiple distributions.");
+            errors.add(new BulletError("Cannot have multiple distributions.", null));
         }
         if (topKNodes.size() > 1) {
-            throw new ParsingException("Cannot have multiple top k.");
+            errors.add(new BulletError("Cannot have multiple top k.", null));
         }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
-            throw new ParsingException("Aggregates cannot be nested.");
+            errors.add(new BulletError("Aggregates cannot be nested.", null));
         }
         if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            throw new ParsingException("Distributions cannot be treated as values.");
+            errors.add(new BulletError("Distributions cannot be treated as values.", null));
         }
         if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            throw new ParsingException("Top k cannot be treated as a value.");
+            errors.add(new BulletError("Top k cannot be treated as a value.", null));
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
-            throw new ParsingException("WHERE clause cannot contain aggregates.");
+            errors.add(new BulletError("WHERE clause cannot contain aggregates.", null));
         }
         if (groupByNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
-            throw new ParsingException("GROUP BY clause cannot contain aggregates.");
+            errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", null));
         }
-        QueryType queryType = getQueryType();
-        if (havingNode != null && queryType != QueryType.GROUP) {
-            throw new ParsingException("HAVING clause is only supported for queries with group by operations.");
+        if (havingNode != null && groupByNodes.isEmpty()) {
+            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", null));
         }
-        if (queryType == QueryType.TOP_K || queryType == QueryType.COUNT_DISTINCT) {
+        if (limit != null && limit <= 0) {
+            errors.add(new BulletError("LIMIT clause must be positive.", null));
+        }
+        if (!countDistinctNodes.isEmpty()) {
             if (!orderByNodes.isEmpty()) {
-                throw new ParsingException("ORDER BY clause is not supported for queries with top k or count distinct.");
+                errors.add(new BulletError("ORDER BY clause is not supported for queries with count distinct.", null));
             }
             if (limit != null) {
-                throw new ParsingException("LIMIT clause is not supported for queries with top k or count distinct.");
+                errors.add(new BulletError("LIMIT clause is not supported for queries with count distinct.", null));
             }
         }
-        setIfSpecialK();
+        if (!topKNodes.isEmpty()) {
+            if (!orderByNodes.isEmpty()) {
+                errors.add(new BulletError("ORDER BY clause is not supported for queries with top k.", null));
+            }
+            if (limit != null) {
+                errors.add(new BulletError("LIMIT clause is not supported for queries with top k.", null));
+            }
+        }
+        if (isSpecialK()) {
+            queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
+        }
+        return this;
     }
 
-    private void setIfSpecialK() {
+    private boolean isSpecialK() {
         if (getQueryType() != QueryType.GROUP || groupByNodes.isEmpty() || groupOpNodes.size() != 1 || orderByNodes.size() != 1 || limit == null) {
-            return;
+            return false;
         }
         GroupOperationNode groupOperationNode = groupOpNodes.iterator().next();
         if (groupOperationNode.getOp() != COUNT) {
-            return;
+            return false;
         }
         Set<ExpressionNode> selectExpressions = selectNodes.stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
         if (!selectExpressions.contains(groupOperationNode) || !selectExpressions.containsAll(groupByNodes)) {
-            return;
+            return false;
         }
         // Compare by expression since both should point to the same field expression
         Expression groupOperationExpression = getExpression(groupOperationNode);
         SortItemNode sortItemNode = orderByNodes.get(0);
         if (!getExpression(sortItemNode.getExpression()).equals(groupOperationExpression) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
-            return;
+            return false;
         }
-        if (havingNode != null) {
-            // Check if HAVING has the form: count(*) >= number
-            if (!(havingNode instanceof BinaryExpressionNode)) {
-                return;
-            }
-            BinaryExpressionNode having = (BinaryExpressionNode) havingNode;
-            if (!getExpression(having.getLeft()).equals(groupOperationExpression) ||
-                having.getOp() != Operation.GREATER_THAN_OR_EQUALS ||
-                !(having.getRight() instanceof LiteralNode) ||
-                !(((LiteralNode) having.getRight()).getValue() instanceof Number)) {
-                return;
-            }
+        // Optional HAVING
+        if (havingNode == null) {
+            return true;
         }
-        queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
+        // Check if HAVING has the form: COUNT(*) >= number
+        if (!(havingNode instanceof BinaryExpressionNode)) {
+            return false;
+        }
+        BinaryExpressionNode having = (BinaryExpressionNode) havingNode;
+        return getExpression(having.getLeft()).equals(groupOperationExpression) &&
+               having.getOp() == Operation.GREATER_THAN_OR_EQUALS &&
+               having.getRight() instanceof LiteralNode &&
+               ((LiteralNode) having.getRight()).getValue() instanceof Number;
     }
 
     void addExpression(ExpressionNode node, Expression expression) {
@@ -182,7 +196,7 @@ public class ProcessedQuery {
      * @return A {@link QueryType}.
      */
     public QueryType getQueryType() {
-        return queryTypeSet.iterator().next();
+        return errors.isEmpty() ? queryTypeSet.iterator().next() : QueryType.INVALID;
     }
 
     /**

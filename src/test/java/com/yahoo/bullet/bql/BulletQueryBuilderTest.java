@@ -11,6 +11,7 @@ import com.yahoo.bullet.aggregations.TopK;
 import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.parser.ParsingException;
 
+import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.parsing.Aggregation;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Culling;
@@ -44,11 +45,11 @@ public class BulletQueryBuilderTest {
 
     @BeforeClass
     public void setup() {
-        builder = new BulletQueryBuilder(new BQLConfig());
+        builder = new BulletQueryBuilder(new BulletConfig());
     }
 
     private void build(String bql) {
-        query = builder.buildQuery(bql);
+        query = builder.buildQuery(bql).getQuery();
     }
 
     @Test

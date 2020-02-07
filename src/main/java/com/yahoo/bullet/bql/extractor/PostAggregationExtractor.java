@@ -5,7 +5,7 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.processor.ProcessedQuery;
+import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Culling;

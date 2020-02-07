@@ -11,6 +11,7 @@
 package com.yahoo.bullet.bql.tree;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     @Override
@@ -135,6 +136,16 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
      * @return A consumer for processing {@link Node}.
      */
     protected Consumer<Node> process(C context) {
+        return node -> process(node, context);
+    }
+
+    /**
+     * Helper to process nodes with a given context.
+     *
+     * @param context Context with which to process {@link Node}.
+     * @return A function for processing {@link Node}.
+     */
+    protected Function<Node, R> processFunc(C context) {
         return node -> process(node, context);
     }
 }
