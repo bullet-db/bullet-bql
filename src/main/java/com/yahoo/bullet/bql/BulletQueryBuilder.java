@@ -7,16 +7,18 @@ package com.yahoo.bullet.bql;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.yahoo.bullet.bql.query.ClassifiedQuery;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
-import com.yahoo.bullet.bql.query.QueryClassifier;
 import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
+import com.yahoo.bullet.bql.query.QueryValidator;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.typesystem.Schema;
+import lombok.AccessLevel;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +29,9 @@ public class BulletQueryBuilder {
     private final BQLParser bqlParser = new BQLParser();
     private final QueryExtractor queryExtractor;
     private final BQLConfig config;
+    // Exposed for testing only
+    @Setter(AccessLevel.PACKAGE)
+    private Schema schema;
 
     /**
      * Constructor that initializes a BulletQueryBuilder.
@@ -36,6 +41,7 @@ public class BulletQueryBuilder {
     public BulletQueryBuilder(BulletConfig bulletConfig) {
         config = new BQLConfig(bulletConfig);
         queryExtractor = new QueryExtractor(new BQLConfig(config));
+        schema = config.getAs("", Schema.class);
     }
 
     /**
@@ -50,22 +56,6 @@ public class BulletQueryBuilder {
         // Parse BQL to node tree.
         QueryNode queryNode = bqlParser.createQueryNode(bql);
 
-        // Process the query node into query components and validate components
-        ProcessedQuery processedQuery = queryProcessor.process(queryNode);
-
-        ClassifiedQuery classifiedQuery = QueryClassifier.classify(processedQuery);
-
-        List<BulletError> errors = classifiedQuery.validate();
-        if (!errors.isEmpty()) {
-            return new BQLResult(errors);
-        }
-
-        //return new BQLResult(classifiedQuery.extractQuery(config));
-
-        // Build the query
-        return new BQLResult(queryExtractor.extractQuery(processedQuery));
-
-        /*
         ProcessedQuery processedQuery = queryProcessor.process(queryNode);
 
         // Can let this part just fall through and have queryExtractor return null for query if there are errors in processedQuery
@@ -75,14 +65,12 @@ public class BulletQueryBuilder {
 
         Query query = queryExtractor.extractQuery(processedQuery);
 
-        List<BulletError> errors = QueryValidator.validate(query, processedQuery, schema);
-        List<BulletError> errors = new QueryValidator(processedQuery, query, schema).validate();
+        List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
         if (!errors.isEmpty()) {
             return new BQLResult(errors);
         }
 
-        return query;
-        */
+        return new BQLResult(query);
     }
 
     /**

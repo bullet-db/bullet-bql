@@ -20,7 +20,6 @@ public class FieldExpressionNode extends ExpressionNode {
     private final IdentifierNode subKey;
     // Types ignored for equals() and hashCode()
     private final Type type;
-    private final Type primitiveType;
 
     public boolean hasIndexOrKey() {
         return index != null || key != null;

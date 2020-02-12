@@ -125,8 +125,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                                        context.index != null ? Integer.valueOf(context.index.getText()) : null,
                                        (IdentifierNode) visitIfPresent(context.key),
                                        (IdentifierNode) visitIfPresent(context.subKey),
-                                       getType(context.fieldType()),
-                                       getPrimitiveType(context.fieldType()));
+                                       getType(context.fieldType()));
     }
 
     @Override
@@ -400,30 +399,22 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         if (context == null) {
             return null;
         }
+        Type primitiveType = Type.valueOf(context.primitiveType().getText().toUpperCase());
         if (context.outerType != null) {
             if (context.outerType.getType() == BQLBaseLexer.LIST_TYPE) {
-                return Type.LIST;
+                return Type.PRIMITIVE_LISTS.stream().filter(type -> primitiveType.equals(type.getSubType())).findFirst().get();
             } else {
-                return Type.MAP;
+                return Type.PRIMITIVE_MAPS.stream().filter(type -> primitiveType.equals(type.getSubType())).findFirst().get();
             }
         }
         if (context.complexOuterType != null) {
+            Type subType = Type.PRIMITIVE_MAPS.stream().filter(type -> primitiveType.equals(type.getSubType())).findFirst().get();
             if (context.complexOuterType.getType() == BQLBaseLexer.LIST_TYPE) {
-                return Type.LISTOFMAP;
+                return Type.COMPLEX_LISTS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
             } else {
-                return Type.MAPOFMAP;
+                return Type.COMPLEX_LISTS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
             }
         }
-        return Type.valueOf(context.primitiveType().getText().toUpperCase());
-    }
-
-    private Type getPrimitiveType(BQLBaseParser.FieldTypeContext context) {
-        if (context == null) {
-            return null;
-        }
-        if (context.outerType != null || context.complexOuterType != null) {
-            return Type.valueOf(context.primitiveType().getText().toUpperCase());
-        }
-        return null;
+        return primitiveType;
     }
 }

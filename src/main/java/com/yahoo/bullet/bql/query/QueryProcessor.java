@@ -163,8 +163,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
                                                          node.getIndex(),
                                                          node.getKey() != null ? node.getKey().getValue() : null,
                                                          node.getSubKey() != null ? node.getSubKey().getValue() : null,
-                                                         node.getType(),
-                                                         node.getPrimitiveType());
+                                                         node.getType());
         context.addExpression(node, expression);
         return context;
     }

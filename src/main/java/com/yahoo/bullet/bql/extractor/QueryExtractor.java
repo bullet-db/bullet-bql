@@ -43,31 +43,31 @@ public class QueryExtractor {
         return query;
     }
 
-    public static void extractAggregation(ProcessedQuery processedQuery, Query query) {
+    private static void extractAggregation(ProcessedQuery processedQuery, Query query) {
         query.setAggregation(AggregationExtractor.extractAggregation(processedQuery));
     }
 
-    public static void extractDuration(ProcessedQuery processedQuery, Query query, Long queryMaxDuration) {
+    private static void extractDuration(ProcessedQuery processedQuery, Query query, Long queryMaxDuration) {
         if (processedQuery.getTimeDuration() != null) {
             query.setDuration(Math.min(processedQuery.getTimeDuration(), queryMaxDuration));
         }
     }
 
-    public static void extractFilter(ProcessedQuery processedQuery, Query query) {
+    private static void extractFilter(ProcessedQuery processedQuery, Query query) {
         if (processedQuery.getWhereNode() != null) {
             query.setFilter(processedQuery.getExpression(processedQuery.getWhereNode()));
         }
     }
 
-    public static void extractProjection(ProcessedQuery processedQuery, Query query) {
+    private static void extractProjection(ProcessedQuery processedQuery, Query query) {
         query.setProjection(ProjectionExtractor.extractProjection(processedQuery));
     }
 
-    public static void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
+    private static void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
         query.setPostAggregations(PostAggregationExtractor.extractPostAggregations(processedQuery));
     }
 
-    public static void extractWindow(ProcessedQuery processedQuery, Query query) {
+    private static void extractWindow(ProcessedQuery processedQuery, Query query) {
         if (processedQuery.getWindow() != null) {
             query.setWindow(WindowExtractor.extractWindow(processedQuery));
         }

@@ -69,7 +69,8 @@ expression
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) right=expression                                                         #infix
     | left=expression op=(EQ | NEQ) right=expression                                                                    #infix
-    | left=expression op=(AND | XOR) right=expression                                                                   #infix
+    | left=expression op=AND right=expression                                                                           #infix
+    | left=expression op=XOR right=expression                                                                           #infix
     | left=expression op=OR right=expression                                                                            #infix
     | '(' expression ')'                                                                                                #parentheses
     ;

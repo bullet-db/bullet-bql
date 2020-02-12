@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -77,13 +78,22 @@ public class ProcessedQuery {
     private Set<TopKNode> topKNodes = new HashSet<>();
 
     private List<BulletError> errors = new ArrayList<>();
+    @Setter
+    private Collection<ExpressionNode> projectionNodes;
+    @Setter
+    private Collection<ExpressionNode> computationNodes;
 
     /**
      * Validates the query components.
+     *
+     * @return This {@link ProcessedQuery} for convenience.
      */
     public ProcessedQuery validate() {
         if (queryTypeSet.size() != 1) {
             errors.add(new BulletError("Query does not match exactly one query type: " + queryTypeSet, null));
+        }
+        if (aliases.values().contains("")) {
+            errors.add(new BulletError("Cannot have an empty string as an alias.", null));
         }
         if (countDistinctNodes.size() > 1) {
             errors.add(new BulletError("Cannot have multiple count distincts.", null));

@@ -26,4 +26,9 @@ public abstract class ExpressionNode extends Node {
     public String getName() {
         return ExpressionFormatter.format(this, false);
     }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
 }
