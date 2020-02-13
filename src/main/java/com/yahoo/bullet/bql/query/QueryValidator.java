@@ -1,10 +1,14 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.aggregations.Distribution;
 import com.yahoo.bullet.aggregations.TopK;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
-import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Culling;
@@ -21,10 +25,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 
 public class QueryValidator {
     private static final Map<Distribution.Type, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
@@ -51,18 +55,16 @@ public class QueryValidator {
         if (processedQuery.getWhereNode() != null) {
             Type type = expressionValidator.process(processedQuery.getWhereNode(), schema);
             if (!Type.isUnknown(type) && !Type.canCast(Type.BOOLEAN, type)) {
-                processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to boolean.", null));
+                processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(), null));
             }
         }
 
         if (query.getProjection() != null) {
-            if (processedQuery.getProjectionNodes() != null) {
-                expressionValidator.process(processedQuery.getProjectionNodes(), schema);
-            }
+            expressionValidator.process(processedQuery.getProjectionNodes(), schema);
             List<Schema.Field> fields = query.getProjection().getFields().stream().map(field -> new Schema.Field(field.getName(), field.getValue().getType())).collect(Collectors.toList());
-            if (containsDuplicates(fields)) {
-                processedQuery.getErrors().add(new BulletError("Field names clash in projection.", null));
-            }
+            duplicates(fields).ifPresent(duplicates -> {
+                    processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+                });
             if (query.getProjection().isCopy()) {
                 schema.addLayer(new Schema(fields));
             } else {
@@ -112,9 +114,9 @@ public class QueryValidator {
                 break;
         }
         if (aggregateFields != null) {
-            if (containsDuplicates(aggregateFields)) {
-                processedQuery.getErrors().add(new BulletError("Field names clash in aggregation.", null));
-            }
+            duplicates(aggregateFields).ifPresent(duplicates -> {
+                    processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+                });
             schema.replaceSchema(new Schema(aggregateFields));
         }
 
@@ -122,7 +124,7 @@ public class QueryValidator {
         if (processedQuery.getHavingNode() != null && queryType != ProcessedQuery.QueryType.SPECIAL_K) {
             Type type = expressionValidator.process(processedQuery.getHavingNode(), schema);
             if (!Type.isUnknown(type) && !Type.canCast(Type.BOOLEAN, type)) {
-                processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to boolean.", null));
+                processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(), null));
             }
         }
 
@@ -131,20 +133,21 @@ public class QueryValidator {
             if (computation.isPresent()) {
                 processedQuery.getComputationNodes().forEach(node -> expressionValidator.process(node, schema));
                 List<Schema.Field> fields = ((Computation) computation.get()).getFields().stream().map(field -> new Schema.Field(field.getName(), field.getValue().getType())).collect(Collectors.toList());
-                if (containsDuplicates(fields)) {
-                    processedQuery.getErrors().add(new BulletError("Field names clash in computation.", null));
-                }
+                duplicates(fields).ifPresent(duplicates -> {
+                        processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+                    });
                 schema.addLayer(new Schema(fields));
             }
-
             Optional<PostAggregation> orderBy = query.getPostAggregations().stream().filter(OrderBy.class::isInstance).findFirst();
             if (orderBy.isPresent()) {
                 for (OrderBy.SortItem sortItem : ((OrderBy) orderBy.get()).getFields()) {
                     Type type = schema.getType(sortItem.getField());
-                    if (type == Type.NULL) {
-                        processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-existent field: " + sortItem.getField(), null));
-                    } else if (!Type.isPrimitive(type)) {
-                        processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + sortItem.getField(), null));
+                    if (!Type.isUnknown(type)) {
+                        if (Type.isNull(type)) {
+                            processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-existent field: " + sortItem.getField(), null));
+                        } else if (!Type.isPrimitive(type)) {
+                            processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + sortItem.getField(), null));
+                        }
                     }
                 }
             }
@@ -152,7 +155,7 @@ public class QueryValidator {
             Optional<PostAggregation> culling = query.getPostAggregations().stream().filter(Culling.class::isInstance).findFirst();
             if (culling.isPresent()) {
                 for (String transientField : ((Culling) culling.get()).getTransientFields()) {
-                    if (!schema.hasField(transientField)) {
+                    if (Type.isNull(schema.getType(transientField))) {
                         processedQuery.getErrors().add(new BulletError("Tries to cull a missing field (programming logic error): " + transientField, null));
                     }
                 }
@@ -162,8 +165,10 @@ public class QueryValidator {
         return processedQuery.getErrors();
     }
 
-    private static boolean containsDuplicates(List<Schema.Field> fields) {
-        return fields.stream().map(Schema.Field::getName).collect(Collectors.toSet()).size() != fields.size();
+    private static Optional<Set<String>> duplicates(List<Schema.Field> fields) {
+        Map<String, Long> fieldsToCount = fields.stream().map(Schema.Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Set<String> duplicates = fieldsToCount.keySet().stream().filter(s -> fieldsToCount.get(s) > 1).collect(Collectors.toSet());
+        return !duplicates.isEmpty() ? Optional.of(duplicates) : Optional.empty();
     }
 
     private static Function<ExpressionNode, Schema.Field> toSchemaField(ProcessedQuery processedQuery) {

@@ -364,8 +364,8 @@ public class ProcessedQuery {
         }
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() == null &&
-                fieldExpression.getKey() == null &&
-                aliases.values().contains(fieldExpression.getField());
+               fieldExpression.getKey() == null &&
+               aliases.values().contains(fieldExpression.getField());
     }
 
     /**

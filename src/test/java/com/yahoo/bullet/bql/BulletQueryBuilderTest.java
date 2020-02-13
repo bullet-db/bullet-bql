@@ -47,6 +47,7 @@ public class BulletQueryBuilderTest {
                                                                   new Schema.Field("aaa", Type.STRING_MAP_LIST),
                                                                   new Schema.Field("bbb", Type.STRING_MAP_MAP),
                                                                   new Schema.Field("ccc", Type.INTEGER_LIST),
+                                                                  new Schema.Field("ddd", Type.STRING_MAP),
                                                                   new Schema.Field("a", Type.LONG),
                                                                   new Schema.Field("b", Type.BOOLEAN),
                                                                   new Schema.Field("c", Type.STRING)));
@@ -84,6 +85,13 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testWhereNotCastable() {
+        build("SELECT * FROM STREAM() WHERE aaa");
+        Assert.assertEquals(errors.get(0).getError(), "WHERE clause cannot be casted to BOOLEAN: aaa");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testWhereAggregatesNotAllowed() {
         build("SELECT AVG(abc) FROM STREAM() WHERE AVG(abc) >= 5");
         Assert.assertEquals(errors.get(0).getError(), "WHERE clause cannot contain aggregates.");
@@ -100,6 +108,13 @@ public class BulletQueryBuilderTest {
         build("SELECT * FROM STREAM() LIMIT 10");
         Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
+    }
+
+    @Test
+    public void testLimitZeroNotAllowed() {
+        build("SELECT * FROM STREAM() LIMIT 0");
+        Assert.assertEquals(errors.get(0).getError(), "LIMIT clause must be positive.");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -153,6 +168,24 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testFieldDoesNotExist() {
+        build("SELECT foo FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testSubFieldTypeInvalid() {
+        build("SELECT abc[0] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The subfield abc[0] is invalid since the field abc has type: INTEGER");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT abc[0].def FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The subfield abc[0].def is invalid since the field abc has type: INTEGER");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testRawWithUnnecessaryParentheses() {
         build("SELECT ((abc + 5)) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -176,6 +209,21 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("def", new FieldExpression("abc")));
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.RAW);
+    }
+
+    @Test
+    public void testEmptyRawAliasNotAllowed() {
+        build("SELECT abc AS \"\" FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an alias.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testRawAliasesClash() {
+        build("SELECT abc, def AS abc, aaa, bbb AS aaa, ccc FROM STREAM()");
+        Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa]") ||
+                          errors.get(0).getError().equals("The following field names/aliases are shared: [aaa, abc]"));
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -224,6 +272,13 @@ public class BulletQueryBuilderTest {
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
         Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
+    }
+
+    @Test
+    public void testRawAllWithOrderByNonPrimitiveNotAllowed() {
+        build("SELECT * FROM STREAM() ORDER BY aaa");
+        Assert.assertEquals(errors.get(0).getError(), "ORDER BY contains a non-primitive field: aaa");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -632,6 +687,39 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testGroupOpSum() {
+        build("SELECT SUM(abc) FROM STREAM()");
+        Assert.assertNull(query.getProjection());
+        Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.GROUP);
+        Assert.assertNull(query.getAggregation().getFields());
+        Assert.assertEquals(query.getAggregation().getAttributes().size(), 1);
+
+        List<Map<String, Object>> operations = (List<Map<String, Object>>) query.getAggregation().getAttributes().get(GroupOperation.OPERATIONS);
+
+        Assert.assertEquals(operations.size(), 1);
+        Assert.assertEquals(operations.get(0).size(), 3);
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_FIELD), "abc");
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_TYPE), GroupOperation.GroupOperationType.SUM);
+        Assert.assertEquals(operations.get(0).get(GroupOperation.OPERATION_NEW_NAME), "SUM(abc)");
+
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testGroupOpNotNumber() {
+        build("SELECT AVG(aaa) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the argument in AVG(aaa) must be numeric. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testGroupOpAliasesClash() {
+        build("SELECT AVG(abc) AS avg, AVG(def) AS avg FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The following field names/aliases are shared: [avg]");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testGroupOpWithGroupBy() {
         build("SELECT AVG(abc) FROM STREAM() GROUP BY abc");
         Assert.assertNull(query.getProjection());
@@ -705,6 +793,13 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testGroupOpAsComputationAliasesClash() {
+        build("SELECT AVG(abc) + 5 AS sum, AVG(def) + 5 AS sum FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The following field names/aliases are shared: [sum]");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testGroupOpNestingNotAllowed() {
         build("SELECT AVG(SUM(abc)) FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "Aggregates cannot be nested.");
@@ -738,6 +833,13 @@ public class BulletQueryBuilderTest {
         Culling culling = (Culling) query.getPostAggregations().get(1);
 
         Assert.assertEquals(culling.getTransientFields(), Collections.singleton("def"));
+    }
+
+    @Test
+    public void testHavingNotCastable() {
+        build("SELECT AVG(abc) FROM STREAM() GROUP BY aaa HAVING aaa");
+        Assert.assertEquals(errors.get(0).getError(), "HAVING clause cannot be casted to BOOLEAN: aaa");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -1476,6 +1578,67 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testTypeCheckComparison() {
+        build("SELECT 'foo' + 'bar', 'foo' = 0, 0 != 'foo', 'foo' = 'bar' FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The left and right operands in 'foo' + 'bar' must be numbers. Types given: STRING, STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The left and right operands in 'foo' = 0 must be comparable or have the same type. Types given: STRING, INTEGER");
+        Assert.assertEquals(errors.get(2).getError(), "The left and right operands in 0 != 'foo' must be comparable or have the same type. Types given: INTEGER, STRING");
+        Assert.assertEquals(errors.size(), 3);
+    }
+
+    @Test
+    public void testTypeCheckRegexLike() {
+        build("SELECT RLIKE('foo', 0), RLIKE(0, 'foo') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The types of the arguments in RLIKE('foo', 0) must be STRING. Types given: STRING, INTEGER");
+        Assert.assertEquals(errors.get(1).getError(), "The types of the arguments in RLIKE(0, 'foo') must be STRING. Types given: INTEGER, STRING");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckSizeIs() {
+        build("SELECT SIZEIS(abc, 5), SIZEIS(aaa, 'foo'), SIZEIS('foo', 'foo') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in SIZEIS(abc, 5) must be some LIST, MAP, or STRING. Type given: INTEGER");
+        Assert.assertEquals(errors.get(1).getError(), "The type of the second argument in SIZEIS(aaa, 'foo') must be numeric. Type given: STRING");
+        Assert.assertEquals(errors.get(2).getError(), "The type of the second argument in SIZEIS('foo', 'foo') must be numeric. Type given: STRING");
+        Assert.assertEquals(errors.size(), 3);
+    }
+
+    @Test
+    public void testTypeCheckContainsKey() {
+        build("SELECT CONTAINSKEY('foo', 5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in CONTAINSKEY('foo', 5) must be some MAP. Type given: STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The type of the second argument in CONTAINSKEY('foo', 5) must be STRING. Type given: INTEGER");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckContainsValue() {
+        build("SELECT CONTAINSVALUE('foo', aaa), CONTAINSVALUE(aaa, 5), CONTAINSVALUE(ddd, 5), CONTAINSVALUE(ddd, c) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in CONTAINSVALUE('foo', aaa) must be some LIST or MAP. Type given: STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The type of the second argument in CONTAINSVALUE('foo', aaa) must be primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(2).getError(), "The primitive type of the first argument and the type of the second argument in CONTAINSVALUE(aaa, 5) must match. Types given: STRING_MAP_LIST, INTEGER");
+        Assert.assertEquals(errors.get(3).getError(), "The primitive type of the first argument and the type of the second argument in CONTAINSVALUE(ddd, 5) must match. Types given: STRING_MAP, INTEGER");
+        Assert.assertEquals(errors.size(), 4);
+    }
+
+    @Test
+    public void testTypeCheckBooleanComparison() {
+        build("SELECT 5 AND true, false OR 5, 'foo' XOR 5 FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The types of the arguments in 5 AND true must be BOOLEAN. Types given: INTEGER, BOOLEAN");
+        Assert.assertEquals(errors.get(1).getError(), "The types of the arguments in false OR 5 must be BOOLEAN. Types given: BOOLEAN, INTEGER");
+        Assert.assertEquals(errors.get(2).getError(), "The types of the arguments in 'foo' XOR 5 must be BOOLEAN. Types given: STRING, INTEGER");
+        Assert.assertEquals(errors.size(), 3);
+    }
+
+    @Test
+    public void testTypeCheckFilter() {
+        build("SELECT FILTER('foo', 5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in FILTER('foo', 5) must be some LIST. Type given: STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The type of the second argument in FILTER('foo', 5) must be BOOLEAN_LIST. Type given: INTEGER");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
     public void testTypes() {
         build("SELECT a : STRING, b : LIST[STRING], c : MAP[STRING], d : LIST[MAP[STRING]], e : MAP[MAP[STRING]] FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 5);
@@ -1488,7 +1651,7 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
-    public void testUnaryExpressionSizeOf() {
+    public void testUnaryExpressionSizeOfCollection() {
         build("SELECT SIZEOF(aaa) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
 
@@ -1499,7 +1662,25 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
-    public void testUnaryExpressionNot() {
+    public void testUnaryExpressionSizeOfString() {
+        build("SELECT SIZEOF(c) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "SIZEOF(c)");
+        Assert.assertEquals(field.getValue(), new UnaryExpression(new FieldExpression("c"), Operation.SIZE_OF));
+    }
+
+    @Test
+    public void testUnaryExpressionSizeOfInvalid() {
+        build("SELECT SIZEOF(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the argument in SIZEOF(5) must be some LIST, MAP, or STRING. Type given: INTEGER");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testUnaryExpressionNotNumber() {
         build("SELECT NOT abc FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
 
@@ -1507,6 +1688,24 @@ public class BulletQueryBuilderTest {
 
         Assert.assertEquals(field.getName(), "NOT abc");
         Assert.assertEquals(field.getValue(), new UnaryExpression(new FieldExpression("abc"), Operation.NOT));
+    }
+
+    @Test
+    public void testUnaryExpressionNotBoolean() {
+        build("SELECT NOT b FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "NOT b");
+        Assert.assertEquals(field.getValue(), new UnaryExpression(new FieldExpression("b"), Operation.NOT));
+    }
+
+    @Test
+    public void testUnaryExpressionNotInvalid() {
+        build("SELECT NOT 'foo' FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the argument in NOT 'foo' must be numeric or BOOLEAN. Type given: STRING");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -1524,8 +1723,39 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testListExpressionSubMap() {
+        build("SELECT [ddd, ddd, ddd] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "[ddd, ddd, ddd]");
+        Assert.assertEquals(field.getValue(), new ListExpression(Arrays.asList(new FieldExpression("ddd"),
+                                                                               new FieldExpression("ddd"),
+                                                                               new FieldExpression("ddd"))));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING_MAP_LIST);
+    }
+
+    @Test
     public void testEmptyListNotAllowed() {
         build("SELECT [] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "Empty lists are currently not supported.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testListExpressionTypeCheckMultiple() {
+        build("SELECT [5, 'foo'] FROM STREAM()");
+        Assert.assertTrue(errors.get(0).getError().equals("The list [5, 'foo'] consists of objects of multiple types: [INTEGER, STRING]") ||
+                          errors.get(0).getError().equals("The list [5, 'foo'] consists of objects of multiple types: [STRING, INTEGER]"));
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testListExpressionTypeCheckSubType() {
+        build("SELECT [[5], [10]] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The list [[5], [10]] must consist of objects of a single primitive or primitive map type. Subtype given: INTEGER_LIST");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -1543,6 +1773,13 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testNAryExpressionBadArguments() {
+        build("SELECT IF(c, 5, 10.0) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE");
+    }
+
+    @Test
     public void testCastExpression() {
         build("SELECT CAST(abc : INTEGER AS DOUBLE) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -1551,6 +1788,13 @@ public class BulletQueryBuilderTest {
 
         Assert.assertEquals(field.getName(), "CAST(abc AS DOUBLE)");
         Assert.assertEquals(field.getValue(), new CastExpression(new FieldExpression("abc", null, null, null, Type.INTEGER), Type.DOUBLE));
+    }
+
+    @Test
+    public void testCastExpressionInvalid() {
+        build("SELECT CAST(aaa AS INTEGER) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot cast aaa from STRING_MAP_LIST to INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -1586,5 +1830,48 @@ public class BulletQueryBuilderTest {
         build("SELECT * FROM STREAM() GROUP BY abc");
         Assert.assertTrue(errors.get(0).getError().startsWith("Query does not match exactly one query type: "));
         Assert.assertEquals(errors.size(), 1);
+    }
+
+    // Tests that cover any instance of unknowns i.e. verify that type-checking errors propagate but don't create more error messages
+
+    @Test
+    public void testFieldUnknown() {
+        // coverage
+        build("SELECT AVG(foo) AS bar FROM STREAM() ORDER BY bar + 5");
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testCountDistinctUnknown() {
+        // coverage
+        build("SELECT COUNT(DISTINCT foo) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTopKUnknown() {
+        // coverage
+        build("SELECT TOP(10, foo) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testDistributionUnknown() {
+        build("SELECT QUANTILE(foo, LINEAR, 11) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testUnknowns() {
+        // coverage
+        build("SELECT [(SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5], bar + foo, 5 + car FROM STREAM() WHERE foo");
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.get(1).getError(), "The field bar does not exist in the schema.");
+        Assert.assertEquals(errors.get(2).getError(), "The field car does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 3);
     }
 }

@@ -81,7 +81,6 @@ public class ProjectionExtractor {
         If the only additional fields selected (including ORDER BY) are simple field expressions and none of
         them have aliases, then no additional computations will be made.
         */
-        //if (areAllSimpleNonAliasedFields(processedQuery, expressions)) {
         if (expressions.isEmpty()) {
             return null;
         }
@@ -176,11 +175,6 @@ public class ProjectionExtractor {
     
     private static boolean areAllSimpleFields(ProcessedQuery processedQuery, Collection<ExpressionNode> nodes) {
         return nodes.stream().allMatch(processedQuery::isSimpleFieldExpression);
-    }
-
-    private static boolean areAllSimpleNonAliasedFields(ProcessedQuery processedQuery, Collection<ExpressionNode> nodes) {
-        return nodes.stream().allMatch(processedQuery::isSimpleFieldExpression) &&
-               nodes.stream().noneMatch(processedQuery::hasAlias);
     }
 
     private static Function<ExpressionNode, Field> toAliasedField(ProcessedQuery processedQuery) {

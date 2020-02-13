@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.typesystem.Schema;
@@ -22,10 +27,6 @@ public class LayeredSchema {
             return type;
         }
         return subSchema != null ? subSchema.getType(field) : Type.NULL;
-    }
-
-    public boolean hasField(String field) {
-        return schema.hasField(field) || (subSchema != null && subSchema.hasField(field));
     }
 
     // Add new schema on top

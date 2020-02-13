@@ -23,11 +23,9 @@ public class ComputationExtractor {
     static Computation extractComputation(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {
             case SELECT:
+            case SELECT_ALL:
                 // No computations since everything is handled in the initial projection.
                 return null;
-            case SELECT_ALL:
-                return null;
-                //return extractAll(processedQuery);
             case SELECT_DISTINCT:
                 return extractDistinct(processedQuery);
             case GROUP:
@@ -39,18 +37,6 @@ public class ComputationExtractor {
                 return extractSpecialK(processedQuery);
         }
         throw new ParsingException("Unknown query type");
-    }
-
-    // Mirrors the projection logic. If the record is passed through, there should be no computations.
-    private static Computation extractAll(ProcessedQuery processedQuery) {
-        List<Field> fields =
-                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                      .filter(expression -> processedQuery.isNotSimpleFieldExpression(expression) || processedQuery.hasAlias(expression))
-                      .distinct()
-                      .map(toAliasedField(processedQuery))
-                      .collect(Collectors.toList());
-        return new Computation(fields);
     }
 
     /*

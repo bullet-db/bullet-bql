@@ -20,6 +20,7 @@ import com.yahoo.bullet.typesystem.Schema;
 import lombok.AccessLevel;
 import lombok.Setter;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,7 +42,7 @@ public class BulletQueryBuilder {
     public BulletQueryBuilder(BulletConfig bulletConfig) {
         config = new BQLConfig(bulletConfig);
         queryExtractor = new QueryExtractor(new BQLConfig(config));
-        schema = config.getAs("", Schema.class);
+        schema = config.getOrDefaultAs("", new Schema(Collections.emptyList()), Schema.class);
     }
 
     /**

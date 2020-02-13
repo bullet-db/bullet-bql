@@ -35,13 +35,16 @@ public class BulletBQLTest {
         System.setOut(new PrintStream(out));
         System.setErr(new PrintStream(err));
 
-        String bql = "SELECT * FROM STREAM()\n...\n\n";
+        String bql = "SELECT * FROM STREAM()\nSELECT * FROM STREAM() GROUP BY 1\n...\n\n";
 
         System.setIn(new ByteArrayInputStream(bql.getBytes()));
 
         BulletBQL.main(null);
 
-        Assert.assertEquals(out.toString(), "{\"aggregation\":{\"size\":500,\"type\":\"RAW\"},\"duration\":9223372036854775807}\nOptional.empty\n");
+        String content = out.toString();
+
+        Assert.assertTrue(content.startsWith("{\"aggregation\":{\"size\":500,\"type\":\"RAW\"},\"duration\":9223372036854775807}\nOptional.empty\n"));
+        Assert.assertTrue(content.contains("error=Query does not match exactly one query type"));
         Assert.assertTrue(err.toString().contains("ParsingException"));
     }
 

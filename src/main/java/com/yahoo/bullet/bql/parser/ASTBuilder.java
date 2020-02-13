@@ -45,7 +45,6 @@ import com.yahoo.bullet.parsing.expressions.Operation;
 import com.yahoo.bullet.typesystem.Type;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.Collections;
 import java.util.List;
@@ -258,19 +257,6 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     // ***************** Helpers *****************
 
-    @Override
-    protected Node defaultResult() {
-        return null;
-    }
-
-    @Override
-    protected Node aggregateResult(Node aggregate, Node nextResult) throws UnsupportedOperationException {
-        if (aggregate != null || nextResult == null) {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-        return nextResult;
-    }
-
     private ExpressionNode stripParentheses(ExpressionNode expression) {
         if (expression instanceof ParenthesesExpressionNode) {
             return ((ParenthesesExpressionNode) expression).getExpression();
@@ -312,10 +298,6 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     private static String getTextIfPresent(Token token) {
         return token != null ? token.getText() : null;
-    }
-
-    private static String getTextIfPresent(TerminalNode node) {
-        return node != null ? node.getText() : null;
     }
 
     private static Operation getOperation(Token token) {

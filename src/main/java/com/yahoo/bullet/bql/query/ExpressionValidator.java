@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.aggregations.grouping.GroupOperation;
@@ -21,12 +26,10 @@ import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.expressions.Expression;
 import com.yahoo.bullet.parsing.expressions.Operation;
-import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
 import lombok.AllArgsConstructor;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,11 +41,6 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ExpressionValidator extends DefaultTraversalVisitor<Type, LayeredSchema> {
     private ProcessedQuery processedQuery;
-
-    @Override
-    public Type process(Node node) {
-        return process(node, new LayeredSchema(new Schema(Collections.emptyList())));
-    }
 
     @Override
     public Type process(Node node, LayeredSchema schema) {
@@ -120,7 +118,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, LayeredSc
             return setType(node, Type.LONG);
         }
         Type argType = process(node.getExpression(), schema);
-        Optional<List<BulletError>> errors = TypeChecker.validateAggregateType(node, argType);
+        Optional<List<BulletError>> errors = TypeChecker.validateNumericType(node, argType);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
             return setType(node, Type.UNKNOWN);
@@ -131,7 +129,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, LayeredSc
     @Override
     protected Type visitCountDistinct(CountDistinctNode node, LayeredSchema schema) {
         List<Type> argTypes = node.getExpressions().stream().map(processFunc(schema)).collect(Collectors.toList());
-        Optional<List<BulletError>> errors = TypeChecker.validateCountDistinctType(argTypes);
+        Optional<List<BulletError>> errors = TypeChecker.validateKnownTypes(argTypes);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
             return setType(node, Type.UNKNOWN);
@@ -142,14 +140,14 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, LayeredSc
     @Override
     protected Type visitDistribution(DistributionNode node, LayeredSchema schema) {
         Type argType = process(node.getExpression(), schema);
-        TypeChecker.validateDistributionType(node, argType).ifPresent(errors -> processedQuery.getErrors().addAll(errors));
+        TypeChecker.validateNumericType(node, argType).ifPresent(errors -> processedQuery.getErrors().addAll(errors));
         return Type.UNKNOWN;
     }
 
     @Override
     protected Type visitTopK(TopKNode node, LayeredSchema schema) {
         List<Type> argTypes = node.getExpressions().stream().map(processFunc(schema)).collect(Collectors.toList());
-        TypeChecker.validateTopKType(argTypes).ifPresent(errors -> processedQuery.getErrors().addAll(errors));
+        TypeChecker.validateKnownTypes(argTypes).ifPresent(errors -> processedQuery.getErrors().addAll(errors));
         return Type.UNKNOWN;
     }
 

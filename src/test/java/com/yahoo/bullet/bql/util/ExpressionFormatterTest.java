@@ -6,12 +6,19 @@
 package com.yahoo.bullet.bql.util;
 
 import com.yahoo.bullet.bql.parser.BQLParser;
+import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class ExpressionFormatterTest {
     private BQLParser bqlParser = new BQLParser();
+
+    @Test
+    public void testConstructor() {
+        // coverage
+        new ExpressionFormatter();
+    }
 
     @Test
     public void testSimple() {
@@ -41,5 +48,31 @@ public class ExpressionFormatterTest {
     public void testTumblingWindow() {
         QueryNode queryNode = bqlParser.createQueryNode("select * from stream() windowing tumbling(1, time)");
         Assert.assertEquals(ExpressionFormatter.format(queryNode, true), "SELECT * FROM STREAM() WINDOWING TUMBLING(1, TIME)");
+    }
+
+    @Test
+    public void testVisitQuotedIdentifier() {
+        // coverage
+        Assert.assertEquals(ExpressionFormatter.format(QueryUtil.quotedIdentifier("abc"), true), "\"abc\"");
+    }
+
+    @Test
+    public void testVisitFormattedStringLiteral() {
+        // coverage
+        Assert.assertEquals(ExpressionFormatter.format(new LiteralNode("doesn't"), true), "'doesn''t'");
+    }
+
+    @Test(expectedExceptions = UnsupportedOperationException.class)
+    public void testVisitNode() {
+        ExpressionFormatter.Formatter formatter = new ExpressionFormatter.Formatter(false);
+        // coverage
+        formatter.visitNode(new LiteralNode(5), null);
+    }
+
+    @Test(expectedExceptions = UnsupportedOperationException.class)
+    public void testVisitExpression() {
+        ExpressionFormatter.Formatter formatter = new ExpressionFormatter.Formatter(false);
+        // coverage
+        formatter.visitExpression(new LiteralNode(5), null);
     }
 }

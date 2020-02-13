@@ -1,11 +1,15 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
-import com.yahoo.bullet.bql.tree.DistributionNode;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
-import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
@@ -52,11 +56,11 @@ public class TypeChecker {
             return unknownError();
         }
         if (typeSet.size() > 1) {
-            return makeError("The list " + node + " consists of multiple types: " + types);
+            return makeError("The list " + node + " consists of objects of multiple types: " + typeSet);
         }
         Type subType = typeSet.iterator().next();
         if (!Type.isPrimitive(subType) && !Type.isPrimitiveMap(subType)) {
-            return makeError("The list " + node + " must consist of a single type of primitive or primitive map. Actual subtype: " + subType);
+            return makeError("The list " + node + " must consist of objects of a single primitive or primitive map type. Subtype given: " + subType);
         }
         return Optional.empty();
     }
@@ -110,7 +114,7 @@ public class TypeChecker {
                     errors.add(new BulletError("The type of the first argument in " + node + " must be BOOLEAN. Type given: " + types.get(0), null));
                 }
                 if (types.get(1) != types.get(2)) {
-                    errors.add(new BulletError("The types of the second and third arguments must match. Types given: " + types.get(1) + ", " + types.get(2), null));
+                    errors.add(new BulletError("The types of the second and third arguments in " + node + " must match. Types given: " + types.get(1) + ", " + types.get(2), null));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
@@ -128,7 +132,7 @@ public class TypeChecker {
         return Type.UNKNOWN;
     }
 
-    public static Optional<List<BulletError>> validateAggregateType(GroupOperationNode node, Type type) {
+    public static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Type type) {
         if (Type.isUnknown(type)) {
             return unknownError();
         }
@@ -151,23 +155,7 @@ public class TypeChecker {
         return Type.UNKNOWN;
     }
 
-    public static Optional<List<BulletError>> validateCountDistinctType(List<Type> types) {
-        if (types.contains(Type.UNKNOWN)) {
-            return unknownError();
-        }
-        return Optional.empty();
-    }
-
-    public static Optional<List<BulletError>> validateDistributionType(DistributionNode node, Type type) {
-        if (Type.isUnknown(type)) {
-            return unknownError();
-        } else if (!Type.isNumeric(type)) {
-            return makeError("The type of the field in " + node + " must be numeric. Type given: " + type);
-        }
-        return Optional.empty();
-    }
-
-    public static Optional<List<BulletError>> validateTopKType(List<Type> types) {
+    public static Optional<List<BulletError>> validateKnownTypes(List<Type> types) {
         if (types.contains(Type.UNKNOWN)) {
             return unknownError();
         }
@@ -178,7 +166,7 @@ public class TypeChecker {
         if (Type.isUnknown(type)) {
             return unknownError();
         } else if (!Type.canCast(castType, type)) {
-            return makeError("Cannot cast " + node + " from " + type + " to " + castType);
+            return makeError("Cannot cast " + node.getExpression() + " from " + type + " to " + castType + ".");
         }
         return Optional.empty();
     }
@@ -216,7 +204,7 @@ public class TypeChecker {
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case CONTAINS_KEY:
                 if (!Type.isMap(leftType)) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be MAP. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some MAP. Type given: " + leftType, null));
                 }
                 if (rightType != Type.STRING) {
                     errors.add(new BulletError("The type of the second argument in " + node + " must be STRING. Type given: " + rightType, null));
@@ -233,19 +221,19 @@ public class TypeChecker {
                     return Optional.of(errors);
                 }
                 Type subType = leftType.getSubType();
-                return subType == null || (subType != rightType && subType.getSubType() != rightType) ?
+                return subType != rightType && subType.getSubType() != rightType ?
                         makeError("The primitive type of the first argument and the type of the second argument in " + node + " must match. Types given: " + leftType + ", " + rightType) :
                         Optional.empty();
             case AND:
             case OR:
             case XOR:
-                return leftType != Type.BOOLEAN || rightType != Type.BOOLEAN ? makeError("The type of the arguments in " + node + " must be BOOLEAN. Types given: " + leftType + ", " + rightType) : Optional.empty();
+                return leftType != Type.BOOLEAN || rightType != Type.BOOLEAN ? makeError("The types of the arguments in " + node + " must be BOOLEAN. Types given: " + leftType + ", " + rightType) : Optional.empty();
             case FILTER:
                 if (!Type.isList(leftType)) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be LIST. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST. Type given: " + leftType, null));
                 }
                 if (rightType != Type.BOOLEAN_LIST) {
-                    errors.add(new BulletError("The type of the second argument in " + node + " must be BOOLEAN LIST. Type given: " + rightType, null));
+                    errors.add(new BulletError("The type of the second argument in " + node + " must be BOOLEAN_LIST. Type given: " + rightType, null));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
