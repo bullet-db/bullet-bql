@@ -216,6 +216,9 @@ public final class ExpressionFormatter {
         @Override
         protected String visitBinaryExpression(BinaryExpressionNode node, Void context) {
             if (node.getOp().isInfix()) {
+                if (node.getModifier() != null) {
+                    return process(node.getLeft()) + " " + node.getOp() + " " + node.getModifier() + " " + process(node.getRight());
+                }
                 return process(node.getLeft()) + " " + node.getOp() + " " + process(node.getRight());
             }
             return node.getOp() + "(" + process(node.getLeft()) + ", " + process(node.getRight()) + ")";

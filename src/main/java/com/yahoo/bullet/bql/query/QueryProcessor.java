@@ -285,7 +285,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
         BinaryExpression expression = new BinaryExpression(context.getExpression(node.getLeft()),
                                                            context.getExpression(node.getRight()),
-                                                           node.getOp());
+                                                           node.getOp(),
+                                                           node.getModifier());
 
         context.addExpression(node, expression, Arrays.asList(node.getLeft(), node.getRight()));
 

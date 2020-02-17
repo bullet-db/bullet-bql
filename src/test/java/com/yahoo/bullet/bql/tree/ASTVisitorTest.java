@@ -151,7 +151,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitBinaryExpression() {
-        BinaryExpressionNode binaryExpression = new BinaryExpressionNode(null, null, null);
+        BinaryExpressionNode binaryExpression = new BinaryExpressionNode(null, null, null, null);
         visitor.process(binaryExpression);
         Mockito.verify(visitor).visitBinaryExpression(binaryExpression, null);
     }

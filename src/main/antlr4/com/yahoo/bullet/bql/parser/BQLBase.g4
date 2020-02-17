@@ -65,10 +65,11 @@ expression
     | expression IS NOT NULL                                                                                            #nullPredicate
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
+    | left=expression op=IN right=expression                                                                            #infix
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
-    | left=expression op=(LT | LTE | GT | GTE) right=expression                                                         #infix
-    | left=expression op=(EQ | NEQ) right=expression                                                                    #infix
+    | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
+    | left=expression op=(EQ | NEQ) modifier=(ANY | ALL)? right=expression                                              #infix
     | left=expression op=AND right=expression                                                                           #infix
     | left=expression op=XOR right=expression                                                                           #infix
     | left=expression op=OR right=expression                                                                            #infix
@@ -172,6 +173,7 @@ nonReserved
 
 ALL: 'ALL';
 AND: 'AND';
+ANY: 'ANY';
 AS: 'AS';
 ASC: 'ASC';
 BETWEEN: 'BETWEEN';

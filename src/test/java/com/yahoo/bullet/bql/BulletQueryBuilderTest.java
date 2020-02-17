@@ -48,6 +48,7 @@ public class BulletQueryBuilderTest {
                                                                   new Schema.Field("bbb", Type.STRING_MAP_MAP),
                                                                   new Schema.Field("ccc", Type.INTEGER_LIST),
                                                                   new Schema.Field("ddd", Type.STRING_MAP),
+                                                                  new Schema.Field("eee", Type.STRING_LIST),
                                                                   new Schema.Field("a", Type.LONG),
                                                                   new Schema.Field("b", Type.BOOLEAN),
                                                                   new Schema.Field("c", Type.STRING)));
@@ -1416,7 +1417,7 @@ public class BulletQueryBuilderTest {
         Assert.assertNotEquals(query.getAggregation().getType(), Aggregation.Type.TOP_K);
 
         build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) >= '5' ORDER BY COUNT(*) DESC LIMIT 10");
-        Assert.assertEquals(errors.get(0).getError(), "The left and right operands in COUNT(*) >= '5' must be numbers. Types given: LONG, STRING");
+        Assert.assertEquals(errors.get(0).getError(), "The right operand in COUNT(*) >= '5' must be numeric. Type given: STRING");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -1518,9 +1519,9 @@ public class BulletQueryBuilderTest {
     @Test
     public void testBinaryOperations() {
         build("SELECT a + 5, a - 5, a * 5, a / 5, a = 5, a != 5, a > 5, a < 5, a >= 5, a <= 5, " +
-              "RLIKE(c, 'abc'), SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), FILTER(aaa, [true, false]), " +
+              "RLIKE(c, 'abc'), SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), 'abc' IN aaa, FILTER(aaa, [true, false]), " +
               "b AND true, b OR false, b XOR true FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 18);
+        Assert.assertEquals(query.getProjection().getFields().size(), 19);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("a + 5", new BinaryExpression(new FieldExpression("a"),
                                                                                                               new ValueExpression(5),
                                                                                                               Operation.ADD)));
@@ -1563,27 +1564,50 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(query.getProjection().getFields().get(13), new Field("CONTAINSVALUE(aaa, 'abc')", new BinaryExpression(new FieldExpression("aaa"),
                                                                                                                                    new ValueExpression("abc"),
                                                                                                                                    Operation.CONTAINS_VALUE)));
-        Assert.assertEquals(query.getProjection().getFields().get(14), new Field("FILTER(aaa, [true, false])", new BinaryExpression(new FieldExpression("aaa"),
+        Assert.assertEquals(query.getProjection().getFields().get(14), new Field("'abc' IN aaa", new BinaryExpression(new ValueExpression("abc"),
+                                                                                                                      new FieldExpression("aaa"),
+                                                                                                                      Operation.IN)));
+        Assert.assertEquals(query.getProjection().getFields().get(15), new Field("FILTER(aaa, [true, false])", new BinaryExpression(new FieldExpression("aaa"),
                                                                                                                                     new ListExpression(Arrays.asList(new ValueExpression(true), new ValueExpression(false))),
                                                                                                                                     Operation.FILTER)));
-        Assert.assertEquals(query.getProjection().getFields().get(15), new Field("b AND true", new BinaryExpression(new FieldExpression("b"),
+        Assert.assertEquals(query.getProjection().getFields().get(16), new Field("b AND true", new BinaryExpression(new FieldExpression("b"),
                                                                                                                     new ValueExpression(true),
                                                                                                                     Operation.AND)));
-        Assert.assertEquals(query.getProjection().getFields().get(16), new Field("b OR false", new BinaryExpression(new FieldExpression("b"),
+        Assert.assertEquals(query.getProjection().getFields().get(17), new Field("b OR false", new BinaryExpression(new FieldExpression("b"),
                                                                                                                     new ValueExpression(false),
                                                                                                                     Operation.OR)));
-        Assert.assertEquals(query.getProjection().getFields().get(17), new Field("b XOR true", new BinaryExpression(new FieldExpression("b"),
+        Assert.assertEquals(query.getProjection().getFields().get(18), new Field("b XOR true", new BinaryExpression(new FieldExpression("b"),
                                                                                                                     new ValueExpression(true),
                                                                                                                     Operation.XOR)));
     }
 
     @Test
-    public void testTypeCheckComparison() {
-        build("SELECT 'foo' + 'bar', 'foo' = 0, 0 != 'foo', 'foo' = 'bar' FROM STREAM()");
+    public void testTypeCheckNumericOperation() {
+        build("SELECT 'foo' + 'bar', 'foo' + 0, 0 + 'foo' FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "The left and right operands in 'foo' + 'bar' must be numbers. Types given: STRING, STRING");
-        Assert.assertEquals(errors.get(1).getError(), "The left and right operands in 'foo' = 0 must be comparable or have the same type. Types given: STRING, INTEGER");
-        Assert.assertEquals(errors.get(2).getError(), "The left and right operands in 0 != 'foo' must be comparable or have the same type. Types given: INTEGER, STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The left and right operands in 'foo' + 0 must be numbers. Types given: STRING, INTEGER");
+        Assert.assertEquals(errors.get(2).getError(), "The left and right operands in 0 + 'foo' must be numbers. Types given: INTEGER, STRING");
         Assert.assertEquals(errors.size(), 3);
+    }
+
+    @Test
+    public void testTypeCheckComparison() {
+        build("SELECT 'foo' > 'bar', 'foo' = 0, 0 != 'foo', 'foo' = 'bar' FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The left operand in 'foo' > 'bar' must be numeric. Type given: STRING");
+        Assert.assertEquals(errors.get(1).getError(), "The right operand in 'foo' > 'bar' must be numeric. Type given: STRING");
+        Assert.assertEquals(errors.get(2).getError(), "The left and right operands in 'foo' = 0 must be comparable or have the same type. Types given: STRING, INTEGER");
+        Assert.assertEquals(errors.get(3).getError(), "The left and right operands in 0 != 'foo' must be comparable or have the same type. Types given: INTEGER, STRING");
+        Assert.assertEquals(errors.size(), 4);
+    }
+
+    @Test
+    public void testTypeCheckComparisonModifier() {
+        build("SELECT 5 > ANY aaa, 5 > ANY ccc, 5 > ALL eee, 5 = ANY ccc, 5 = ALL 'foo', 5 = ANY aaa, 'foo' = ALL eee FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The right operand in 5 > ANY aaa must be some numeric LIST. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(1).getError(), "The right operand in 5 > ALL eee must be some numeric LIST. Type given: STRING_LIST");
+        Assert.assertEquals(errors.get(2).getError(), "The right operand in 5 = ALL 'foo' must be some LIST. Type given: STRING");
+        Assert.assertEquals(errors.get(3).getError(), "The type of the left operand and the subtype of the right operand in 5 = ANY aaa must be comparable or the same. Types given: INTEGER, STRING_MAP_LIST");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test
@@ -1605,8 +1629,8 @@ public class BulletQueryBuilderTest {
 
     @Test
     public void testTypeCheckContainsKey() {
-        build("SELECT CONTAINSKEY('foo', 5) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in CONTAINSKEY('foo', 5) must be some MAP. Type given: STRING");
+        build("SELECT CONTAINSKEY('foo', 5), CONTAINSKEY(aaa, 'foo'), CONTAINSKEY(bbb, 'foo') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the first argument in CONTAINSKEY('foo', 5) must be some MAP or MAP_LIST. Type given: STRING");
         Assert.assertEquals(errors.get(1).getError(), "The type of the second argument in CONTAINSKEY('foo', 5) must be STRING. Type given: INTEGER");
         Assert.assertEquals(errors.size(), 2);
     }
@@ -1618,6 +1642,16 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(errors.get(1).getError(), "The type of the second argument in CONTAINSVALUE('foo', aaa) must be primitive. Type given: STRING_MAP_LIST");
         Assert.assertEquals(errors.get(2).getError(), "The primitive type of the first argument and the type of the second argument in CONTAINSVALUE(aaa, 5) must match. Types given: STRING_MAP_LIST, INTEGER");
         Assert.assertEquals(errors.get(3).getError(), "The primitive type of the first argument and the type of the second argument in CONTAINSVALUE(ddd, 5) must match. Types given: STRING_MAP, INTEGER");
+        Assert.assertEquals(errors.size(), 4);
+    }
+
+    @Test
+    public void testTypeCheckIn() {
+        build("SELECT aaa IN 'foo', 5 IN aaa, 5 IN ddd, c IN ddd FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the left operand in aaa IN 'foo' must be primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(1).getError(), "The type of the right operand in aaa IN 'foo' must be some LIST or MAP. Type given: STRING");
+        Assert.assertEquals(errors.get(2).getError(), "The type of the left operand and the primitive type of the right operand in 5 IN aaa must match. Types given: INTEGER, STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(3).getError(), "The type of the left operand and the primitive type of the right operand in 5 IN ddd must match. Types given: INTEGER, STRING_MAP");
         Assert.assertEquals(errors.size(), 4);
     }
 

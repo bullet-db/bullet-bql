@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import com.yahoo.bullet.parsing.expressions.BinaryExpression.Modifier;
 import com.yahoo.bullet.parsing.expressions.Operation;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ public class BinaryExpressionNode extends ExpressionNode {
     private final ExpressionNode left;
     private final ExpressionNode right;
     private final Operation op;
+    private final Modifier modifier;
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
@@ -34,11 +36,12 @@ public class BinaryExpressionNode extends ExpressionNode {
         BinaryExpressionNode other = (BinaryExpressionNode) obj;
         return Objects.equals(left, other.left) &&
                Objects.equals(right, other.right) &&
-               op == other.op;
+               op == other.op &&
+               modifier == other.modifier;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(left, right, op);
+        return Objects.hash(left, right, op, modifier);
     }
 }

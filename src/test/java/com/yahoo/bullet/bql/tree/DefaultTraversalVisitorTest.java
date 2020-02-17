@@ -185,7 +185,7 @@ public class DefaultTraversalVisitorTest {
 
     @Test
     public void testVisitBinaryExpression() {
-        BinaryExpressionNode binaryExpression = new BinaryExpressionNode(new LiteralNode(5), new LiteralNode(6), Operation.ADD);
+        BinaryExpressionNode binaryExpression = new BinaryExpressionNode(new LiteralNode(5), new LiteralNode(6), Operation.ADD, null);
         visitor.process(binaryExpression);
         Mockito.verify(visitor).visitBinaryExpression(binaryExpression, null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) binaryExpression.getLeft(), null);

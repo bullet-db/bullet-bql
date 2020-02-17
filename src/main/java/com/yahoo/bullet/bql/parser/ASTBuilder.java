@@ -41,6 +41,7 @@ import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.parsing.Window.Unit;
+import com.yahoo.bullet.parsing.expressions.BinaryExpression.Modifier;
 import com.yahoo.bullet.parsing.expressions.Operation;
 import com.yahoo.bullet.typesystem.Type;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -149,7 +150,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitBinary(BQLBaseParser.BinaryContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                        (ExpressionNode) visit(context.right),
-                                       getOperation(context.op));
+                                       getOperation(context.op),
+                                       null);
     }
 
     @Override
@@ -210,7 +212,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitInfix(BQLBaseParser.InfixContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                         (ExpressionNode) visit(context.right),
-                                        getOperation(context.op));
+                                        getOperation(context.op),
+                                        getModifier(context.modifier));
     }
 
     @Override
@@ -330,6 +333,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.CONTAINS_KEY;
             case BQLBaseLexer.CONTAINSVALUE:
                 return Operation.CONTAINS_VALUE;
+            case BQLBaseLexer.IN:
+                return Operation.IN;
             case BQLBaseLexer.AND:
                 return Operation.AND;
             case BQLBaseLexer.OR:
@@ -346,6 +351,19 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.IF;
         }
         throw new ParsingException("Unknown operation");
+    }
+
+    private static Modifier getModifier(Token token) {
+        if (token == null) {
+            return null;
+        }
+        switch (token.getType()) {
+            case BQLBaseLexer.ANY:
+                return Modifier.ANY;
+            case BQLBaseLexer.ALL:
+                return Modifier.ALL;
+        }
+        throw new ParsingException("Unknown modifier");
     }
 
     private Distribution.Type getDistributionType(BQLBaseParser.DistributionContext context) {

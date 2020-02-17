@@ -176,18 +176,41 @@ public class TypeChecker {
             return unknownError();
         }
         List<BulletError> errors = new ArrayList<>();
+        Type subType;
         switch (op) {
             case ADD:
             case SUB:
             case MUL:
             case DIV:
+                return !Type.isNumeric(leftType) || !Type.isNumeric(rightType) ? makeError("The left and right operands in " + node + " must be numbers. Types given: " + leftType + ", " + rightType) : Optional.empty();
             case GREATER_THAN:
             case GREATER_THAN_OR_EQUALS:
             case LESS_THAN:
             case LESS_THAN_OR_EQUALS:
-                return !Type.isNumeric(leftType) || !Type.isNumeric(rightType) ? makeError("The left and right operands in " + node + " must be numbers. Types given: " + leftType + ", " + rightType) : Optional.empty();
+                if (!Type.isNumeric(leftType)) {
+                    errors.add(new BulletError("The left operand in " + node + " must be numeric. Type given: " + leftType, null));
+                }
+                if (node.getModifier() != null) {
+                    if (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType())) {
+                        errors.add(new BulletError("The right operand in " + node + " must be some numeric LIST. Type given: " + rightType, null));
+                    }
+                    return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+                }
+                if (!Type.isNumeric(rightType)) {
+                    errors.add(new BulletError("The right operand in " + node + " must be numeric. Type given: " + rightType, null));
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case EQUALS:
             case NOT_EQUALS:
+                if (node.getModifier() != null) {
+                    if (!Type.isList(rightType)) {
+                        return makeError("The right operand in " + node + " must be some LIST. Type given: " + rightType);
+                    }
+                    if (Type.isNumeric(leftType) && Type.isNumeric(rightType.getSubType())) {
+                        return Optional.empty();
+                    }
+                    return leftType != rightType.getSubType() ? makeError("The type of the left operand and the subtype of the right operand in " + node + " must be comparable or the same. Types given: " + leftType + ", " + rightType) : Optional.empty();
+                }
                 if (Type.isNumeric(leftType) && Type.isNumeric(rightType)) {
                     return Optional.empty();
                 }
@@ -203,8 +226,8 @@ public class TypeChecker {
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case CONTAINS_KEY:
-                if (!Type.isMap(leftType)) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be some MAP. Type given: " + leftType, null));
+                if (!Type.isMap(leftType) && !Type.isComplexList(leftType)) {
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some MAP or MAP_LIST. Type given: " + leftType, null));
                 }
                 if (rightType != Type.STRING) {
                     errors.add(new BulletError("The type of the second argument in " + node + " must be STRING. Type given: " + rightType, null));
@@ -220,10 +243,24 @@ public class TypeChecker {
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
                 }
-                Type subType = leftType.getSubType();
+                subType = leftType.getSubType();
                 return subType != rightType && subType.getSubType() != rightType ?
-                        makeError("The primitive type of the first argument and the type of the second argument in " + node + " must match. Types given: " + leftType + ", " + rightType) :
-                        Optional.empty();
+                       makeError("The primitive type of the first argument and the type of the second argument in " + node + " must match. Types given: " + leftType + ", " + rightType) :
+                       Optional.empty();
+            case IN:
+                if (!Type.isPrimitive(leftType)) {
+                    errors.add(new BulletError("The type of the left operand in " + node + " must be primitive. Type given: " + leftType, null));
+                }
+                if (!isCollection(rightType)) {
+                    errors.add(new BulletError("The type of the right operand in " + node + " must be some LIST or MAP. Type given: " + rightType, null));
+                }
+                if (!errors.isEmpty()) {
+                    return Optional.of(errors);
+                }
+                subType = rightType.getSubType();
+                return subType != leftType && subType.getSubType() != leftType ?
+                       makeError("The type of the left operand and the primitive type of the right operand in " + node + " must match. Types given: " + leftType + ", " + rightType) :
+                       Optional.empty();
             case AND:
             case OR:
             case XOR:
@@ -266,6 +303,7 @@ public class TypeChecker {
             case SIZE_IS:
             case CONTAINS_KEY:
             case CONTAINS_VALUE:
+            case IN:
             case AND:
             case OR:
             case XOR:
