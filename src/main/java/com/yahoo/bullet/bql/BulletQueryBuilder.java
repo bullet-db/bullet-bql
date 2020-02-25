@@ -17,9 +17,11 @@ import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.Query;
 import com.yahoo.bullet.typesystem.Schema;
+import com.yahoo.bullet.typesystem.Type;
 import lombok.AccessLevel;
 import lombok.Setter;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +35,17 @@ public class BulletQueryBuilder {
     // Exposed for testing only
     @Setter(AccessLevel.PACKAGE)
     private Schema schema;
+
+    private static final Schema SCHEMA = new Schema(Arrays.asList(new Schema.Field("abc", Type.INTEGER),
+                                                                  new Schema.Field("def", Type.FLOAT),
+                                                                  new Schema.Field("aaa", Type.STRING_MAP_LIST),
+                                                                  new Schema.Field("bbb", Type.STRING_MAP_MAP),
+                                                                  new Schema.Field("ccc", Type.INTEGER_LIST),
+                                                                  new Schema.Field("ddd", Type.STRING_MAP),
+                                                                  new Schema.Field("eee", Type.STRING_LIST),
+                                                                  new Schema.Field("a", Type.LONG),
+                                                                  new Schema.Field("b", Type.BOOLEAN),
+                                                                  new Schema.Field("c", Type.STRING)));
 
     /**
      * Constructor that initializes a BulletQueryBuilder.
@@ -66,7 +79,8 @@ public class BulletQueryBuilder {
 
         Query query = queryExtractor.extractQuery(processedQuery);
 
-        List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
+        //List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
+        List<BulletError> errors = QueryValidator.validate(processedQuery, query, SCHEMA);
         if (!errors.isEmpty()) {
             return new BQLResult(errors);
         }
