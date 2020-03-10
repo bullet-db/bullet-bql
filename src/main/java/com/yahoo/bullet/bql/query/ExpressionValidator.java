@@ -15,6 +15,7 @@ import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
@@ -25,12 +26,17 @@ import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.expressions.Expression;
+import com.yahoo.bullet.parsing.expressions.FieldExpression;
 import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.parsing.expressions.ValueExpression;
 import com.yahoo.bullet.typesystem.Type;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -40,14 +46,30 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 public class ExpressionValidator extends DefaultTraversalVisitor<Type, LayeredSchema> {
-    private ProcessedQuery processedQuery;
+    private final ProcessedQuery processedQuery;
+    @Getter @Setter
+    private Map<ExpressionNode, Expression> mapping;
 
     @Override
     public Type process(Node node, LayeredSchema schema) {
-        Expression expression = processedQuery.getExpression((ExpressionNode) node);
+        //Expression expression = processedQuery.getExpression((ExpressionNode) node);
+        Expression expression = mapping.get((ExpressionNode) node);
         // expression can be null if the node is a top k or distribution node
-        if (expression != null && expression.getType() != null) {
-            return expression.getType();
+        if (expression != null) {
+            if (expression.getType() != null) {
+                return expression.getType();
+            }
+            if (expression instanceof FieldExpression) {
+                FieldExpression fieldExpression = (FieldExpression) expression;
+                FieldExpressionNode temp = new FieldExpressionNode(new IdentifierNode(fieldExpression.getField(), false), fieldExpression.getIndex(), fieldExpression.getKey() != null ? new IdentifierNode(fieldExpression.getKey(), false) : null, fieldExpression.getSubKey() != null ? new IdentifierNode(fieldExpression.getSubKey(), false) : null, null);
+                Type fieldType = schema.getType(fieldExpression.getField());
+                Optional<List<BulletError>> errors = TypeChecker.validateFieldType(temp, fieldType, temp.hasIndexOrKey(), temp.hasSubKey());
+                if (errors.isPresent()) {
+                    processedQuery.getErrors().addAll(errors.get());
+                    return setType((ExpressionNode) node, Type.UNKNOWN);
+                }
+                return setType((ExpressionNode) node, TypeChecker.getFieldType(fieldType, temp.hasIndexOrKey(), temp.hasSubKey()));
+            }
         }
         return super.process(node, schema);
     }
@@ -183,11 +205,13 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, LayeredSc
     @Override
     protected Type visitLiteral(LiteralNode node, LayeredSchema schema) {
         // This shouldn't be called since literals have a type to begin with.
-        throw new ParsingException("Literal missing its type.");
+        //throw new ParsingException("Literal missing its type.");
+        return setType(node, new ValueExpression(node.getValue()).getType());
     }
 
     private Type setType(ExpressionNode node, Type type) {
-        processedQuery.getExpression(node).setType(type);
+        mapping.computeIfAbsent(node, k -> new FieldExpression("")).setType(type);
+        //processedQuery.getExpression(node).setType(type);
         return type;
     }
 }

@@ -15,6 +15,7 @@ import com.yahoo.bullet.parsing.Culling;
 import com.yahoo.bullet.parsing.OrderBy;
 import com.yahoo.bullet.parsing.PostAggregation;
 import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.parsing.expressions.Expression;
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
 
@@ -48,7 +49,7 @@ public class QueryValidator {
     }
 
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
-        ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery);
+        ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery, new HashMap<>());
         LayeredSchema schema = new LayeredSchema(baseSchema);
 
         // If there's a WHERE clause, check that it can be evaluated as a boolean.
@@ -60,6 +61,7 @@ public class QueryValidator {
         }
 
         if (query.getProjection() != null) {
+            expressionValidator.setMapping(processedQuery.getProjectionMapping());
             expressionValidator.process(processedQuery.getProjectionNodes(), schema);
             List<Schema.Field> fields = query.getProjection().getFields().stream().map(field -> new Schema.Field(field.getName(), field.getValue().getType())).collect(Collectors.toList());
             duplicates(fields).ifPresent(duplicates -> {
@@ -89,27 +91,27 @@ public class QueryValidator {
             case SELECT_DISTINCT:
                 aggregateFields = processedQuery.getSelectNodes().stream()
                                                                  .map(SelectItemNode::getExpression)
-                                                                 .map(toSchemaField(processedQuery))
+                                                                 .map(toSchemaField(processedQuery, expressionValidator.getMapping()))
                                                                  .collect(Collectors.toList());
                 break;
             case GROUP:
                 aggregateFields = Stream.concat(processedQuery.getAggregateNodes().stream(),
                                                 processedQuery.getGroupByNodes().stream())
-                                        .map(toSchemaField(processedQuery))
+                                        .map(toSchemaField(processedQuery, expressionValidator.getMapping()))
                                         .collect(Collectors.toList());
                 break;
             case COUNT_DISTINCT:
-                aggregateFields = toSchemaFieldList(processedQuery.getCountDistinct(), processedQuery);
+                aggregateFields = toSchemaFieldList(processedQuery.getCountDistinct(), processedQuery, expressionValidator.getMapping());
                 break;
             case DISTRIBUTION:
                 schema.replaceSchema(DISTRIBUTION_SCHEMAS.get(query.getAggregation().getAttributes().get(Distribution.TYPE)));
                 break;
             case TOP_K:
-                aggregateFields = toSchemaFieldList(processedQuery.getTopK().getExpressions(), processedQuery);
+                aggregateFields = toSchemaFieldList(processedQuery.getTopK().getExpressions(), processedQuery, expressionValidator.getMapping());
                 aggregateFields.add(new Schema.Field(getTopKName(query), Type.LONG));
                 break;
             case SPECIAL_K:
-                aggregateFields = toSchemaFieldList(processedQuery.getGroupByNodes(), processedQuery);
+                aggregateFields = toSchemaFieldList(processedQuery.getGroupByNodes(), processedQuery, expressionValidator.getMapping());
                 aggregateFields.add(new Schema.Field(getTopKName(query), Type.LONG));
                 break;
         }
@@ -119,6 +121,8 @@ public class QueryValidator {
                 });
             schema.replaceSchema(new Schema(aggregateFields));
         }
+
+        expressionValidator.setMapping(processedQuery.getAggregateMapping());
 
         // If there's a HAVING clause, check that it can be evaluated as a boolean. The HAVING clause in special k queries doesn't count.
         if (processedQuery.getHavingNode() != null && queryType != ProcessedQuery.QueryType.SPECIAL_K) {
@@ -171,16 +175,16 @@ public class QueryValidator {
         return !duplicates.isEmpty() ? Optional.of(duplicates) : Optional.empty();
     }
 
-    private static Function<ExpressionNode, Schema.Field> toSchemaField(ProcessedQuery processedQuery) {
-        return node -> new Schema.Field(processedQuery.getAliasOrName(node), processedQuery.getExpression(node).getType());
+    private static Function<ExpressionNode, Schema.Field> toSchemaField(ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
+        return node -> new Schema.Field(processedQuery.getAliasOrName(node), mapping.get(node).getType());
     }
 
-    private static List<Schema.Field> toSchemaFieldList(List<ExpressionNode> expressions, ProcessedQuery processedQuery) {
-        return expressions.stream().map(toSchemaField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));
+    private static List<Schema.Field> toSchemaFieldList(List<ExpressionNode> expressions, ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
+        return expressions.stream().map(toSchemaField(processedQuery, mapping)).collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private static List<Schema.Field> toSchemaFieldList(ExpressionNode expression, ProcessedQuery processedQuery) {
-        return Collections.singletonList(new Schema.Field(processedQuery.getAliasOrName(expression), processedQuery.getExpression(expression).getType()));
+    private static List<Schema.Field> toSchemaFieldList(ExpressionNode expression, ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
+        return Collections.singletonList(new Schema.Field(processedQuery.getAliasOrName(expression), mapping.get(expression).getType()));
     }
 
     private static String getTopKName(Query query) {

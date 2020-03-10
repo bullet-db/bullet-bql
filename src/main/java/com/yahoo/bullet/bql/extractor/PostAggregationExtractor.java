@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
+import com.yahoo.bullet.bql.query.ExpressionProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.parsing.Computation;
@@ -19,26 +20,27 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class PostAggregationExtractor {
-    static List<PostAggregation> extractPostAggregations(ProcessedQuery processedQuery) {
+    static List<PostAggregation> extractPostAggregations(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
         List<PostAggregation> postAggregations = new ArrayList<>();
 
-        extractHaving(processedQuery, postAggregations);
-        extractComputations(processedQuery, postAggregations);
+        extractHaving(processedQuery, postAggregations, expressionProcessor);
+        extractComputations(processedQuery, postAggregations, expressionProcessor);
         extractOrderBy(processedQuery, postAggregations);
         extractTransientFields(processedQuery, postAggregations);
 
         return !postAggregations.isEmpty() ? postAggregations : null;
     }
 
-    private static void extractHaving(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
+    private static void extractHaving(ProcessedQuery processedQuery, List<PostAggregation> postAggregations, ExpressionProcessor expressionProcessor) {
         // Special K has a HAVING clause, but it's subsumed by Top K
         if (processedQuery.getHavingNode() != null && processedQuery.getQueryType() != ProcessedQuery.QueryType.SPECIAL_K) {
-            postAggregations.add(new Having(processedQuery.getExpression(processedQuery.getHavingNode())));
+            //postAggregations.add(new Having(processedQuery.getExpression(processedQuery.getHavingNode())));
+            postAggregations.add(new Having(expressionProcessor.process(processedQuery.getHavingNode(), processedQuery.getAggregateMapping())));
         }
     }
 
-    private static void extractComputations(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
-        Computation computation = ComputationExtractor.extractComputation(processedQuery);
+    private static void extractComputations(ProcessedQuery processedQuery, List<PostAggregation> postAggregations, ExpressionProcessor expressionProcessor) {
+        Computation computation = ComputationExtractor.extractComputation(processedQuery, expressionProcessor);
         if (computation != null && !computation.getFields().isEmpty()) {
             postAggregations.add(computation);
         }

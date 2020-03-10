@@ -73,6 +73,7 @@ public class BulletQueryBuilder {
         ProcessedQuery processedQuery = queryProcessor.process(queryNode);
 
         // Can let this part just fall through and have queryExtractor return null for query if there are errors in processedQuery
+        // Feel like it's better to just catch here though
         if (!processedQuery.getErrors().isEmpty()) {
             return new BQLResult(processedQuery.getErrors());
         }

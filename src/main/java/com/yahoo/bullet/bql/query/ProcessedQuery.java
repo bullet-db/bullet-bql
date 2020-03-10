@@ -9,6 +9,7 @@ import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
@@ -17,7 +18,6 @@ import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.parsing.expressions.Expression;
-import com.yahoo.bullet.parsing.expressions.FieldExpression;
 import com.yahoo.bullet.parsing.expressions.Operation;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,7 +62,7 @@ public class ProcessedQuery {
     @Setter
     private ExpressionNode havingNode;
 
-    private Map<ExpressionNode, Expression> expressionNodes = new HashMap<>();
+    //private Map<ExpressionNode, Expression> expressionNodes = new HashMap<>();
     private Map<ExpressionNode, String> aliases = new HashMap<>();
     private Set<ExpressionNode> subExpressionNodes = new HashSet<>();
 
@@ -81,7 +81,11 @@ public class ProcessedQuery {
     @Setter
     private Collection<ExpressionNode> projectionNodes;
     @Setter
+    private Map<ExpressionNode, Expression> projectionMapping;
+    @Setter
     private Collection<ExpressionNode> computationNodes;
+    @Setter
+    private Map<ExpressionNode, Expression> aggregateMapping;
 
     /**
      * Validates the query components.
@@ -160,9 +164,11 @@ public class ProcessedQuery {
             return false;
         }
         // Compare by expression since both should point to the same field expression
-        Expression groupOperationExpression = getExpression(groupOperationNode);
+        //Expression groupOperationExpression = getExpression(groupOperationNode);
+        String alias = aliases.get(groupOperationNode);
         SortItemNode sortItemNode = orderByNodes.get(0);
-        if (!getExpression(sortItemNode.getExpression()).equals(groupOperationExpression) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
+        ExpressionNode sortExpressionNode = sortItemNode.getExpression();
+        if (!(sortExpressionNode.equals(groupOperationNode) || isSimpleAliasFieldExpressionMatchingAlias(sortExpressionNode, alias)) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
             return false;
         }
         // Optional HAVING
@@ -174,26 +180,29 @@ public class ProcessedQuery {
             return false;
         }
         BinaryExpressionNode having = (BinaryExpressionNode) havingNode;
-        return getExpression(having.getLeft()).equals(groupOperationExpression) &&
+        //return getExpression(having.getLeft()).equals(groupOperationExpression) &&
+        return (having.getLeft().equals(groupOperationNode) || isSimpleAliasFieldExpressionMatchingAlias(having.getLeft(), alias)) &&
                having.getOp() == Operation.GREATER_THAN_OR_EQUALS &&
                having.getRight() instanceof LiteralNode &&
                ((LiteralNode) having.getRight()).getValue() instanceof Number;
     }
-
+/*
     void addExpression(ExpressionNode node, Expression expression) {
         expressionNodes.put(node, expression);
     }
-
-    void addExpression(ExpressionNode node, Expression expression, ExpressionNode subNode) {
-        addExpression(node, expression);
+*/
+    //void addExpression(ExpressionNode node, Expression expression, ExpressionNode subNode) {
+    void addExpression(ExpressionNode node, ExpressionNode subNode) {
+        //addExpression(node, expression);
         subExpressionNodes.add(subNode);
         if (isAggregateOrSuperAggregate(subNode)) {
             superAggregateNodes.add(node);
         }
     }
 
-    void addExpression(ExpressionNode node, Expression expression, List<ExpressionNode> subNodes) {
-        expressionNodes.put(node, expression);
+    //void addExpression(ExpressionNode node, Expression expression, List<ExpressionNode> subNodes) {
+    void addExpression(ExpressionNode node, List<ExpressionNode> subNodes) {
+        //expressionNodes.put(node, expression);
         subExpressionNodes.addAll(subNodes);
         if (subNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
             superAggregateNodes.add(node);
@@ -242,10 +251,11 @@ public class ProcessedQuery {
      * @param node An {@link ExpressionNode}.
      * @return An {@link Expression}.
      */
+/*
     public Expression getExpression(ExpressionNode node) {
         return expressionNodes.get(node);
     }
-
+*/
     /**
      * Returns whether or not the given {@link ExpressionNode} has an alias.
      *
@@ -306,6 +316,10 @@ public class ProcessedQuery {
         return aggregateNodes.contains(node);
     }
 
+    public boolean isNotAggregate(ExpressionNode node) {
+        return !isAggregate(node);
+    }
+
     /**
      * Returns whether or not the given node contains aggregates.
      *
@@ -333,12 +347,19 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression and false otherwise.
      */
     public boolean isSimpleFieldExpression(ExpressionNode node) {
+        /*
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
             return false;
         }
         FieldExpression fieldExpression = (FieldExpression) expression;
         return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
+        */
+        if (!(node instanceof FieldExpressionNode)) {
+            return false;
+        }
+        FieldExpressionNode fieldExpressionNode = (FieldExpressionNode) node;
+        return fieldExpressionNode.getIndex() == null && fieldExpressionNode.getKey() == null;
     }
 
     /**
@@ -358,6 +379,7 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression that references an alias and false otherwise.
      */
     public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
+        /*
         Expression expression = expressionNodes.get(node);
         if (!(expression instanceof FieldExpression)) {
             return false;
@@ -366,6 +388,14 @@ public class ProcessedQuery {
         return fieldExpression.getIndex() == null &&
                fieldExpression.getKey() == null &&
                aliases.values().contains(fieldExpression.getField());
+        */
+        if (!(node instanceof FieldExpressionNode)) {
+            return false;
+        }
+        FieldExpressionNode fieldExpressionNode = (FieldExpressionNode) node;
+        return fieldExpressionNode.getIndex() == null &&
+               fieldExpressionNode.getKey() == null &&
+               aliases.values().contains(fieldExpressionNode.getField().getValue());
     }
 
     /**
@@ -376,5 +406,9 @@ public class ProcessedQuery {
      */
     public boolean isNotSimpleAliasFieldExpression(ExpressionNode node) {
         return !isSimpleAliasFieldExpression(node);
+    }
+
+    private boolean isSimpleAliasFieldExpressionMatchingAlias(ExpressionNode expressionNode, String alias) {
+        return isSimpleAliasFieldExpression(expressionNode) && ((FieldExpressionNode) expressionNode).getField().getValue().equals(alias);
     }
 }

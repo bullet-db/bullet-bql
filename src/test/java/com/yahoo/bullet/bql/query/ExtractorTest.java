@@ -15,6 +15,8 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
+
 // Has miscellaneous tests for now
 public class ExtractorTest {
     @Test
@@ -52,6 +54,6 @@ public class ExtractorTest {
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Literal missing its type\\.")
     public void testLiteral() {
-        new ExpressionValidator(null).visitLiteral(null, null);
+        new ExpressionValidator(null, Collections.emptyMap()).visitLiteral(null, null);
     }
 }

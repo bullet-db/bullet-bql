@@ -643,9 +643,7 @@ public class BulletQueryBuilderTest {
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Field field = new Field("(abc + 5) * 10", new BinaryExpression(new BinaryExpression(new FieldExpression("abc"),
-                                                                                            new ValueExpression(5),
-                                                                                            Operation.ADD),
+        Field field = new Field("(abc + 5) * 10", new BinaryExpression(new FieldExpression("abc + 5"),
                                                                        new ValueExpression(10),
                                                                        Operation.MUL));
 
@@ -857,7 +855,7 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
-    public void testGroupByHavingIgnoresFieldAlias() {
+    public void testGroupByHavingUsesFieldAlias() {
         build("SELECT abc AS def, AVG(abc) FROM STREAM() GROUP BY abc HAVING abc >= 5");
         Assert.assertNull(query.getProjection());
         Assert.assertEquals(query.getAggregation().getType(), Aggregation.Type.GROUP);
@@ -876,7 +874,7 @@ public class BulletQueryBuilderTest {
 
         Having having = (Having) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(having.getExpression(), new BinaryExpression(new FieldExpression("abc"),
+        Assert.assertEquals(having.getExpression(), new BinaryExpression(new FieldExpression("def"),
                                                                          new ValueExpression(5),
                                                                          Operation.GREATER_THAN_OR_EQUALS));
     }
@@ -1903,9 +1901,10 @@ public class BulletQueryBuilderTest {
     public void testUnknowns() {
         // coverage
         build("SELECT [(SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5], bar + foo, 5 + car FROM STREAM() WHERE foo");
-        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema.");
-        Assert.assertEquals(errors.get(1).getError(), "The field bar does not exist in the schema.");
-        Assert.assertEquals(errors.get(2).getError(), "The field car does not exist in the schema.");
-        Assert.assertEquals(errors.size(), 3);
+        Assert.assertEquals(errors.get(0).getError(), "The field foo does not exist in the schema."); // from WHERE clause
+        Assert.assertEquals(errors.get(1).getError(), "The field foo does not exist in the schema.");
+        Assert.assertEquals(errors.get(2).getError(), "The field bar does not exist in the schema.");
+        Assert.assertEquals(errors.get(3).getError(), "The field car does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 4);
     }
 }
