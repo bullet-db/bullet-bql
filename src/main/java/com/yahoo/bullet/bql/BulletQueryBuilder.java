@@ -36,16 +36,16 @@ public class BulletQueryBuilder {
     @Setter(AccessLevel.PACKAGE)
     private Schema schema;
 
-    private static final Schema SCHEMA = new Schema(Arrays.asList(new Schema.Field("abc", Type.INTEGER),
-                                                                  new Schema.Field("def", Type.FLOAT),
-                                                                  new Schema.Field("aaa", Type.STRING_MAP_LIST),
-                                                                  new Schema.Field("bbb", Type.STRING_MAP_MAP),
-                                                                  new Schema.Field("ccc", Type.INTEGER_LIST),
-                                                                  new Schema.Field("ddd", Type.STRING_MAP),
-                                                                  new Schema.Field("eee", Type.STRING_LIST),
-                                                                  new Schema.Field("a", Type.LONG),
-                                                                  new Schema.Field("b", Type.BOOLEAN),
-                                                                  new Schema.Field("c", Type.STRING)));
+    private static final Schema SCHEMA = new Schema(Arrays.asList(new Schema.PlainField("abc", Type.INTEGER),
+                                                                  new Schema.PlainField("def", Type.FLOAT),
+                                                                  new Schema.PlainField("aaa", Type.STRING_MAP_LIST),
+                                                                  new Schema.PlainField("bbb", Type.STRING_MAP_MAP),
+                                                                  new Schema.PlainField("ccc", Type.INTEGER_LIST),
+                                                                  new Schema.PlainField("ddd", Type.STRING_MAP),
+                                                                  new Schema.PlainField("eee", Type.STRING_LIST),
+                                                                  new Schema.PlainField("a", Type.LONG),
+                                                                  new Schema.PlainField("b", Type.BOOLEAN),
+                                                                  new Schema.PlainField("c", Type.STRING)));
 
     /**
      * Constructor that initializes a BulletQueryBuilder.

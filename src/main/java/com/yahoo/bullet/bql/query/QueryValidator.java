@@ -36,16 +36,16 @@ public class QueryValidator {
 
     static {
         DISTRIBUTION_SCHEMAS.put(Distribution.Type.QUANTILE,
-                new Schema(Arrays.asList(new Schema.Field("Value", Type.DOUBLE),
-                                         new Schema.Field("Quantile", Type.DOUBLE))));
+                new Schema(Arrays.asList(new Schema.PlainField("Value", Type.DOUBLE),
+                                         new Schema.PlainField("Quantile", Type.DOUBLE))));
         DISTRIBUTION_SCHEMAS.put(Distribution.Type.PMF,
-                new Schema(Arrays.asList(new Schema.Field("Probability", Type.DOUBLE),
-                                         new Schema.Field("Count", Type.DOUBLE),
-                                         new Schema.Field("Range", Type.STRING))));
+                new Schema(Arrays.asList(new Schema.PlainField("Probability", Type.DOUBLE),
+                                         new Schema.PlainField("Count", Type.DOUBLE),
+                                         new Schema.PlainField("Range", Type.STRING))));
         DISTRIBUTION_SCHEMAS.put(Distribution.Type.CDF,
-                new Schema(Arrays.asList(new Schema.Field("Probability", Type.DOUBLE),
-                                         new Schema.Field("Count", Type.DOUBLE),
-                                         new Schema.Field("Range", Type.STRING))));
+                new Schema(Arrays.asList(new Schema.PlainField("Probability", Type.DOUBLE),
+                                         new Schema.PlainField("Count", Type.DOUBLE),
+                                         new Schema.PlainField("Range", Type.STRING))));
     }
 
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
@@ -55,7 +55,7 @@ public class QueryValidator {
         // If there's a WHERE clause, check that it can be evaluated as a boolean.
         if (processedQuery.getWhereNode() != null) {
             Type type = expressionValidator.process(processedQuery.getWhereNode(), schema);
-            if (!Type.isUnknown(type) && !Type.canCast(Type.BOOLEAN, type)) {
+            if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
                 processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(), null));
             }
         }
@@ -63,7 +63,7 @@ public class QueryValidator {
         if (query.getProjection() != null) {
             expressionValidator.setMapping(processedQuery.getProjectionMapping());
             expressionValidator.process(processedQuery.getProjectionNodes(), schema);
-            List<Schema.Field> fields = query.getProjection().getFields().stream().map(field -> new Schema.Field(field.getName(), field.getValue().getType())).collect(Collectors.toList());
+            List<Schema.Field> fields = query.getProjection().getFields().stream().map(field -> new Schema.PlainField(field.getName(), field.getValue().getType())).collect(Collectors.toList());
             duplicates(fields).ifPresent(duplicates -> {
                     processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
                 });
@@ -108,11 +108,11 @@ public class QueryValidator {
                 break;
             case TOP_K:
                 aggregateFields = toSchemaFieldList(processedQuery.getTopK().getExpressions(), processedQuery, expressionValidator.getMapping());
-                aggregateFields.add(new Schema.Field(getTopKName(query), Type.LONG));
+                aggregateFields.add(new Schema.PlainField(getTopKName(query), Type.LONG));
                 break;
             case SPECIAL_K:
                 aggregateFields = toSchemaFieldList(processedQuery.getGroupByNodes(), processedQuery, expressionValidator.getMapping());
-                aggregateFields.add(new Schema.Field(getTopKName(query), Type.LONG));
+                aggregateFields.add(new Schema.PlainField(getTopKName(query), Type.LONG));
                 break;
         }
         if (aggregateFields != null) {
@@ -127,7 +127,7 @@ public class QueryValidator {
         // If there's a HAVING clause, check that it can be evaluated as a boolean. The HAVING clause in special k queries doesn't count.
         if (processedQuery.getHavingNode() != null && queryType != ProcessedQuery.QueryType.SPECIAL_K) {
             Type type = expressionValidator.process(processedQuery.getHavingNode(), schema);
-            if (!Type.isUnknown(type) && !Type.canCast(Type.BOOLEAN, type)) {
+            if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
                 processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(), null));
             }
         }
@@ -136,7 +136,7 @@ public class QueryValidator {
             Optional<PostAggregation> computation = query.getPostAggregations().stream().filter(Computation.class::isInstance).findFirst();
             if (computation.isPresent()) {
                 processedQuery.getComputationNodes().forEach(node -> expressionValidator.process(node, schema));
-                List<Schema.Field> fields = ((Computation) computation.get()).getFields().stream().map(field -> new Schema.Field(field.getName(), field.getValue().getType())).collect(Collectors.toList());
+                List<Schema.Field> fields = ((Computation) computation.get()).getFields().stream().map(field -> new Schema.PlainField(field.getName(), field.getValue().getType())).collect(Collectors.toList());
                 duplicates(fields).ifPresent(duplicates -> {
                         processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
                     });
@@ -176,7 +176,7 @@ public class QueryValidator {
     }
 
     private static Function<ExpressionNode, Schema.Field> toSchemaField(ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
-        return node -> new Schema.Field(processedQuery.getAliasOrName(node), mapping.get(node).getType());
+        return node -> new Schema.PlainField(processedQuery.getAliasOrName(node), mapping.get(node).getType());
     }
 
     private static List<Schema.Field> toSchemaFieldList(List<ExpressionNode> expressions, ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
@@ -184,7 +184,7 @@ public class QueryValidator {
     }
 
     private static List<Schema.Field> toSchemaFieldList(ExpressionNode expression, ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
-        return Collections.singletonList(new Schema.Field(processedQuery.getAliasOrName(expression), mapping.get(expression).getType()));
+        return Collections.singletonList(new Schema.PlainField(processedQuery.getAliasOrName(expression), mapping.get(expression).getType()));
     }
 
     private static String getTopKName(Query query) {

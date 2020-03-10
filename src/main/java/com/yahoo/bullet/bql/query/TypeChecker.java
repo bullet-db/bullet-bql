@@ -165,7 +165,7 @@ public class TypeChecker {
     public static Optional<List<BulletError>> validateCastType(CastExpressionNode node, Type type, Type castType) {
         if (Type.isUnknown(type)) {
             return unknownError();
-        } else if (!Type.canCast(castType, type)) {
+        } else if (!Type.canForceCast(castType, type)) {
             return makeError("Cannot cast " + node.getExpression() + " from " + type + " to " + castType + ".");
         }
         return Optional.empty();
