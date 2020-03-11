@@ -62,7 +62,9 @@ public class ProcessedQuery {
     @Setter
     private ExpressionNode havingNode;
 
-    //private Map<ExpressionNode, Expression> expressionNodes = new HashMap<>();
+    private Map<ExpressionNode, Expression> preAggregationMapping = new HashMap<>();
+    private Map<ExpressionNode, Expression> postAggregationMapping = new HashMap<>();
+
     private Map<ExpressionNode, String> aliases = new HashMap<>();
     private Set<ExpressionNode> subExpressionNodes = new HashSet<>();
 
@@ -79,13 +81,9 @@ public class ProcessedQuery {
 
     private List<BulletError> errors = new ArrayList<>();
     @Setter
-    private Collection<ExpressionNode> projectionNodes;
+    private Collection<ExpressionNode> projection;
     @Setter
-    private Map<ExpressionNode, Expression> projectionMapping;
-    @Setter
-    private Collection<ExpressionNode> computationNodes;
-    @Setter
-    private Map<ExpressionNode, Expression> aggregateMapping;
+    private Collection<ExpressionNode> computation;
 
     /**
      * Validates the query components.
@@ -164,7 +162,6 @@ public class ProcessedQuery {
             return false;
         }
         // Compare by expression since both should point to the same field expression
-        //Expression groupOperationExpression = getExpression(groupOperationNode);
         String alias = aliases.get(groupOperationNode);
         SortItemNode sortItemNode = orderByNodes.get(0);
         ExpressionNode sortExpressionNode = sortItemNode.getExpression();
@@ -180,29 +177,20 @@ public class ProcessedQuery {
             return false;
         }
         BinaryExpressionNode having = (BinaryExpressionNode) havingNode;
-        //return getExpression(having.getLeft()).equals(groupOperationExpression) &&
         return (having.getLeft().equals(groupOperationNode) || isSimpleAliasFieldExpressionMatchingAlias(having.getLeft(), alias)) &&
                having.getOp() == Operation.GREATER_THAN_OR_EQUALS &&
                having.getRight() instanceof LiteralNode &&
                ((LiteralNode) having.getRight()).getValue() instanceof Number;
     }
-/*
-    void addExpression(ExpressionNode node, Expression expression) {
-        expressionNodes.put(node, expression);
-    }
-*/
-    //void addExpression(ExpressionNode node, Expression expression, ExpressionNode subNode) {
+
     void addExpression(ExpressionNode node, ExpressionNode subNode) {
-        //addExpression(node, expression);
         subExpressionNodes.add(subNode);
         if (isAggregateOrSuperAggregate(subNode)) {
             superAggregateNodes.add(node);
         }
     }
 
-    //void addExpression(ExpressionNode node, Expression expression, List<ExpressionNode> subNodes) {
     void addExpression(ExpressionNode node, List<ExpressionNode> subNodes) {
-        //expressionNodes.put(node, expression);
         subExpressionNodes.addAll(subNodes);
         if (subNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
             superAggregateNodes.add(node);
@@ -245,17 +233,6 @@ public class ProcessedQuery {
         return topKNodes.iterator().next();
     }
 
-    /**
-     * Returns the expression mapped to the given {@link ExpressionNode}.
-     *
-     * @param node An {@link ExpressionNode}.
-     * @return An {@link Expression}.
-     */
-/*
-    public Expression getExpression(ExpressionNode node) {
-        return expressionNodes.get(node);
-    }
-*/
     /**
      * Returns whether or not the given {@link ExpressionNode} has an alias.
      *
@@ -347,14 +324,6 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression and false otherwise.
      */
     public boolean isSimpleFieldExpression(ExpressionNode node) {
-        /*
-        Expression expression = expressionNodes.get(node);
-        if (!(expression instanceof FieldExpression)) {
-            return false;
-        }
-        FieldExpression fieldExpression = (FieldExpression) expression;
-        return fieldExpression.getIndex() == null && fieldExpression.getKey() == null;
-        */
         if (!(node instanceof FieldExpressionNode)) {
             return false;
         }
@@ -379,16 +348,6 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression that references an alias and false otherwise.
      */
     public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
-        /*
-        Expression expression = expressionNodes.get(node);
-        if (!(expression instanceof FieldExpression)) {
-            return false;
-        }
-        FieldExpression fieldExpression = (FieldExpression) expression;
-        return fieldExpression.getIndex() == null &&
-               fieldExpression.getKey() == null &&
-               aliases.values().contains(fieldExpression.getField());
-        */
         if (!(node instanceof FieldExpressionNode)) {
             return false;
         }

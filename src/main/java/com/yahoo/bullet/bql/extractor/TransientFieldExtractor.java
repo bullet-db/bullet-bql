@@ -42,7 +42,7 @@ public class TransientFieldExtractor {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getSelectExpressionNames(processedQuery));
+        orderByFields.removeAll(getSelectFields(processedQuery));
         return orderByFields;
     }
 
@@ -63,7 +63,7 @@ public class TransientFieldExtractor {
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
                       .map(processedQuery::getAliasOrName)
                       .collect(Collectors.toSet());
-        transientFields.removeAll(getSelectExpressionNames(processedQuery));
+        transientFields.removeAll(getSelectFields(processedQuery));
         return transientFields;
     }
 
@@ -81,11 +81,11 @@ public class TransientFieldExtractor {
                                                                              .filter(processedQuery::isNotSimpleFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
                                                                              .collect(Collectors.toSet());
-        orderByFields.removeAll(getSelectExpressionNames(processedQuery));
+        orderByFields.removeAll(getSelectFields(processedQuery));
         return orderByFields;
     }
 
-    private static Set<String> getSelectExpressionNames(ProcessedQuery processedQuery) {
+    private static Set<String> getSelectFields(ProcessedQuery processedQuery) {
         return processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression)
                                                        .map(processedQuery::getAliasOrName)
                                                        .collect(Collectors.toSet());

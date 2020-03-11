@@ -11,11 +11,8 @@ import com.yahoo.bullet.bql.extractor.PostAggregationExtractor;
 import com.yahoo.bullet.bql.extractor.ProjectionExtractor;
 import com.yahoo.bullet.bql.extractor.TransientFieldExtractor;
 import com.yahoo.bullet.bql.extractor.WindowExtractor;
-import com.yahoo.bullet.bql.parser.ParsingException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.Collections;
 
 // Has miscellaneous tests for now
 public class ExtractorTest {

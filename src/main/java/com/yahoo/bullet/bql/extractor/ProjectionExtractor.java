@@ -17,37 +17,34 @@ import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.parsing.Field;
 import com.yahoo.bullet.parsing.Projection;
-import com.yahoo.bullet.parsing.expressions.Expression;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ProjectionExtractor {
-    static Projection extractProjection(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    static Projection extractProjection(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {
             case SELECT:
-                return extractSelect(processedQuery, expressionProcessor);
+                return extractSelect(processedQuery);
             case SELECT_ALL:
-                return extractAll(processedQuery, expressionProcessor);
+                return extractAll(processedQuery);
             case SELECT_DISTINCT:
-                return extractDistinct(processedQuery, expressionProcessor);
+                return extractDistinct(processedQuery);
             case GROUP:
-                return extractGroup(processedQuery, expressionProcessor);
+                return extractGroup(processedQuery);
             case COUNT_DISTINCT:
-                return extractCountDistinct(processedQuery, expressionProcessor);
+                return extractCountDistinct(processedQuery);
             case DISTRIBUTION:
-                return extractDistribution(processedQuery, expressionProcessor);
+                return extractDistribution(processedQuery);
             case TOP_K:
-                return extractTopK(processedQuery, expressionProcessor);
+                return extractTopK(processedQuery);
             case SPECIAL_K:
-                return extractSpecialK(processedQuery, expressionProcessor);
+                return extractSpecialK(processedQuery);
         }
         throw new ParsingException("Unknown query type");
     }
@@ -58,21 +55,13 @@ public class ProjectionExtractor {
     the order by was actually referring to "abc". If "abc" wasn't aliased as "def", we would want to project "def"
     for order by though. So, anything else that shows up in ORDER BY needs to be projected.
     */
-    private static Projection extractSelect(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractSelect(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression).filter(processedQuery::isNotSimpleAliasFieldExpression))
                       .distinct()
                       .collect(Collectors.toList());
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(expressions, mapping);
-
-        processedQuery.setProjectionNodes(expressions);
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = expressions.stream().map(toAliasedField(processedQuery, mapping)).collect(Collectors.toList());
-        return new Projection(fields);
+        return new Projection(getAliasedFields(processedQuery, expressions));
     }
 
     /*
@@ -80,7 +69,7 @@ public class ProjectionExtractor {
     we can just pass the record through. If there are computations, we return a projection with null fields which
     will copy the record instead.
     */
-    private static Projection extractAll(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractAll(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions =
                 Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
@@ -94,20 +83,11 @@ public class ProjectionExtractor {
         if (expressions.isEmpty()) {
             return null;
         }
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(expressions, mapping);
-
-        processedQuery.setProjectionNodes(expressions);
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = expressions.stream().map(toAliasedField(processedQuery, mapping)).collect(Collectors.toList());
-        // Perform a copy when there are additional fields selected
-        return new Projection(fields, true);
+        return new Projection(getAliasedFields(processedQuery, expressions), true);
     }
 
     // Project the select fields without their aliases since they'll be renamed in the aggregation instead.
-    private static Projection extractDistinct(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractDistinct(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
         /*
         If all select fields are simple field expressions, then there's no need to project anything.
@@ -116,22 +96,14 @@ public class ProjectionExtractor {
         if (expressions.stream().allMatch(processedQuery::isSimpleFieldExpression)) {
             return null;
         }
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(expressions, mapping);
-
-        processedQuery.setProjectionNodes(expressions);
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = expressions.stream().map(toNonAliasedField(mapping)).collect(Collectors.toList());
-        return new Projection(fields);
+        return new Projection(getNonAliasedFields(processedQuery, expressions));
     }
 
     /*
     Project group by fields and any fields with aggregates (without their aliases since they'll be renamed in
     the aggregation). We care about select or order by fields, since those are computed afterwards.
     */
-    private static Projection extractGroup(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractGroup(ProcessedQuery processedQuery) {
         // Project group by and aggregate fields (need to filter for non-null because COUNT(*) does not have a field)
         List<ExpressionNode> expressions =
                 Stream.concat(processedQuery.getGroupByNodes().stream(),
@@ -143,15 +115,7 @@ public class ProjectionExtractor {
         if (areAllSimpleFields(processedQuery, expressions)) {
             return null;
         }
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(expressions, mapping);
-
-        processedQuery.setProjectionNodes(expressions);
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = expressions.stream().map(toNonAliasedField(mapping)).collect(Collectors.toList());
-        return new Projection(fields);
+        return new Projection(getNonAliasedFields(processedQuery, expressions));
     }
 
     /*
@@ -159,85 +123,61 @@ public class ProjectionExtractor {
     since the other select fields are computed afterward. If the to-be-projected fields are all simple field expressions,
     then there's no need to project anything.
     */
-    private static Projection extractCountDistinct(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractCountDistinct(ProcessedQuery processedQuery) {
         CountDistinctNode countDistinct = processedQuery.getCountDistinct();
         if (areAllSimpleFields(processedQuery, countDistinct.getExpressions())) {
             return null;
         }
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(countDistinct.getExpressions(), mapping);
-
-        processedQuery.setProjectionNodes(countDistinct.getExpressions());
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = countDistinct.getExpressions().stream().map(toNonAliasedField(mapping)).collect(Collectors.toList());
-        return new Projection(fields);
+        return new Projection(getNonAliasedFields(processedQuery, countDistinct.getExpressions()));
     }
 
     // Same as count distinct.
-    private static Projection extractDistribution(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractDistribution(ProcessedQuery processedQuery) {
         DistributionNode distribution = processedQuery.getDistribution();
         if (processedQuery.isSimpleFieldExpression(distribution.getExpression())) {
             return null;
         }
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(distribution.getExpression(), mapping);
-
-        processedQuery.setProjectionNodes(Collections.singletonList(distribution.getExpression()));
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = Collections.singletonList(toNonAliasedField(mapping, distribution.getExpression()));
-        return new Projection(fields);
+        return new Projection(getNonAliasedFields(processedQuery, Collections.singletonList(distribution.getExpression())));
     }
 
     // Same as count distinct and distribution.
-    private static Projection extractTopK(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractTopK(ProcessedQuery processedQuery) {
         TopKNode topK = processedQuery.getTopK();
         if (areAllSimpleFields(processedQuery, topK.getExpressions())) {
             return null;
         }
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(topK.getExpressions(), mapping);
-
-        processedQuery.setProjectionNodes(topK.getExpressions());
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = topK.getExpressions().stream().map(toNonAliasedField(mapping)).collect(Collectors.toList());
-        return new Projection(fields);
+        return new Projection(getNonAliasedFields(processedQuery, topK.getExpressions()));
     }
 
     // Same as count distinct, distribution, and top k. Ignoring aggregate since guaranteed to have only COUNT(*).
-    private static Projection extractSpecialK(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Projection extractSpecialK(ProcessedQuery processedQuery) {
         if (areAllSimpleFields(processedQuery, processedQuery.getGroupByNodes())) {
             return null;
         }
+        return new Projection(getNonAliasedFields(processedQuery, processedQuery.getGroupByNodes()));
+    }
 
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        expressionProcessor.process(processedQuery.getGroupByNodes(), mapping);
+    private static List<Field> getAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
+        ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
+        processedQuery.setProjection(expressions);
+        return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
+    }
 
-        processedQuery.setProjectionNodes(processedQuery.getGroupByNodes());
-        processedQuery.setProjectionMapping(mapping);
-
-        List<Field> fields = processedQuery.getGroupByNodes().stream().map(toNonAliasedField(mapping)).collect(Collectors.toList());
-        return new Projection(fields);
+    private static List<Field> getNonAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
+        ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
+        processedQuery.setProjection(expressions);
+        return expressions.stream().map(toNonAliasedField(processedQuery)).collect(Collectors.toList());
     }
     
     private static boolean areAllSimpleFields(ProcessedQuery processedQuery, Collection<ExpressionNode> nodes) {
         return nodes.stream().allMatch(processedQuery::isSimpleFieldExpression);
     }
 
-    private static Function<ExpressionNode, Field> toAliasedField(ProcessedQuery processedQuery, Map<ExpressionNode, Expression> mapping) {
-        return node -> new Field(processedQuery.getAliasOrName(node), mapping.get(node));
+    private static Function<ExpressionNode, Field> toAliasedField(ProcessedQuery processedQuery) {
+        return node -> new Field(processedQuery.getAliasOrName(node), processedQuery.getPreAggregationMapping().get(node));
     }
 
-    private static Field toNonAliasedField(Map<ExpressionNode, Expression> mapping, ExpressionNode node) {
-        return new Field(node.getName(), mapping.get(node));
-    }
-
-    private static Function<ExpressionNode, Field> toNonAliasedField(Map<ExpressionNode, Expression> mapping) {
-        return node -> new Field(node.getName(), mapping.get(node));
+    private static Function<ExpressionNode, Field> toNonAliasedField(ProcessedQuery processedQuery) {
+        return node -> new Field(node.getName(), processedQuery.getPreAggregationMapping().get(node));
     }
 }

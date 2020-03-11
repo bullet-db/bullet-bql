@@ -14,6 +14,7 @@ import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.parsing.Computation;
 import com.yahoo.bullet.parsing.Field;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -21,21 +22,21 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ComputationExtractor {
-    static Computation extractComputation(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    static Computation extractComputation(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {
             case SELECT:
             case SELECT_ALL:
                 // No computations since everything is handled in the initial projection.
                 return null;
             case SELECT_DISTINCT:
-                return extractDistinct(processedQuery, expressionProcessor);
+                return extractDistinct(processedQuery);
             case GROUP:
             case COUNT_DISTINCT:
             case DISTRIBUTION:
             case TOP_K:
-                return extractAggregate(processedQuery, expressionProcessor);
+                return extractAggregate(processedQuery);
             case SPECIAL_K:
-                return extractSpecialK(processedQuery, expressionProcessor);
+                return extractSpecialK(processedQuery);
         }
         throw new ParsingException("Unknown query type");
     }
@@ -44,21 +45,15 @@ public class ComputationExtractor {
     For SELECT DISTINCT, we only need to consider the computations in ORDER BY. Ignore any clauses that are just
     simple field expressions or a repeat of a select field.
     */
-    private static Computation extractDistinct(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Computation extractDistinct(ProcessedQuery processedQuery) {
         Set<ExpressionNode> expressions = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                                    .filter(processedQuery::isNotSimpleFieldExpression)
                                                                                    .collect(Collectors.toSet());
         processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).forEach(expressions::remove);
-
-        expressionProcessor.process(expressions, processedQuery.getAggregateMapping());
-
-        processedQuery.setComputationNodes(expressions);
-
-        List<Field> fields = expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
-        return new Computation(fields);
+        return new Computation(getAliasedFields(processedQuery, expressions));
     }
 
-    private static Computation extractAggregate(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Computation extractAggregate(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions =
                 Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
@@ -67,33 +62,27 @@ public class ComputationExtractor {
                       .filter(processedQuery::isNotAggregate)
                       .distinct()
                       .collect(Collectors.toList());
-
-        expressionProcessor.process(expressions, processedQuery.getAggregateMapping());
-
-        processedQuery.setComputationNodes(expressions);
-
-        List<Field> fields = expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
-        return new Computation(fields);
+        return new Computation(getAliasedFields(processedQuery, expressions));
     }
 
     /*
     For Special K, the computations are what's left over from the select fields after removing all the group by and
     aggregate fields.
     */
-    private static Computation extractSpecialK(ProcessedQuery processedQuery, ExpressionProcessor expressionProcessor) {
+    private static Computation extractSpecialK(ProcessedQuery processedQuery) {
         Set<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
         expressions.removeAll(processedQuery.getGroupByNodes());
         expressions.removeAll(processedQuery.getGroupOpNodes());
+        return new Computation(getAliasedFields(processedQuery, expressions));
+    }
 
-        expressionProcessor.process(expressions, processedQuery.getAggregateMapping());
-
-        processedQuery.setComputationNodes(expressions);
-
-        List<Field> fields = expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
-        return new Computation(fields);
+    private static List<Field> getAliasedFields(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
+        ExpressionProcessor.visit(expressions, processedQuery.getPostAggregationMapping());
+        processedQuery.setComputation(expressions);
+        return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
     }
 
     private static Function<ExpressionNode, Field> toAliasedField(ProcessedQuery processedQuery) {
-        return node -> new Field(processedQuery.getAliasOrName(node), processedQuery.getAggregateMapping().get(node));
+        return node -> new Field(processedQuery.getAliasOrName(node), processedQuery.getPostAggregationMapping().get(node));
     }
 }

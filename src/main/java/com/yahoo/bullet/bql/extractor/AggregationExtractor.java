@@ -21,6 +21,7 @@ import com.yahoo.bullet.parsing.expressions.Expression;
 import com.yahoo.bullet.parsing.expressions.FieldExpression;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +63,6 @@ public class AggregationExtractor {
     }
 
     private static Aggregation extractRaw(ProcessedQuery processedQuery) {
-        processedQuery.setAggregateMapping(new HashMap<>());
         return new Aggregation(processedQuery.getLimit(), RAW);
     }
 
@@ -72,13 +72,12 @@ public class AggregationExtractor {
     will be projected.
     */
     private static Aggregation extractDistinct(ProcessedQuery processedQuery) {
-        Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
-
         List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
 
-        processedQuery.setAggregateMapping(new HashMap<>(expressions.stream().collect(Collectors.toMap(Function.identity(), node -> new FieldExpression(processedQuery.getAliasOrName(node))))));
+        Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
+        aggregation.setFields(toAliasedFields(processedQuery, expressions));
 
-        aggregation.setFields(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
+        addPostAggregationMapping(processedQuery, expressions);
 
         return aggregation;
     }
@@ -91,21 +90,13 @@ public class AggregationExtractor {
     private static Aggregation extractGroup(ProcessedQuery processedQuery) {
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), GROUP);
 
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-
         if (!processedQuery.getGroupByNodes().isEmpty()) {
-
-            mapping.putAll(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(Function.identity(), node -> new FieldExpression(processedQuery.getAliasOrName(node)))));
-
-            aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
+            aggregation.setFields(toAliasedFields(processedQuery, processedQuery.getGroupByNodes()));
         }
         List<Map<String, Object>> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
                 Map<String, Object> operation = new HashMap<>();
                 operation.put(GroupOperation.OPERATION_TYPE, node.getOp());
                 operation.put(GroupOperation.OPERATION_NEW_NAME, processedQuery.getAliasOrName(node));
-
-                mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node)));
-
                 if (node.getOp() != COUNT) {
                     // Use name and not alias since fields aren't renamed until after aggregation
                     operation.put(GroupOperation.OPERATION_FIELD, node.getExpression().getName());
@@ -118,7 +109,8 @@ public class AggregationExtractor {
             aggregation.setAttributes(attributes);
         }
 
-        processedQuery.setAggregateMapping(mapping);
+        addPostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
+        addPostAggregationMapping(processedQuery, processedQuery.getGroupOpNodes());
 
         return aggregation;
     }
@@ -132,10 +124,7 @@ public class AggregationExtractor {
         aggregation.setFields(countDistinct.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, ExpressionNode::getName)));
         aggregation.setAttributes(Collections.singletonMap(CountDistinct.NEW_NAME_FIELD, processedQuery.getAliasOrName(countDistinct)));
 
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-        mapping.put(countDistinct, new FieldExpression(processedQuery.getAliasOrName(countDistinct)));
-
-        processedQuery.setAggregateMapping(mapping);
+        addPostAggregationMapping(processedQuery, countDistinct);
 
         return aggregation;
     }
@@ -149,9 +138,6 @@ public class AggregationExtractor {
         aggregation.setFields(Collections.singletonMap(name, name));
         aggregation.setAttributes(distribution.getAttributes());
 
-        // shouldn't have to add anything to mapping
-        processedQuery.setAggregateMapping(new HashMap<>());
-
         return aggregation;
     }
 
@@ -160,11 +146,7 @@ public class AggregationExtractor {
         TopKNode topK = processedQuery.getTopK();
 
         Aggregation aggregation = new Aggregation(topK.getSize(), TOP_K);
-        aggregation.setFields(topK.getExpressions().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
-
-
-        processedQuery.setAggregateMapping(new HashMap<>(topK.getExpressions().stream().collect(Collectors.toMap(Function.identity(), node -> new FieldExpression(processedQuery.getAliasOrName(node))))));
-
+        aggregation.setFields(toAliasedFields(processedQuery, topK.getExpressions()));
 
         Map<String, Object> attributes = new HashMap<>();
         if (topK.getThreshold() != null) {
@@ -178,32 +160,41 @@ public class AggregationExtractor {
             aggregation.setAttributes(attributes);
         }
 
+        addPostAggregationMapping(processedQuery, topK.getExpressions());
+
         return aggregation;
     }
 
     // Special K assumes the HAVING clause must be of the form COUNT(*) >= X
     private static Aggregation extractSpecialK(ProcessedQuery processedQuery) {
+        ExpressionNode countNode = processedQuery.getGroupOpNodes().iterator().next();
+
         Aggregation aggregation = new Aggregation(processedQuery.getLimit(), TOP_K);
-        aggregation.setFields(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName)));
-
-        Map<ExpressionNode, Expression> mapping = new HashMap<>();
-
-        mapping.putAll(processedQuery.getGroupByNodes().stream().collect(Collectors.toMap(Function.identity(), node -> new FieldExpression(processedQuery.getAliasOrName(node)))));
+        aggregation.setFields(toAliasedFields(processedQuery, processedQuery.getGroupByNodes()));
 
         Map<String, Object> attributes = new HashMap<>();
         if (processedQuery.getHavingNode() != null) {
             attributes.put(THRESHOLD_FIELD, ((LiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue());
         }
-
-        ExpressionNode countNode = processedQuery.getGroupOpNodes().iterator().next();
-
         attributes.put(NEW_NAME_FIELD, processedQuery.getAliasOrName(countNode));
         aggregation.setAttributes(attributes);
 
-        mapping.put(countNode, new FieldExpression(processedQuery.getAliasOrName(countNode)));
-
-        processedQuery.setAggregateMapping(mapping);
+        addPostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
+        addPostAggregationMapping(processedQuery, countNode);
 
         return aggregation;
+    }
+
+    private static Map<String, String> toAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
+        return expressions.stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName));
+    }
+
+    private static void addPostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {
+        Map<ExpressionNode, Expression> mapping = expressions.stream().collect(Collectors.toMap(Function.identity(), node -> new FieldExpression(processedQuery.getAliasOrName(node))));
+        processedQuery.getPostAggregationMapping().putAll(mapping);
+    }
+
+    private static void addPostAggregationMapping(ProcessedQuery processedQuery, ExpressionNode expression) {
+        processedQuery.getPostAggregationMapping().put(expression, new FieldExpression(processedQuery.getAliasOrName(expression)));
     }
 }

@@ -18,22 +18,20 @@ import static com.yahoo.bullet.parsing.Window.TYPE_FIELD;
 
 public class WindowExtractor {
     static Window extractWindow(ProcessedQuery processedQuery) {
-        Window window = new Window();
-
         Map<String, Object> emit = new HashMap<>();
         emit.put(EMIT_EVERY_FIELD, processedQuery.getWindow().getEmitEvery());
         emit.put(TYPE_FIELD, processedQuery.getWindow().getEmitType().toString());
-        window.setEmit(emit);
 
         WindowIncludeNode windowInclude = processedQuery.getWindow().getWindowInclude();
 
-        if (windowInclude != null) {
-            Map<String, Object> include = new HashMap<>();
-            include.put(TYPE_FIELD, windowInclude.getIncludeUnit().toString());
-            include.put(INCLUDE_FIRST_FIELD, windowInclude.getFirst());
-            window.setInclude(include);
+        if (windowInclude == null) {
+            return new Window(emit, null);
         }
 
-        return window;
+        Map<String, Object> include = new HashMap<>();
+        include.put(TYPE_FIELD, windowInclude.getIncludeUnit().toString());
+        include.put(INCLUDE_FIRST_FIELD, windowInclude.getFirst());
+
+        return new Window(emit, include);
     }
 }

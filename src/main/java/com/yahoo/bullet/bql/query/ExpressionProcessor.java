@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map<ExpressionNode, Expression>> {
+    private static final ExpressionProcessor INSTANCE = new ExpressionProcessor();
+
     @Override
     public Expression process(Node node) {
         return process(node, new HashMap<>());
@@ -45,10 +47,6 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
             return expression;
         }
         return super.process(node, context);
-    }
-
-    public void process(Collection<? extends Node> nodes, Map<ExpressionNode, Expression> context) {
-        nodes.forEach(process(context));
     }
 
     @Override
@@ -104,22 +102,22 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
 
     @Override
     protected Expression visitGroupOperation(GroupOperationNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("visited group op unexpectedly");
+        throw new RuntimeException("This method should not be called.");
     }
 
     @Override
     protected Expression visitCountDistinct(CountDistinctNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("visited count distinct unexpectedly");
+        throw new RuntimeException("This method should not be called.");
     }
 
     @Override
     protected Expression visitDistribution(DistributionNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("visited distribution unexpectedly");
+        throw new RuntimeException("This method should not be called.");
     }
 
     @Override
     protected Expression visitTopK(TopKNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("visited topk unexpectedly");
+        throw new RuntimeException("This method should not be called.");
     }
 
     @Override
@@ -151,5 +149,13 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
         ValueExpression expression = new ValueExpression(node.getValue());
         context.put(node, expression);
         return expression;
+    }
+
+    public static Expression visit(Node node, Map<ExpressionNode, Expression> context) {
+        return INSTANCE.process(node, context);
+    }
+
+    public static void visit(Collection<? extends Node> nodes, Map<ExpressionNode, Expression> context) {
+        nodes.forEach(INSTANCE.process(context));
     }
 }
