@@ -783,8 +783,8 @@ public class BulletQueryBuilderTest {
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
         Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc) + 5", new BinaryExpression(new FieldExpression("AVG(abc)"),
-                                                                                                                                              new ValueExpression(5),
-                                                                                                                                              Operation.ADD))));
+                                                                                                                              new ValueExpression(5),
+                                                                                                                              Operation.ADD))));
 
         Culling culling = (Culling) query.getPostAggregations().get(1);
 
