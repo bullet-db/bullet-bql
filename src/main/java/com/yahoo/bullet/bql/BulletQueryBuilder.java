@@ -55,7 +55,7 @@ public class BulletQueryBuilder {
     public BulletQueryBuilder(BulletConfig bulletConfig) {
         config = new BQLConfig(bulletConfig);
         queryExtractor = new QueryExtractor(new BQLConfig(config));
-        schema = config.getOrDefaultAs("", new Schema(Collections.emptyList()), Schema.class);
+        schema = config.getSchema();
     }
 
     /**
