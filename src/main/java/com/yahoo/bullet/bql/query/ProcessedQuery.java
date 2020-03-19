@@ -265,15 +265,6 @@ public class ProcessedQuery {
     }
 
     /**
-     * Returns the list of select items that are not aggregates.
-     *
-     * @return The list of select items that are not aggregates.
-     */
-    public List<SelectItemNode> getNonAggregateSelectNodes() {
-        return selectNodes.stream().filter(node -> !isAggregate(node.getExpression())).collect(Collectors.toList());
-    }
-
-    /**
      * Returns whether or not the given node is an aggregate or contains aggregates.
      *
      * @param node An {@link ExpressionNode}.
@@ -348,13 +339,7 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression that references an alias and false otherwise.
      */
     public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
-        if (!(node instanceof FieldExpressionNode)) {
-            return false;
-        }
-        FieldExpressionNode fieldExpressionNode = (FieldExpressionNode) node;
-        return fieldExpressionNode.getIndex() == null &&
-               fieldExpressionNode.getKey() == null &&
-               aliases.values().contains(fieldExpressionNode.getField().getValue());
+        return isSimpleFieldExpression(node) && aliases.values().contains(((FieldExpressionNode) node).getField().getValue());
     }
 
     /**

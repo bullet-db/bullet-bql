@@ -53,9 +53,14 @@ public class ComputationExtractor {
         return new Computation(getAliasedFields(processedQuery, expressions));
     }
 
+    /*
+    For aggregates, we need to consider the computations in SELECT and ORDER BY. Ignore any clauses that are just
+    simple field expressions, GROUP BY fields, or aggregates. (GROUP BY fields and aggregates are simple fields
+    post-aggregation).
+     */
     private static Computation extractAggregate(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions =
-                Stream.concat(processedQuery.getNonAggregateSelectNodes().stream().map(SelectItemNode::getExpression),
+                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
                       .filter(processedQuery::isNotGroupByNode)
                       .filter(processedQuery::isNotSimpleFieldExpression)

@@ -36,7 +36,7 @@ stream
     ;
 
 groupBy
-    : expression (',' expression)*
+    : expressions
     ;
 
 orderBy

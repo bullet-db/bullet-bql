@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -82,7 +83,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
 
     @Override
     protected Type visitListExpression(ListExpressionNode node, Map<ExpressionNode, Expression> mapping) {
-        List<Type> argTypes = node.getExpressions().stream().map(processFunc(mapping)).collect(Collectors.toList());
+        Set<Type> argTypes = node.getExpressions().stream().map(processFunc(mapping)).collect(Collectors.toSet());
         Optional<List<BulletError>> errors = TypeChecker.validateListTypes(node, argTypes);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());

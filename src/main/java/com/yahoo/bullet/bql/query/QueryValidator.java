@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.aggregations.Distribution;
 import com.yahoo.bullet.aggregations.TopK;
+import com.yahoo.bullet.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.common.BulletError;
@@ -36,16 +37,16 @@ public class QueryValidator {
 
     static {
         DISTRIBUTION_SCHEMAS.put(Distribution.Type.QUANTILE,
-                new Schema(Arrays.asList(new Schema.PlainField("Value", Type.DOUBLE),
-                                         new Schema.PlainField("Quantile", Type.DOUBLE))));
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.VALUE_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE))));
         DISTRIBUTION_SCHEMAS.put(Distribution.Type.PMF,
-                new Schema(Arrays.asList(new Schema.PlainField("Probability", Type.DOUBLE),
-                                         new Schema.PlainField("Count", Type.DOUBLE),
-                                         new Schema.PlainField("Range", Type.STRING))));
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
         DISTRIBUTION_SCHEMAS.put(Distribution.Type.CDF,
-                new Schema(Arrays.asList(new Schema.PlainField("Probability", Type.DOUBLE),
-                                         new Schema.PlainField("Count", Type.DOUBLE),
-                                         new Schema.PlainField("Range", Type.STRING))));
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
     }
 
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
@@ -64,8 +65,8 @@ public class QueryValidator {
             expressionValidator.process(processedQuery.getProjection(), processedQuery.getPreAggregationMapping());
             List<Schema.Field> fields = toSchemaFields(query.getProjection().getFields());
             duplicates(fields).ifPresent(duplicates -> {
-                    processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
-                });
+                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+            });
             if (query.getProjection().isCopy()) {
                 schema.addLayer(new Schema(fields));
             } else {
@@ -116,8 +117,8 @@ public class QueryValidator {
         }
         if (aggregateFields != null) {
             duplicates(aggregateFields).ifPresent(duplicates -> {
-                    processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
-                });
+                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+            });
             schema.replaceSchema(new Schema(aggregateFields));
         }
 
@@ -135,8 +136,8 @@ public class QueryValidator {
                 expressionValidator.process(processedQuery.getComputation(), processedQuery.getPostAggregationMapping());
                 List<Schema.Field> fields = toSchemaFields(((Computation) computation.get()).getFields());
                 duplicates(fields).ifPresent(duplicates -> {
-                        processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
-                    });
+                    processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+                });
                 schema.addLayer(new Schema(fields));
             }
             Optional<PostAggregation> orderBy = query.getPostAggregations().stream().filter(OrderBy.class::isInstance).findFirst();

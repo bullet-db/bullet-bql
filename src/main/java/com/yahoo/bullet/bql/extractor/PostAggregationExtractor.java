@@ -56,16 +56,16 @@ public class PostAggregationExtractor {
         }
 
         List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {
-                OrderBy.SortItem sortItem = new OrderBy.SortItem();
-                ExpressionNode expression = node.getExpression();
-                if (processedQuery.isSimpleAliasFieldExpression(expression)) {
-                    sortItem.setField(expression.getName());
-                } else {
-                    sortItem.setField(processedQuery.getAliasOrName(expression));
-                }
-                sortItem.setDirection(node.getOrdering().getDirection());
-                return sortItem;
-            }).collect(Collectors.toList());
+            OrderBy.SortItem sortItem = new OrderBy.SortItem();
+            ExpressionNode expression = node.getExpression();
+            if (processedQuery.isSimpleAliasFieldExpression(expression)) {
+                sortItem.setField(expression.getName());
+            } else {
+                sortItem.setField(processedQuery.getAliasOrName(expression));
+            }
+            sortItem.setDirection(node.getOrdering().getDirection());
+            return sortItem;
+        }).collect(Collectors.toList());
 
         postAggregations.add(new OrderBy(fields));
     }

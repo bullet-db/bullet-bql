@@ -88,9 +88,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGroupBy(BQLBaseParser.GroupByContext context) {
-        return new GroupByNode(visit(context.expression(), ExpressionNode.class).stream().map(this::stripParentheses).collect(Collectors.toList()));
+        return new GroupByNode(visitExpressionsList(context.expressions()).stream().map(this::stripParentheses).collect(Collectors.toList()));
     }
-
 
     @Override
     public Node visitOrderBy(BQLBaseParser.OrderByContext context) {
@@ -149,9 +148,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitBinary(BQLBaseParser.BinaryContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
-                                       (ExpressionNode) visit(context.right),
-                                       getOperation(context.op),
-                                       null);
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op),
+                                        null);
     }
 
     @Override
@@ -220,11 +219,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
         ExpressionNode expression = (ExpressionNode) visit(context.expression());
         if (expression instanceof BinaryExpressionNode) {
-            return new ParenthesesExpressionNode((ExpressionNode) visit(context.expression()));
+            return new ParenthesesExpressionNode(expression);
         }
         return expression;
     }
-
 
     @Override
     public Node visitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) {
@@ -412,7 +410,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
             if (context.complexOuterType.getType() == BQLBaseLexer.LIST_TYPE) {
                 return Type.COMPLEX_LISTS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
             } else {
-                return Type.COMPLEX_LISTS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
+                return Type.COMPLEX_MAPS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
             }
         }
         return primitiveType;

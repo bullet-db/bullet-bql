@@ -127,115 +127,89 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     @Override
     protected ProcessedQuery visitListExpression(ListExpressionNode node, ProcessedQuery context) {
         super.visitListExpression(node, context);
-
         context.addExpression(node, node.getExpressions());
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitNullPredicate(NullPredicateNode node, ProcessedQuery context) {
         super.visitNullPredicate(node, context);
-
         context.addExpression(node, node.getExpression());
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitUnaryExpression(UnaryExpressionNode node, ProcessedQuery context) {
         super.visitUnaryExpression(node, context);
-
         context.addExpression(node, node.getExpression());
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitNAryExpression(NAryExpressionNode node, ProcessedQuery context) {
         super.visitNAryExpression(node, context);
-
         context.addExpression(node, node.getExpressions());
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitGroupOperation(GroupOperationNode node, ProcessedQuery context) {
         super.visitGroupOperation(node, context);
-
         context.addExpression(node, node.getExpression());
-
         context.getAggregateNodes().add(node);
         context.getGroupOpNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.GROUP);
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitCountDistinct(CountDistinctNode node, ProcessedQuery context) {
         super.visitCountDistinct(node, context);
-
         context.addExpression(node, node.getExpressions());
-
         context.getAggregateNodes().add(node);
         context.getCountDistinctNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.COUNT_DISTINCT);
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitDistribution(DistributionNode node, ProcessedQuery context) {
         super.visitDistribution(node, context);
-
         context.addExpression(node, node.getExpression());
-
         context.getAggregateNodes().add(node);
         context.getDistributionNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.DISTRIBUTION);
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitTopK(TopKNode node, ProcessedQuery context) {
         super.visitTopK(node, context);
-
         context.addExpression(node, node.getExpressions());
-
         context.getAggregateNodes().add(node);
         context.getTopKNodes().add(node);
         context.getQueryTypeSet().add(ProcessedQuery.QueryType.TOP_K);
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitCastExpression(CastExpressionNode node, ProcessedQuery context) {
         super.visitCastExpression(node, context);
-
         context.addExpression(node, node.getExpression());
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitBinaryExpression(BinaryExpressionNode node, ProcessedQuery context) {
         super.visitBinaryExpression(node, context);
-
         context.addExpression(node, Arrays.asList(node.getLeft(), node.getRight()));
-
         return context;
     }
 
     @Override
     protected ProcessedQuery visitParenthesesExpression(ParenthesesExpressionNode node, ProcessedQuery context) {
         super.visitParenthesesExpression(node, context);
-
         context.addExpression(node, node.getExpression());
-
         return context;
     }
 

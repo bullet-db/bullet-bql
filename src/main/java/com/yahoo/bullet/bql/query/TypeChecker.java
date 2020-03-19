@@ -19,7 +19,6 @@ import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -47,28 +46,26 @@ public class TypeChecker {
         return type;
     }
 
-    public static Optional<List<BulletError>> validateListTypes(ListExpressionNode node, List<Type> types) {
+    public static Optional<List<BulletError>> validateListTypes(ListExpressionNode node, Set<Type> types) {
         if (types.isEmpty()) {
             return makeError("Empty lists are currently not supported.");
         }
-        Set<Type> typeSet = EnumSet.copyOf(types);
-        if (typeSet.contains(Type.UNKNOWN)) {
+        if (types.contains(Type.UNKNOWN)) {
             return unknownError();
         }
-        if (typeSet.size() > 1) {
-            return makeError("The list " + node + " consists of objects of multiple types: " + typeSet);
+        if (types.size() > 1) {
+            return makeError("The list " + node + " consists of objects of multiple types: " + types);
         }
-        Type subType = typeSet.iterator().next();
+        Type subType = types.iterator().next();
         if (!Type.isPrimitive(subType) && !Type.isPrimitiveMap(subType)) {
             return makeError("The list " + node + " must consist of objects of a single primitive or primitive map type. Subtype given: " + subType);
         }
         return Optional.empty();
     }
 
-    public static Type getListType(List<Type> types) {
-        Set<Type> typeSet = EnumSet.copyOf(types);
+    public static Type getListType(Set<Type> types) {
         // Assume non-empty list
-        Type subType = typeSet.iterator().next();
+        Type subType = types.iterator().next();
         return Type.LISTS.stream().filter(type -> type.getSubType().equals(subType)).findFirst().orElse(Type.UNKNOWN);
     }
 
@@ -315,7 +312,7 @@ public class TypeChecker {
         return Type.UNKNOWN;
     }
 
-    // Made this a static method and not a constant because IDE was complaining that making a static final optional is semantically inappropriate
+    // This is a static method and not a constant because a static final Optional is semantically inappropriate
     private static Optional<List<BulletError>> unknownError() {
         return Optional.of(Collections.emptyList());
     }

@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.yahoo.bullet.aggregations.TopK.NEW_NAME_FIELD;
@@ -94,15 +93,15 @@ public class AggregationExtractor {
             aggregation.setFields(toAliasedFields(processedQuery, processedQuery.getGroupByNodes()));
         }
         List<Map<String, Object>> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
-                Map<String, Object> operation = new HashMap<>();
-                operation.put(GroupOperation.OPERATION_TYPE, node.getOp());
-                operation.put(GroupOperation.OPERATION_NEW_NAME, processedQuery.getAliasOrName(node));
-                if (node.getOp() != COUNT) {
-                    // Use name and not alias since fields aren't renamed until after aggregation
-                    operation.put(GroupOperation.OPERATION_FIELD, node.getExpression().getName());
-                }
-                return operation;
-            }).collect(Collectors.toList());
+            Map<String, Object> operation = new HashMap<>();
+            operation.put(GroupOperation.OPERATION_TYPE, node.getOp());
+            operation.put(GroupOperation.OPERATION_NEW_NAME, processedQuery.getAliasOrName(node));
+            if (node.getOp() != COUNT) {
+                // Use name and not alias since fields aren't renamed until after aggregation
+                operation.put(GroupOperation.OPERATION_FIELD, node.getExpression().getName());
+            }
+            return operation;
+        }).collect(Collectors.toList());
         if (!operations.isEmpty()) {
             Map<String, Object> attributes = new HashMap<>();
             attributes.put(OPERATIONS, operations);
@@ -190,8 +189,10 @@ public class AggregationExtractor {
     }
 
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {
-        Map<ExpressionNode, Expression> mapping = expressions.stream().collect(Collectors.toMap(Function.identity(), node -> new FieldExpression(processedQuery.getAliasOrName(node))));
-        processedQuery.getPostAggregationMapping().putAll(mapping);
+        Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
+        expressions.forEach(node -> {
+            mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node)));
+        });
     }
 
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, ExpressionNode expression) {
