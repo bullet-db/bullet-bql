@@ -11,12 +11,12 @@ import java.util.Collections;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class TopKNodeTest extends NodeTest {
+public class TopKNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new TopKNode(10, 50L, Collections.singletonList(identifier("abc"))),
-                              new TopKNode(20, 50L, Collections.singletonList(identifier("abc"))),
-                              new TopKNode(10, 10L, Collections.singletonList(identifier("abc"))),
-                              new TopKNode(10, 50L, Collections.emptyList()));
+        NodeUtils.testEqualsAndHashCode(() -> new TopKNode(10, 50L, Collections.singletonList(identifier("abc")), null),
+                                        new TopKNode(20, 50L, Collections.singletonList(identifier("abc")), null),
+                                        new TopKNode(10, 10L, Collections.singletonList(identifier("abc")), null),
+                                        new TopKNode(10, 50L, Collections.emptyList(), null));
     }
 }

@@ -6,14 +6,17 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class ParenthesesExpressionNode extends ExpressionNode {
     private final ExpressionNode expression;
+
+    public ParenthesesExpressionNode(ExpressionNode expression, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.expression = expression;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

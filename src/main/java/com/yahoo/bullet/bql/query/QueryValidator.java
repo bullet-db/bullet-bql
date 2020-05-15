@@ -5,18 +5,21 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.aggregations.Distribution;
-import com.yahoo.bullet.aggregations.TopK;
-import com.yahoo.bullet.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.Computation;
-import com.yahoo.bullet.parsing.Culling;
-import com.yahoo.bullet.parsing.Field;
-import com.yahoo.bullet.parsing.OrderBy;
-import com.yahoo.bullet.parsing.PostAggregation;
-import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.query.Field;
+import com.yahoo.bullet.query.Projection;
+import com.yahoo.bullet.query.Query;
+import com.yahoo.bullet.query.aggregations.AggregationType;
+import com.yahoo.bullet.query.aggregations.Distribution;
+import com.yahoo.bullet.query.aggregations.DistributionType;
+import com.yahoo.bullet.query.aggregations.TopK;
+import com.yahoo.bullet.query.postaggregations.Computation;
+import com.yahoo.bullet.query.postaggregations.Culling;
+import com.yahoo.bullet.query.postaggregations.OrderBy;
+import com.yahoo.bullet.query.postaggregations.PostAggregation;
+import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
 
@@ -33,17 +36,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class QueryValidator {
-    private static final Map<Distribution.Type, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
+    private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
 
     static {
-        DISTRIBUTION_SCHEMAS.put(Distribution.Type.QUANTILE,
+        DISTRIBUTION_SCHEMAS.put(DistributionType.QUANTILE,
                 new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.VALUE_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE))));
-        DISTRIBUTION_SCHEMAS.put(Distribution.Type.PMF,
+        DISTRIBUTION_SCHEMAS.put(DistributionType.PMF,
                 new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
-        DISTRIBUTION_SCHEMAS.put(Distribution.Type.CDF,
+        DISTRIBUTION_SCHEMAS.put(DistributionType.CDF,
                 new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
@@ -57,17 +60,19 @@ public class QueryValidator {
         if (processedQuery.getWhereNode() != null) {
             Type type = expressionValidator.process(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping());
             if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
-                processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(), null));
+                processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(),
+                                                               "Please specify a valid WHERE clause."));
             }
         }
 
-        if (query.getProjection() != null) {
+        if (processedQuery.getProjection() != null) {
             expressionValidator.process(processedQuery.getProjection(), processedQuery.getPreAggregationMapping());
             List<Schema.Field> fields = toSchemaFields(query.getProjection().getFields());
             duplicates(fields).ifPresent(duplicates -> {
-                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates,
+                                                               "Please specify non-overlapping field names and aliases."));
             });
-            if (query.getProjection().isCopy()) {
+            if (query.getProjection().getType() == Projection.Type.COPY) {
                 schema.addLayer(new Schema(fields));
             } else {
                 schema.replaceSchema(new Schema(fields));
@@ -79,10 +84,28 @@ public class QueryValidator {
         ProcessedQuery.QueryType queryType = processedQuery.getQueryType();
 
         if (queryType == ProcessedQuery.QueryType.SELECT_DISTINCT) {
-            expressionValidator.process(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList()), processedQuery.getPreAggregationMapping());
+            List<ExpressionNode> selectItems = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
+            expressionValidator.process(selectItems, processedQuery.getPreAggregationMapping());
+            // Primitives only
+            for (ExpressionNode node : selectItems) {
+                Type type = processedQuery.getPreAggregationMapping().get(node).getType();
+                if (!Type.isPrimitive(type)) {
+                    processedQuery.getErrors().add(new BulletError("The following SELECT DISTINCT field is non-primitive: " + node,
+                                                                   "Please specify primitive fields only for SELECT DISTINCT."));
+                }
+            }
         } else {
             expressionValidator.process(processedQuery.getAggregateNodes(), processedQuery.getPreAggregationMapping());
             expressionValidator.process(processedQuery.getGroupByNodes(), processedQuery.getPreAggregationMapping());
+            // Primitives only
+            for (ExpressionNode node : processedQuery.getGroupByNodes()) {
+                Type type = processedQuery.getPreAggregationMapping().get(node).getType();
+                if (!Type.isPrimitive(type)) {
+                    processedQuery.getErrors().add(new BulletError("The following GROUP BY field is non-primitive: " + node,
+                                                                   "Please specify primitive fields only for GROUP BY."));
+                }
+            }
+
         }
 
         // Replace schema with aggregate fields
@@ -104,63 +127,81 @@ public class QueryValidator {
                 aggregateFields = toSchemaFields(processedQuery.getCountDistinct(), processedQuery);
                 break;
             case DISTRIBUTION:
-                schema.replaceSchema(DISTRIBUTION_SCHEMAS.get(query.getAggregation().getAttributes().get(Distribution.TYPE)));
+                schema.replaceSchema(DISTRIBUTION_SCHEMAS.get(((Distribution) query.getAggregation()).getDistributionType()));
                 break;
             case TOP_K:
                 aggregateFields = toSchemaFields(processedQuery.getTopK().getExpressions(), processedQuery);
-                aggregateFields.add(new Schema.PlainField(getTopKName(query), Type.LONG));
+                aggregateFields.add(new Schema.PlainField(((TopK) query.getAggregation()).getName(), Type.LONG));
                 break;
             case SPECIAL_K:
                 aggregateFields = toSchemaFields(processedQuery.getGroupByNodes(), processedQuery);
-                aggregateFields.add(new Schema.PlainField(getTopKName(query), Type.LONG));
+                aggregateFields.add(new Schema.PlainField(((TopK) query.getAggregation()).getName(), Type.LONG));
                 break;
         }
         if (aggregateFields != null) {
             duplicates(aggregateFields).ifPresent(duplicates -> {
-                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
+                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates,
+                                                               "Please specify non-overlapping field names and aliases."));
             });
             schema.replaceSchema(new Schema(aggregateFields));
         }
 
-        // If there's a HAVING clause, check that it can be evaluated as a boolean. The HAVING clause in special k queries doesn't count.
-        if (processedQuery.getHavingNode() != null && queryType != ProcessedQuery.QueryType.SPECIAL_K) {
-            Type type = expressionValidator.process(processedQuery.getHavingNode(), processedQuery.getPostAggregationMapping());
-            if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
-                processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(), null));
-            }
+        if (query.getPostAggregations() == null) {
+            return processedQuery.getErrors();
         }
 
-        if (query.getPostAggregations() != null) {
-            Optional<PostAggregation> computation = query.getPostAggregations().stream().filter(Computation.class::isInstance).findFirst();
-            if (computation.isPresent()) {
-                expressionValidator.process(processedQuery.getComputation(), processedQuery.getPostAggregationMapping());
-                List<Schema.Field> fields = toSchemaFields(((Computation) computation.get()).getFields());
-                duplicates(fields).ifPresent(duplicates -> {
-                    processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates, null));
-                });
-                schema.addLayer(new Schema(fields));
-            }
-            Optional<PostAggregation> orderBy = query.getPostAggregations().stream().filter(OrderBy.class::isInstance).findFirst();
-            if (orderBy.isPresent()) {
-                for (OrderBy.SortItem sortItem : ((OrderBy) orderBy.get()).getFields()) {
-                    Type type = schema.getType(sortItem.getField());
-                    if (!Type.isUnknown(type)) {
-                        if (Type.isNull(type)) {
-                            processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-existent field: " + sortItem.getField(), null));
-                        } else if (!Type.isPrimitive(type)) {
-                            processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + sortItem.getField(), null));
+        // Sanity check
+        boolean rawPassThrough = query.getProjection().getType() == Projection.Type.PASS_THROUGH &&
+                                 query.getAggregation().getType() == AggregationType.RAW;
+
+        Type type;
+        for (PostAggregation postAggregation : query.getPostAggregations()) {
+            switch (postAggregation.getType()) {
+                case HAVING:
+                    type = expressionValidator.process(processedQuery.getHavingNode(), processedQuery.getPostAggregationMapping());
+                    if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
+                        processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(),
+                                                                       "Please specify a valid HAVING clause."));
+                    }
+                    break;
+                case COMPUTATION:
+                    expressionValidator.process(processedQuery.getComputation(), processedQuery.getPostAggregationMapping());
+                    List<Schema.Field> fields = toSchemaFields(((Computation) postAggregation).getFields());
+                    duplicates(fields).ifPresent(duplicates -> {
+                        processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates,
+                                                                       "Please specify non-overlapping field names and aliases."));
+                    });
+                    schema.addLayer(new Schema(fields));
+                    if (rawPassThrough) {
+                        processedQuery.getErrors().add(new BulletError("A query with RAW aggregation and PASS_THROUGH projection cannot have a COMPUTATION post-aggregation.",
+                                                                       "This is an application error."));
+                    }
+                    break;
+                case ORDER_BY:
+                    for (OrderBy.SortItem sortItem : ((OrderBy) postAggregation).getFields()) {
+                        type = schema.getType(sortItem.getField());
+                        if (!Type.isUnknown(type)) {
+                            if (Type.isNull(type)) {
+                                processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-existent field: " + sortItem.getField(), "Please specify an existing field."));
+                            } else if (!Type.isPrimitive(type)) {
+                                processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + sortItem.getField(), "Please specify a primitive field."));
+                            }
                         }
                     }
-                }
-            }
-            // TODO this part shouldn't be necessary. remove later
-            Optional<PostAggregation> culling = query.getPostAggregations().stream().filter(Culling.class::isInstance).findFirst();
-            if (culling.isPresent()) {
-                for (String transientField : ((Culling) culling.get()).getTransientFields()) {
-                    if (Type.isNull(schema.getType(transientField))) {
-                        processedQuery.getErrors().add(new BulletError("Tries to cull a missing field (programming logic error): " + transientField, null));
+                    break;
+                case CULLING:
+                    // Sanity check
+                    for (String transientField : ((Culling) postAggregation).getTransientFields()) {
+                        if (Type.isNull(schema.getType(transientField))) {
+                            processedQuery.getErrors().add(new BulletError("CULLING contains a non-existent field: " + transientField,
+                                                                           "This is an application error."));
+                        }
                     }
-                }
+                    if (rawPassThrough) {
+                        processedQuery.getErrors().add(new BulletError("A query with RAW aggregation and PASS_THROUGH projection cannot have a CULLING post-aggregation.",
+                                                                       "This is an application error."));
+                    }
+                    break;
             }
         }
 
@@ -187,12 +228,5 @@ public class QueryValidator {
 
     private static Function<ExpressionNode, Schema.Field> toSchemaField(ProcessedQuery processedQuery) {
         return node -> new Schema.PlainField(processedQuery.getAliasOrName(node), processedQuery.getPreAggregationMapping().get(node).getType());
-    }
-
-    private static String getTopKName(Query query) {
-        if (query.getAggregation().getAttributes() == null) {
-            return TopK.DEFAULT_NEW_NAME;
-        }
-        return (String) query.getAggregation().getAttributes().getOrDefault(TopK.NEW_NAME_FIELD, TopK.DEFAULT_NEW_NAME);
     }
 }

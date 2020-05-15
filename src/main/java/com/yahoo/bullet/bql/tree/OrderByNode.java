@@ -11,15 +11,18 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class OrderByNode extends Node {
     private final List<SortItemNode> sortItems;
+
+    public OrderByNode(List<SortItemNode> sortItems, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.sortItems = sortItems;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

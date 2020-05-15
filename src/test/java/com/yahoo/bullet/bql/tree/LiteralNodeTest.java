@@ -7,9 +7,9 @@ package com.yahoo.bullet.bql.tree;
 
 import org.testng.annotations.Test;
 
-public class LiteralNodeTest extends NodeTest {
+public class LiteralNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new LiteralNode(5), new LiteralNode("5"));
+        NodeUtils.testEqualsAndHashCode(() -> new LiteralNode(5, null), new LiteralNode("5", null));
     }
 }

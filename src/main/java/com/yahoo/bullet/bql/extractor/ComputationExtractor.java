@@ -11,9 +11,10 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
-import com.yahoo.bullet.parsing.Computation;
-import com.yahoo.bullet.parsing.Field;
+import com.yahoo.bullet.query.Field;
+import com.yahoo.bullet.query.postaggregations.Computation;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -50,7 +51,7 @@ public class ComputationExtractor {
                                                                                    .filter(processedQuery::isNotSimpleFieldExpression)
                                                                                    .collect(Collectors.toSet());
         processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).forEach(expressions::remove);
-        return new Computation(getAliasedFields(processedQuery, expressions));
+        return getAliasedComputation(processedQuery, expressions);
     }
 
     /*
@@ -67,7 +68,7 @@ public class ComputationExtractor {
                       .filter(processedQuery::isNotAggregate)
                       .distinct()
                       .collect(Collectors.toList());
-        return new Computation(getAliasedFields(processedQuery, expressions));
+        return getAliasedComputation(processedQuery, expressions);
     }
 
     /*
@@ -78,13 +79,20 @@ public class ComputationExtractor {
         Set<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
         expressions.removeAll(processedQuery.getGroupByNodes());
         expressions.removeAll(processedQuery.getGroupOpNodes());
+        return getAliasedComputation(processedQuery, expressions);
+    }
+
+    private static Computation getAliasedComputation(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
+        if (expressions.isEmpty()) {
+            return null;
+        }
         return new Computation(getAliasedFields(processedQuery, expressions));
     }
 
     private static List<Field> getAliasedFields(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         ExpressionProcessor.visit(expressions, processedQuery.getPostAggregationMapping());
         processedQuery.setComputation(expressions);
-        return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
+        return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private static Function<ExpressionNode, Field> toAliasedField(ProcessedQuery processedQuery) {

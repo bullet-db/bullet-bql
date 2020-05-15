@@ -18,22 +18,18 @@ import java.io.PrintStream;
 public class BulletBQLTest {
     private final InputStream systemIn = System.in;
     private final PrintStream systemOut = System.out;
-    private final PrintStream systemErr = System.err;
 
     @AfterClass
     public void restoreStreams() {
         System.setIn(systemIn);
         System.setOut(systemOut);
-        System.setErr(systemErr);
     }
 
     @Test
     public void testMain() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayOutputStream err = new ByteArrayOutputStream();
 
         System.setOut(new PrintStream(out));
-        System.setErr(new PrintStream(err));
 
         String bql = "SELECT * FROM STREAM()\nSELECT * FROM STREAM() GROUP BY 1\n...\n\n";
 
@@ -43,9 +39,8 @@ public class BulletBQLTest {
 
         String content = out.toString();
 
-        Assert.assertTrue(content.startsWith("{\"aggregation\":{\"size\":500,\"type\":\"RAW\"},\"duration\":9223372036854775807}\nOptional.empty\n"));
-        Assert.assertTrue(content.contains("error=Query does not match exactly one query type"));
-        Assert.assertTrue(err.toString().contains("ParsingException"));
+        Assert.assertTrue(content.startsWith("{\"projection\":{\"type\":\"PASS_THROUGH\"},\"aggregation\":{\"size\":500,\"type\":\"RAW\"},\"window\":{},\"duration\":9223372036854775807}\n"));
+        Assert.assertTrue(content.contains("error: Query does not match exactly one query type"));
     }
 
     @Test

@@ -6,14 +6,12 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.Objects;
 
 @Getter
 @Setter
-@RequiredArgsConstructor
 public class QueryNode extends Node {
     private final SelectNode select;
     private final StreamNode stream;
@@ -23,6 +21,19 @@ public class QueryNode extends Node {
     private final OrderByNode orderBy;
     private final WindowNode window;
     private final String limit;
+
+    public QueryNode(SelectNode select, StreamNode stream, ExpressionNode where, GroupByNode groupBy, ExpressionNode having,
+                     OrderByNode orderBy, WindowNode window, String limit, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.select = select;
+        this.stream = stream;
+        this.where = where;
+        this.groupBy = groupBy;
+        this.having = having;
+        this.orderBy = orderBy;
+        this.window = window;
+        this.limit = limit;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

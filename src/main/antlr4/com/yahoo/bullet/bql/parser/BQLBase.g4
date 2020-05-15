@@ -106,7 +106,8 @@ unaryExpression
     ;
 
 functionExpression
-    : op=(RLIKE | SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER) '(' left=expression ',' right=expression ')'           #binary
+    : op=(RLIKE | RLIKEANY | SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
+      '(' left=expression ',' right=expression ')'                                                                      #binary
     | op=IF '(' expressions ')'                                                                                         #nAry
     | aggregateExpression                                                                                               #aggregate
     | CAST '(' expression AS primitiveType ')'                                                                          #cast
@@ -121,7 +122,7 @@ aggregateExpression
     ;
 
 distributionType
-    : QUANTILE | FREQ | CUMFREQ
+    : type=(QUANTILE | FREQ | CUMFREQ)
     ;
 
 inputMode
@@ -220,6 +221,7 @@ SUM: 'SUM';
 AVG: 'AVG';
 MIN: 'MIN';
 RLIKE: 'RLIKE';
+RLIKEANY: 'RLIKEANY';
 SIZEIS: 'SIZEIS';
 FILTER: 'FILTER';
 IF: 'IF';

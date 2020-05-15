@@ -7,9 +7,9 @@ package com.yahoo.bullet.bql.tree;
 
 import org.testng.annotations.Test;
 
-public class StreamNodeTest extends NodeTest {
+public class StreamNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new StreamNode("2000"), new StreamNode("MAX"));
+        NodeUtils.testEqualsAndHashCode(() -> new StreamNode("2000", null), new StreamNode("MAX", null));
     }
 }

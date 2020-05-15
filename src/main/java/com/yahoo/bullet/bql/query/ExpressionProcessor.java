@@ -21,15 +21,15 @@ import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
-import com.yahoo.bullet.parsing.expressions.BinaryExpression;
-import com.yahoo.bullet.parsing.expressions.CastExpression;
-import com.yahoo.bullet.parsing.expressions.Expression;
-import com.yahoo.bullet.parsing.expressions.FieldExpression;
-import com.yahoo.bullet.parsing.expressions.ListExpression;
-import com.yahoo.bullet.parsing.expressions.NAryExpression;
-import com.yahoo.bullet.parsing.expressions.Operation;
-import com.yahoo.bullet.parsing.expressions.UnaryExpression;
-import com.yahoo.bullet.parsing.expressions.ValueExpression;
+import com.yahoo.bullet.query.expressions.BinaryExpression;
+import com.yahoo.bullet.query.expressions.CastExpression;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
+import com.yahoo.bullet.query.expressions.ListExpression;
+import com.yahoo.bullet.query.expressions.NAryExpression;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.query.expressions.UnaryExpression;
+import com.yahoo.bullet.query.expressions.ValueExpression;
 
 import java.util.Collection;
 import java.util.List;
@@ -65,11 +65,23 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
 
     @Override
     protected Expression visitFieldExpression(FieldExpressionNode node, Map<ExpressionNode, Expression> context) {
-        FieldExpression expression = new FieldExpression(node.getField().getValue(),
-                                                         node.getIndex(),
-                                                         node.getKey() != null ? node.getKey().getValue() : null,
-                                                         node.getSubKey() != null ? node.getSubKey().getValue() : null,
-                                                         node.getType());
+        FieldExpression expression;
+        if (node.getIndex() != null) {
+            if (node.getSubKey() != null) {
+                expression = new FieldExpression(node.getField().getValue(), node.getIndex(), node.getSubKey().getValue());
+            } else {
+                expression = new FieldExpression(node.getField().getValue(), node.getIndex());
+            }
+        } else if (node.getKey() != null) {
+            if (node.getSubKey() != null) {
+                expression = new FieldExpression(node.getField().getValue(), node.getKey().getValue(), node.getSubKey().getValue());
+            } else {
+                expression = new FieldExpression(node.getField().getValue(), node.getKey().getValue());
+            }
+        } else {
+            expression = new FieldExpression(node.getField().getValue());
+        }
+        expression.setType(node.getType());
         context.put(node, expression);
         return expression;
     }
@@ -135,8 +147,7 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
     protected Expression visitBinaryExpression(BinaryExpressionNode node, Map<ExpressionNode, Expression> context) {
         BinaryExpression expression = new BinaryExpression(process(node.getLeft(), context),
                                                            process(node.getRight(), context),
-                                                           node.getOp(),
-                                                           node.getModifier());
+                                                           node.getOp());
         context.put(node, expression);
         return expression;
     }

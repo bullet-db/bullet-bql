@@ -7,12 +7,10 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class FieldExpressionNode extends ExpressionNode {
     private final IdentifierNode field;
     private final Integer index;
@@ -20,6 +18,15 @@ public class FieldExpressionNode extends ExpressionNode {
     private final IdentifierNode subKey;
     // Types ignored for equals() and hashCode()
     private final Type type;
+
+    public FieldExpressionNode(IdentifierNode field, Integer index, IdentifierNode key, IdentifierNode subKey, Type type, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.field = field;
+        this.index = index;
+        this.key = key;
+        this.subKey = subKey;
+        this.type = type;
+    }
 
     public boolean hasIndexOrKey() {
         return index != null || key != null;

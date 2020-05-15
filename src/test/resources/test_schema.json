@@ -1,0 +1,42 @@
+[
+    {
+        "name": "abc",
+        "type": "INTEGER"
+    },
+    {
+        "name": "def",
+        "type": "FLOAT"
+    },
+    {
+        "name": "aaa",
+        "type": "STRING_MAP_LIST"
+    },
+    {
+        "name": "bbb",
+        "type": "STRING_MAP_MAP"
+    },
+    {
+        "name": "ccc",
+        "type": "INTEGER_LIST"
+    },
+    {
+        "name": "ddd",
+        "type": "STRING_MAP"
+    },
+    {
+        "name": "eee",
+        "type": "STRING_LIST"
+    },
+    {
+        "name": "a",
+        "type": "LONG"
+    },
+    {
+        "name": "b",
+        "type": "BOOLEAN"
+    },
+    {
+        "name": "c",
+        "type": "STRING"
+    }
+]

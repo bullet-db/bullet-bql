@@ -5,19 +5,24 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.query.expressions.Operation;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class UnaryExpressionNode extends ExpressionNode {
     private final Operation op;
     private final ExpressionNode expression;
     // Not used for equals() and hashCode()
     private final boolean parenthesized;
+
+    public UnaryExpressionNode(Operation op, ExpressionNode expression, boolean parenthesized, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.op = op;
+        this.expression = expression;
+        this.parenthesized = parenthesized;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

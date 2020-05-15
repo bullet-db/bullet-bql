@@ -17,8 +17,8 @@ import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.expressions.Expression;
-import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.Operation;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
+import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 
 @Getter
 public class ProcessedQuery {
@@ -92,55 +92,55 @@ public class ProcessedQuery {
      */
     public ProcessedQuery validate() {
         if (queryTypeSet.size() != 1) {
-            errors.add(new BulletError("Query does not match exactly one query type: " + queryTypeSet, null));
+            errors.add(new BulletError("Query does not match exactly one query type: " + queryTypeSet, "Please specify a valid query."));
         }
         if (aliases.values().contains("")) {
-            errors.add(new BulletError("Cannot have an empty string as an alias.", null));
+            errors.add(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string as the alias."));
         }
         if (countDistinctNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple count distincts.", null));
+            errors.add(new BulletError("Cannot have multiple count distincts.", "Please specify only one count distinct."));
         }
         if (distributionNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple distributions.", null));
+            errors.add(new BulletError("Cannot have multiple distributions.", "Please specify only one distribution."));
         }
         if (topKNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple top k.", null));
+            errors.add(new BulletError("Cannot have multiple top k.", "Please specify only one top k."));
         }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
-            errors.add(new BulletError("Aggregates cannot be nested.", null));
+            errors.add(new BulletError("Aggregates cannot be nested.", ""));
         }
         if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Distributions cannot be treated as values.", null));
+            errors.add(new BulletError("Distributions cannot be treated as values.", ""));
         }
         if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Top k cannot be treated as a value.", null));
+            errors.add(new BulletError("Top k cannot be treated as a value.", ""));
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
-            errors.add(new BulletError("WHERE clause cannot contain aggregates.", null));
+            errors.add(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."));
         }
         if (groupByNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
-            errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", null));
+            errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", ""));
         }
         if (havingNode != null && groupByNodes.isEmpty()) {
-            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", null));
+            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", ""));
         }
         if (limit != null && limit <= 0) {
-            errors.add(new BulletError("LIMIT clause must be positive.", null));
+            errors.add(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));
         }
         if (!countDistinctNodes.isEmpty()) {
             if (!orderByNodes.isEmpty()) {
-                errors.add(new BulletError("ORDER BY clause is not supported for queries with count distinct.", null));
+                errors.add(new BulletError("ORDER BY clause is not supported for queries with count distinct.", "Please remove the ORDER BY clause."));
             }
             if (limit != null) {
-                errors.add(new BulletError("LIMIT clause is not supported for queries with count distinct.", null));
+                errors.add(new BulletError("LIMIT clause is not supported for queries with count distinct.", "Please remove the LIMIT clause."));
             }
         }
         if (!topKNodes.isEmpty()) {
             if (!orderByNodes.isEmpty()) {
-                errors.add(new BulletError("ORDER BY clause is not supported for queries with top k.", null));
+                errors.add(new BulletError("ORDER BY clause is not supported for queries with top k.", "Please remove the ORDER BY clause."));
             }
             if (limit != null) {
-                errors.add(new BulletError("LIMIT clause is not supported for queries with top k.", null));
+                errors.add(new BulletError("LIMIT clause is not supported for queries with top k.", "Please remove the LIMIT clause."));
             }
         }
         if (isSpecialK()) {

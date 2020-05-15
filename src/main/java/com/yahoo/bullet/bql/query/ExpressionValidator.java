@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
@@ -24,10 +23,11 @@ import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.expressions.Expression;
-import com.yahoo.bullet.parsing.expressions.FieldExpression;
-import com.yahoo.bullet.parsing.expressions.Operation;
-import com.yahoo.bullet.parsing.expressions.ValueExpression;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.querying.evaluators.Evaluator;
 import com.yahoo.bullet.typesystem.Type;
 import lombok.AllArgsConstructor;
 
@@ -44,6 +44,26 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<ExpressionNode, Expression>> {
+    /**
+     * Placeholder expression for just type information.
+     */
+    private static class TypeExpression extends Expression {
+        @Override
+        public Evaluator getEvaluator() {
+            return null;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return 0;
+        }
+    }
+
     private final ProcessedQuery processedQuery;
     private final LayeredSchema schema;
 
@@ -143,7 +163,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
     @Override
     protected Type visitCountDistinct(CountDistinctNode node, Map<ExpressionNode, Expression> mapping) {
         List<Type> argTypes = node.getExpressions().stream().map(processFunc(mapping)).collect(Collectors.toList());
-        Optional<List<BulletError>> errors = TypeChecker.validateKnownTypes(argTypes);
+        Optional<List<BulletError>> errors = TypeChecker.validatePrimitiveTypes(node, argTypes);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
             return setType(node, Type.UNKNOWN, mapping);
@@ -161,7 +181,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
     @Override
     protected Type visitTopK(TopKNode node, Map<ExpressionNode, Expression> mapping) {
         List<Type> argTypes = node.getExpressions().stream().map(processFunc(mapping)).collect(Collectors.toList());
-        TypeChecker.validateKnownTypes(argTypes).ifPresent(errors -> processedQuery.getErrors().addAll(errors));
+        TypeChecker.validatePrimitiveTypes(node, argTypes).ifPresent(errors -> processedQuery.getErrors().addAll(errors));
         return Type.UNKNOWN;
     }
 
@@ -202,7 +222,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
 
     private Type setType(ExpressionNode node, Type type, Map<ExpressionNode, Expression> mapping) {
         // An expression is absent if it does not exist in the projection or computation tree.
-        mapping.computeIfAbsent(node, k -> new ValueExpression()).setType(type);
+        mapping.computeIfAbsent(node, k -> new TypeExpression()).setType(type);
         return type;
     }
 }

@@ -5,42 +5,32 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.aggregations.Distribution.Type;
+import com.yahoo.bullet.query.aggregations.Distribution;
+import com.yahoo.bullet.query.aggregations.DistributionType;
+import com.yahoo.bullet.query.aggregations.LinearDistribution;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
-import static com.yahoo.bullet.aggregations.Distribution.NUMBER_OF_POINTS;
-import static com.yahoo.bullet.aggregations.Distribution.TYPE;
-
 public class LinearDistributionNode extends DistributionNode {
-    private final Long numberOfPoints;
+    private final int numberOfPoints;
 
     /**
-     * Constructs a LinearDistributionNode from a {@link Type}, {@link ExpressionNode}, and a {@link Long} number of
+     * Constructs a LinearDistributionNode from a {@link com.yahoo.bullet.query.aggregations.DistributionType}, {@link ExpressionNode}, and a {@link Long} number of
      * points.
      *
      * @param type The distribution type.
      * @param expression The distribution variable.
      * @param numberOfPoints The number of evenly-spaced points in the returned distribution.
+     * @param nodeLocation The location of the node.
      */
-    public LinearDistributionNode(Type type, ExpressionNode expression, Long numberOfPoints) {
-        super(type, expression);
+    public LinearDistributionNode(DistributionType type, ExpressionNode expression, int numberOfPoints, NodeLocation nodeLocation) {
+        super(type, expression, nodeLocation);
         this.numberOfPoints = numberOfPoints;
     }
 
     @Override
-    public Map<String, Object> getAttributes() {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put(TYPE, type);
-        attributes.put(NUMBER_OF_POINTS, numberOfPoints);
-        return attributes;
-    }
-
-    @Override
-    public String attributesToString() {
-        return getDistributionType() + "(" + expression.getName() + ", LINEAR, " + numberOfPoints + ")";
+    public Distribution getAggregation(Integer size) {
+        return new LinearDistribution(expression.getName(), type, size, numberOfPoints);
     }
 
     @Override
@@ -60,5 +50,10 @@ public class LinearDistributionNode extends DistributionNode {
     @Override
     public int hashCode() {
         return Objects.hash(type, expression, numberOfPoints);
+    }
+
+    @Override
+    public String toString() {
+        return type.getName() + "(" + expression.getName() + ", LINEAR, " + numberOfPoints + ")";
     }
 }

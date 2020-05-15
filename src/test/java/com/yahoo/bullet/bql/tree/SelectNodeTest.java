@@ -9,11 +9,11 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 
-public class SelectNodeTest extends NodeTest {
+public class SelectNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new SelectNode(true, Collections.emptyList()),
-                              new SelectNode(false, Collections.emptyList()),
-                              new SelectNode(true, null));
+        NodeUtils.testEqualsAndHashCode(() -> new SelectNode(true, Collections.emptyList(), null),
+                                        new SelectNode(false, Collections.emptyList(), null),
+                                        new SelectNode(true, null, null));
     }
 }

@@ -6,15 +6,19 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class NullPredicateNode extends ExpressionNode {
     private final ExpressionNode expression;
     private final boolean not;
+
+    public NullPredicateNode(ExpressionNode expression, boolean not, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.expression = expression;
+        this.not = not;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

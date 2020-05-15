@@ -5,16 +5,16 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class GroupOperationNodeTest extends NodeTest {
+public class GroupOperationNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new GroupOperationNode(GroupOperation.GroupOperationType.AVG, identifier("abc")),
-                              new GroupOperationNode(GroupOperation.GroupOperationType.SUM, identifier("abc")),
-                              new GroupOperationNode(GroupOperation.GroupOperationType.AVG, identifier("def")));
+        NodeUtils.testEqualsAndHashCode(() -> new GroupOperationNode(GroupOperation.GroupOperationType.AVG, identifier("abc"), null),
+                                        new GroupOperationNode(GroupOperation.GroupOperationType.SUM, identifier("abc"), null),
+                                        new GroupOperationNode(GroupOperation.GroupOperationType.AVG, identifier("def"), null));
     }
 }

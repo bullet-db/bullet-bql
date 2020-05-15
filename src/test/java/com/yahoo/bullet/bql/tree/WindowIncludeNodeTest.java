@@ -5,14 +5,14 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.parsing.Window;
+import com.yahoo.bullet.query.Window;
 import org.testng.annotations.Test;
 
-public class WindowIncludeNodeTest extends NodeTest {
+public class WindowIncludeNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new WindowIncludeNode(50L, Window.Unit.RECORD),
-                              new WindowIncludeNode(500L, Window.Unit.RECORD),
-                              new WindowIncludeNode(50L, Window.Unit.TIME));
+        NodeUtils.testEqualsAndHashCode(() -> new WindowIncludeNode(50, Window.Unit.RECORD, null),
+                                        new WindowIncludeNode(500, Window.Unit.RECORD, null),
+                                        new WindowIncludeNode(50, Window.Unit.TIME, null));
     }
 }

@@ -6,14 +6,18 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class LiteralNode extends ExpressionNode {
-    private final Object value;
+    private final Serializable value;
+
+    public LiteralNode(Serializable value, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.value = value;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

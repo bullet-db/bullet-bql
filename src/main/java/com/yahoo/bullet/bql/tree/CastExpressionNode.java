@@ -7,15 +7,19 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class CastExpressionNode extends ExpressionNode {
     private final ExpressionNode expression;
     private final Type castType;
+
+    public CastExpressionNode(ExpressionNode expression, Type castType, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.expression = expression;
+        this.castType = castType;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

@@ -6,15 +6,18 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class ListExpressionNode extends ExpressionNode {
     private final List<ExpressionNode> expressions;
+
+    public ListExpressionNode(List<ExpressionNode> expressions, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.expressions = expressions;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

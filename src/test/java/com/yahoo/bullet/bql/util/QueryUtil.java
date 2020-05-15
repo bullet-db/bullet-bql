@@ -11,49 +11,60 @@
 package com.yahoo.bullet.bql.util;
 
 import com.yahoo.bullet.bql.tree.IdentifierNode;
-import com.yahoo.bullet.parsing.expressions.BinaryExpression;
-import com.yahoo.bullet.parsing.expressions.CastExpression;
-import com.yahoo.bullet.parsing.expressions.Expression;
-import com.yahoo.bullet.parsing.expressions.FieldExpression;
-import com.yahoo.bullet.parsing.expressions.ListExpression;
-import com.yahoo.bullet.parsing.expressions.NAryExpression;
-import com.yahoo.bullet.parsing.expressions.Operation;
-import com.yahoo.bullet.parsing.expressions.UnaryExpression;
-import com.yahoo.bullet.parsing.expressions.ValueExpression;
+import com.yahoo.bullet.query.expressions.BinaryExpression;
+import com.yahoo.bullet.query.expressions.CastExpression;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
+import com.yahoo.bullet.query.expressions.ListExpression;
+import com.yahoo.bullet.query.expressions.NAryExpression;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.query.expressions.UnaryExpression;
+import com.yahoo.bullet.query.expressions.ValueExpression;
 import com.yahoo.bullet.typesystem.Type;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 public final class QueryUtil {
     public static IdentifierNode identifier(String name) {
-        return new IdentifierNode(name, false);
+        return new IdentifierNode(name, false, null);
     }
 
     public static IdentifierNode quotedIdentifier(String name) {
-        return new IdentifierNode(name, true);
+        return new IdentifierNode(name, true, null);
     }
 
     public static FieldExpression field(String field, Type type) {
-        return new FieldExpression(field, null, null, null, type);
+        FieldExpression expression = new FieldExpression(field);
+        expression.setType(type);
+        return expression;
     }
 
     public static FieldExpression field(String field, Integer index, Type type) {
-        return new FieldExpression(field, index, null, null, type);
+        FieldExpression expression = new FieldExpression(field, index);
+        expression.setType(type);
+        return expression;
     }
 
     public static FieldExpression field(String field, Integer index, String subKey, Type type) {
-        return new FieldExpression(field, index, null, subKey, type);
+        FieldExpression expression = new FieldExpression(field, index, subKey);
+        expression.setType(type);
+        return expression;
     }
 
     public static FieldExpression field(String field, String key, Type type) {
-        return new FieldExpression(field, null, key, null, type);
+        FieldExpression expression = new FieldExpression(field, key);
+        expression.setType(type);
+        return expression;
     }
 
     public static FieldExpression field(String field, String key, String subKey, Type type) {
-        return new FieldExpression(field, null, key, subKey, type);
+        FieldExpression expression = new FieldExpression(field, key, subKey);
+        expression.setType(type);
+        return expression;
     }
 
-    public static ValueExpression value(Object object) {
+    public static ValueExpression value(Serializable object) {
         return new ValueExpression(object);
     }
 
@@ -65,12 +76,6 @@ public final class QueryUtil {
 
     public static BinaryExpression binary(Expression left, Expression right, Operation op, Type type) {
         BinaryExpression expression = new BinaryExpression(left, right, op);
-        expression.setType(type);
-        return expression;
-    }
-
-    public static BinaryExpression binary(Expression left, Expression right, Operation op, BinaryExpression.Modifier modifier, Type type) {
-        BinaryExpression expression = new BinaryExpression(left, right, op, modifier);
         expression.setType(type);
         return expression;
     }

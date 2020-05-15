@@ -5,43 +5,34 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.aggregations.Distribution;
+import com.yahoo.bullet.query.aggregations.DistributionType;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.Map;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class ManualDistributionNodeTest extends NodeTest {
+public class ManualDistributionNodeTest {
     private ManualDistributionNode node;
 
     @BeforeClass
     public void setup() {
-        node = new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), Collections.singletonList(5.0));
+        node = new ManualDistributionNode(DistributionType.QUANTILE, identifier("abc"), Collections.singletonList(5.0), null);
     }
 
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), Collections.singletonList(5.0)),
-                              new ManualDistributionNode(Distribution.Type.PMF, identifier("abc"), Collections.singletonList(5.0)),
-                              new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("def"), Collections.singletonList(5.0)),
-                              new ManualDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), Collections.singletonList(10.0)));
+        NodeUtils.testEqualsAndHashCode(() -> new ManualDistributionNode(DistributionType.QUANTILE, identifier("abc"), Collections.singletonList(5.0), null),
+                                        new ManualDistributionNode(DistributionType.PMF, identifier("abc"), Collections.singletonList(5.0), null),
+                                        new ManualDistributionNode(DistributionType.QUANTILE, identifier("def"), Collections.singletonList(5.0), null),
+                                        new ManualDistributionNode(DistributionType.QUANTILE, identifier("abc"), Collections.singletonList(10.0), null));
 
     }
 
     @Test
-    public void testGetAttributes() {
-        Map<String, Object> attributes = node.getAttributes();
-        Assert.assertEquals(attributes.size(), 2);
-        Assert.assertEquals(attributes.get(Distribution.TYPE), Distribution.Type.QUANTILE);
-        Assert.assertEquals(attributes.get(Distribution.POINTS), Collections.singletonList(5.0));
-    }
-
-    @Test
-    public void testAttributesToString() {
-        Assert.assertEquals(node.attributesToString(), "QUANTILE(abc, MANUAL, 5.0)");
+    public void testToString() {
+        Assert.assertEquals(node.toString(), "QUANTILE(abc, MANUAL, 5.0)");
     }
 }

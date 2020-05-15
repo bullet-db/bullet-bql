@@ -11,10 +11,10 @@ import java.util.Collections;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class ListExpressionNodeTest extends NodeTest {
+public class ListExpressionNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new ListExpressionNode(Collections.singletonList(identifier("abc"))),
-                              new ListExpressionNode(Collections.emptyList()));
+        NodeUtils.testEqualsAndHashCode(() -> new ListExpressionNode(Collections.singletonList(identifier("abc")), null),
+                                        new ListExpressionNode(Collections.emptyList(), null));
     }
 }

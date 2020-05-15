@@ -12,9 +12,10 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
-import com.yahoo.bullet.parsing.Field;
-import com.yahoo.bullet.parsing.Projection;
+import com.yahoo.bullet.query.Field;
+import com.yahoo.bullet.query.Projection;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +59,7 @@ public class ProjectionExtractor {
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression).filter(processedQuery::isNotSimpleAliasFieldExpression))
                       .distinct()
                       .collect(Collectors.toList());
-        return new Projection(getAliasedFields(processedQuery, expressions));
+        return new Projection(getAliasedFields(processedQuery, expressions), false);
     }
 
     /*
@@ -78,7 +79,7 @@ public class ProjectionExtractor {
         them have aliases, then no additional computations will be made.
         */
         if (expressions.isEmpty()) {
-            return null;
+            return new Projection();
         }
         return new Projection(getAliasedFields(processedQuery, expressions), true);
     }
@@ -132,23 +133,27 @@ public class ProjectionExtractor {
         return getNonAliasedProjection(processedQuery, processedQuery.getGroupByNodes());
     }
 
+    /*
+    If the expressions are all simple fields, there's nothing to project and any bullet record can be passed through
+    as is.
+     */
     private static Projection getNonAliasedProjection(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
         if (areAllSimpleFields(processedQuery, expressions)) {
-            return null;
+            return new Projection();
         }
-        return new Projection(getNonAliasedFields(processedQuery, expressions));
+        return new Projection(getNonAliasedFields(processedQuery, expressions), false);
     }
 
     private static List<Field> getAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
         ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
         processedQuery.setProjection(expressions);
-        return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toList());
+        return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private static List<Field> getNonAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
         ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
         processedQuery.setProjection(expressions);
-        return expressions.stream().map(toNonAliasedField(processedQuery)).collect(Collectors.toList());
+        return expressions.stream().map(toNonAliasedField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));
     }
     
     private static boolean areAllSimpleFields(ProcessedQuery processedQuery, Collection<ExpressionNode> nodes) {

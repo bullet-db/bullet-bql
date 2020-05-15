@@ -6,7 +6,7 @@
 package com.yahoo.bullet.bql;
 
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.query.Query;
 import lombok.Getter;
 
 import java.util.List;

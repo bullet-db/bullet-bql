@@ -59,20 +59,20 @@ public class ExpressionFormatterTest {
     @Test
     public void testVisitFormattedStringLiteral() {
         // coverage
-        Assert.assertEquals(ExpressionFormatter.format(new LiteralNode("doesn't"), true), "'doesn''t'");
+        Assert.assertEquals(ExpressionFormatter.format(new LiteralNode("doesn't", null), true), "'doesn''t'");
     }
 
     @Test(expectedExceptions = UnsupportedOperationException.class)
     public void testVisitNode() {
         ExpressionFormatter.Formatter formatter = new ExpressionFormatter.Formatter(false);
         // coverage
-        formatter.visitNode(new LiteralNode(5), null);
+        formatter.visitNode(new LiteralNode(5, null), null);
     }
 
     @Test(expectedExceptions = UnsupportedOperationException.class)
     public void testVisitExpression() {
         ExpressionFormatter.Formatter formatter = new ExpressionFormatter.Formatter(false);
         // coverage
-        formatter.visitExpression(new LiteralNode(5), null);
+        formatter.visitExpression(new LiteralNode(5, null), null);
     }
 }

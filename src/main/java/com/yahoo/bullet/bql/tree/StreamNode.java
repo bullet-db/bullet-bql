@@ -6,14 +6,17 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class StreamNode extends Node {
     private final String timeDuration;
+
+    public StreamNode(String timeDuration, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.timeDuration = timeDuration;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

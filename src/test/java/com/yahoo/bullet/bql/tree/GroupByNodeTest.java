@@ -9,9 +9,9 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 
-public class GroupByNodeTest extends NodeTest {
+public class GroupByNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new GroupByNode(Collections.emptyList()), new GroupByNode(null));
+        NodeUtils.testEqualsAndHashCode(() -> new GroupByNode(Collections.emptyList(), null), new GroupByNode(null, null));
     }
 }

@@ -8,11 +8,11 @@ package com.yahoo.bullet.bql.extractor;
 import com.yahoo.bullet.bql.query.ExpressionProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.parsing.Computation;
-import com.yahoo.bullet.parsing.Culling;
-import com.yahoo.bullet.parsing.Having;
-import com.yahoo.bullet.parsing.OrderBy;
-import com.yahoo.bullet.parsing.PostAggregation;
+import com.yahoo.bullet.query.postaggregations.Computation;
+import com.yahoo.bullet.query.postaggregations.Culling;
+import com.yahoo.bullet.query.postaggregations.Having;
+import com.yahoo.bullet.query.postaggregations.OrderBy;
+import com.yahoo.bullet.query.postaggregations.PostAggregation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class PostAggregationExtractor {
 
     private static void extractComputations(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
         Computation computation = ComputationExtractor.extractComputation(processedQuery);
-        if (computation != null && !computation.getFields().isEmpty()) {
+        if (computation != null) {
             postAggregations.add(computation);
         }
     }
@@ -54,19 +54,11 @@ public class PostAggregationExtractor {
         if (processedQuery.getOrderByNodes().isEmpty() || processedQuery.getQueryType() == ProcessedQuery.QueryType.SPECIAL_K) {
             return;
         }
-
         List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {
-            OrderBy.SortItem sortItem = new OrderBy.SortItem();
             ExpressionNode expression = node.getExpression();
-            if (processedQuery.isSimpleAliasFieldExpression(expression)) {
-                sortItem.setField(expression.getName());
-            } else {
-                sortItem.setField(processedQuery.getAliasOrName(expression));
-            }
-            sortItem.setDirection(node.getOrdering().getDirection());
-            return sortItem;
-        }).collect(Collectors.toList());
-
+            String name = processedQuery.isSimpleAliasFieldExpression(expression) ? expression.getName() : processedQuery.getAliasOrName(expression);
+            return new OrderBy.SortItem(name, node.getOrdering().getDirection());
+        }).collect(Collectors.toCollection(ArrayList::new));
         postAggregations.add(new OrderBy(fields));
     }
 

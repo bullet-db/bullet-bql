@@ -11,15 +11,18 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class GroupByNode extends Node {
     private final List<ExpressionNode> expressions;
+
+    public GroupByNode(List<ExpressionNode> expressions, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.expressions = expressions;
+    }
 
     @Override
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

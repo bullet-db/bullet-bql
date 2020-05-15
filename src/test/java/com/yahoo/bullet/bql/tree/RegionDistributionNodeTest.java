@@ -5,45 +5,33 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.aggregations.Distribution;
+import com.yahoo.bullet.query.aggregations.DistributionType;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.Map;
-
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class RegionDistributionNodeTest extends NodeTest {
+public class RegionDistributionNodeTest {
     private RegionDistributionNode node;
 
     @BeforeClass
     public void setup() {
-        node = new RegionDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 0.0, 5.0, 1.0);
+        node = new RegionDistributionNode(DistributionType.QUANTILE, identifier("abc"), 0.0, 5.0, 1.0, null);
     }
 
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new RegionDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 0.0, 5.0, 1.0),
-                              new RegionDistributionNode(Distribution.Type.PMF, identifier("abc"), 0.0, 5.0, 1.0),
-                              new RegionDistributionNode(Distribution.Type.QUANTILE, identifier("def"), 0.0, 5.0, 1.0),
-                              new RegionDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 1.0, 5.0, 1.0),
-                              new RegionDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 0.0, 10.0, 1.0),
-                              new RegionDistributionNode(Distribution.Type.QUANTILE, identifier("abc"), 0.0, 5.0, 2.0));
+        NodeUtils.testEqualsAndHashCode(() -> new RegionDistributionNode(DistributionType.QUANTILE, identifier("abc"), 0.0, 5.0, 1.0, null),
+                                        new RegionDistributionNode(DistributionType.PMF, identifier("abc"), 0.0, 5.0, 1.0, null),
+                                        new RegionDistributionNode(DistributionType.QUANTILE, identifier("def"), 0.0, 5.0, 1.0, null),
+                                        new RegionDistributionNode(DistributionType.QUANTILE, identifier("abc"), 1.0, 5.0, 1.0, null),
+                                        new RegionDistributionNode(DistributionType.QUANTILE, identifier("abc"), 0.0, 10.0, 1.0, null),
+                                        new RegionDistributionNode(DistributionType.QUANTILE, identifier("abc"), 0.0, 5.0, 2.0, null));
     }
 
     @Test
-    public void testGetAttributes() {
-        Map<String, Object> attributes = node.getAttributes();
-        Assert.assertEquals(attributes.size(), 4);
-        Assert.assertEquals(attributes.get(Distribution.TYPE), Distribution.Type.QUANTILE);
-        Assert.assertEquals(attributes.get(Distribution.RANGE_START), 0.0);
-        Assert.assertEquals(attributes.get(Distribution.RANGE_END), 5.0);
-        Assert.assertEquals(attributes.get(Distribution.RANGE_INCREMENT), 1.0);
-    }
-
-    @Test
-    public void testAttributesToString() {
-        Assert.assertEquals(node.attributesToString(), "QUANTILE(abc, REGION, 0.0, 5.0, 1.0)");
+    public void testToString() {
+        Assert.assertEquals(node.toString(), "QUANTILE(abc, REGION, 0.0, 5.0, 1.0)");
     }
 }

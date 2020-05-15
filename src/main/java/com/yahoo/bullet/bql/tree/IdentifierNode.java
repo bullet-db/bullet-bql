@@ -11,15 +11,19 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class IdentifierNode extends ExpressionNode {
     private final String value;
     private final boolean quoted;
+
+    public IdentifierNode(String value, boolean quoted, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.value = value;
+        this.quoted = quoted;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

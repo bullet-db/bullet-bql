@@ -9,10 +9,10 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class ParenthesesExpressionNodeTest extends NodeTest {
+public class ParenthesesExpressionNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new ParenthesesExpressionNode(identifier("abc")),
-                              new ParenthesesExpressionNode(identifier("def")));
+        NodeUtils.testEqualsAndHashCode(() -> new ParenthesesExpressionNode(identifier("abc"), null),
+                                        new ParenthesesExpressionNode(identifier("def"), null));
     }
 }

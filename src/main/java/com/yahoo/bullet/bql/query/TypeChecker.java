@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -14,7 +13,8 @@ import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
@@ -108,10 +108,10 @@ public class TypeChecker {
             case IF:
                 List<BulletError> errors = new ArrayList<>();
                 if (types.get(0) != Type.BOOLEAN) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be BOOLEAN. Type given: " + types.get(0), null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be BOOLEAN. Type given: " + types.get(0), ""));
                 }
                 if (types.get(1) != types.get(2)) {
-                    errors.add(new BulletError("The types of the second and third arguments in " + node + " must match. Types given: " + types.get(1) + ", " + types.get(2), null));
+                    errors.add(new BulletError("The types of the second and third arguments in " + node + " must match. Types given: " + types.get(1) + ", " + types.get(2), ""));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
@@ -139,6 +139,16 @@ public class TypeChecker {
         return Optional.empty();
     }
 
+    public static Optional<List<BulletError>> validatePrimitiveTypes(ExpressionNode node, List<Type> types) {
+        if (types.contains(Type.UNKNOWN)) {
+            return unknownError();
+        }
+        if (!types.stream().allMatch(Type::isPrimitive)) {
+            return makeError("The types of the arguments in " + node + " must be primitive. Types given: " + types);
+        }
+        return Optional.empty();
+    }
+
     public static Type getAggregateType(Type type, GroupOperation.GroupOperationType op) {
         switch (op) {
             case SUM:
@@ -150,13 +160,6 @@ public class TypeChecker {
         }
         // Unreachable normally
         return Type.UNKNOWN;
-    }
-
-    public static Optional<List<BulletError>> validateKnownTypes(List<Type> types) {
-        if (types.contains(Type.UNKNOWN)) {
-            return unknownError();
-        }
-        return Optional.empty();
     }
 
     public static Optional<List<BulletError>> validateCastType(CastExpressionNode node, Type type, Type castType) {
@@ -180,62 +183,81 @@ public class TypeChecker {
             case MUL:
             case DIV:
                 return !Type.isNumeric(leftType) || !Type.isNumeric(rightType) ? makeError("The left and right operands in " + node + " must be numbers. Types given: " + leftType + ", " + rightType) : Optional.empty();
+            case EQUALS:
+            case NOT_EQUALS:
+                if (Type.isNumeric(leftType) && Type.isNumeric(rightType)) {
+                    return Optional.empty();
+                }
+                return leftType != rightType ? makeError("The left and right operands in " + node + " must be comparable or have the same type. Types given: " + leftType + ", " + rightType) : Optional.empty();
+            case EQUALS_ANY:
+            case EQUALS_ALL:
+            case NOT_EQUALS_ANY:
+            case NOT_EQUALS_ALL:
+                if (!Type.isList(rightType)) {
+                    return makeError("The right operand in " + node + " must be some LIST. Type given: " + rightType);
+                }
+                if (Type.isNumeric(leftType) && Type.isNumeric(rightType.getSubType())) {
+                    return Optional.empty();
+                }
+                return leftType != rightType.getSubType() ? makeError("The type of the left operand and the subtype of the right operand in " + node + " must be comparable or the same. Types given: " + leftType + ", " + rightType) : Optional.empty();
             case GREATER_THAN:
             case GREATER_THAN_OR_EQUALS:
             case LESS_THAN:
             case LESS_THAN_OR_EQUALS:
                 if (!Type.isNumeric(leftType)) {
-                    errors.add(new BulletError("The left operand in " + node + " must be numeric. Type given: " + leftType, null));
-                }
-                if (node.getModifier() != null) {
-                    if (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType())) {
-                        errors.add(new BulletError("The right operand in " + node + " must be some numeric LIST. Type given: " + rightType, null));
-                    }
-                    return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+                    errors.add(new BulletError("The left operand in " + node + " must be numeric. Type given: " + leftType, ""));
                 }
                 if (!Type.isNumeric(rightType)) {
-                    errors.add(new BulletError("The right operand in " + node + " must be numeric. Type given: " + rightType, null));
+                    errors.add(new BulletError("The right operand in " + node + " must be numeric. Type given: " + rightType, ""));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
-            case EQUALS:
-            case NOT_EQUALS:
-                if (node.getModifier() != null) {
-                    if (!Type.isList(rightType)) {
-                        return makeError("The right operand in " + node + " must be some LIST. Type given: " + rightType);
-                    }
-                    if (Type.isNumeric(leftType) && Type.isNumeric(rightType.getSubType())) {
-                        return Optional.empty();
-                    }
-                    return leftType != rightType.getSubType() ? makeError("The type of the left operand and the subtype of the right operand in " + node + " must be comparable or the same. Types given: " + leftType + ", " + rightType) : Optional.empty();
+            case GREATER_THAN_ANY:
+            case GREATER_THAN_ALL:
+            case GREATER_THAN_OR_EQUALS_ANY:
+            case GREATER_THAN_OR_EQUALS_ALL:
+            case LESS_THAN_ANY:
+            case LESS_THAN_ALL:
+            case LESS_THAN_OR_EQUALS_ANY:
+            case LESS_THAN_OR_EQUALS_ALL:
+                if (!Type.isNumeric(leftType)) {
+                    errors.add(new BulletError("The left operand in " + node + " must be numeric. Type given: " + leftType, ""));
                 }
-                if (Type.isNumeric(leftType) && Type.isNumeric(rightType)) {
-                    return Optional.empty();
+                if (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType())) {
+                    errors.add(new BulletError("The right operand in " + node + " must be some numeric LIST. Type given: " + rightType, ""));
                 }
-                return leftType != rightType ? makeError("The left and right operands in " + node + " must be comparable or have the same type. Types given: " + leftType + ", " + rightType) : Optional.empty();
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case REGEX_LIKE:
                 return leftType != Type.STRING || rightType != Type.STRING ? makeError("The types of the arguments in " + node + " must be STRING. Types given: " + leftType + ", " + rightType) : Optional.empty();
+            case REGEX_LIKE_ANY:
+                if (leftType != Type.STRING) {
+                    errors.add(new BulletError("The type of the left operand in " + node + " must be STRING. Type given: " + leftType, ""));
+                }
+                if (rightType != Type.STRING_LIST) {
+                    errors.add(new BulletError("The type of the right operand in " + node + " must be STRING_LIST. Type given: " + rightType, ""));
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case SIZE_IS:
                 if (!isCollection(leftType) && leftType != Type.STRING) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST, MAP, or STRING. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST, MAP, or STRING. Type given: " + leftType, ""));
                 }
                 if (!Type.isNumeric(rightType)) {
-                    errors.add(new BulletError("The type of the second argument in " + node + " must be numeric. Type given: " + rightType, null));
+                    errors.add(new BulletError("The type of the second argument in " + node + " must be numeric. Type given: " + rightType, ""));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case CONTAINS_KEY:
                 if (!Type.isMap(leftType) && !Type.isComplexList(leftType)) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be some MAP or MAP_LIST. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some MAP or MAP_LIST. Type given: " + leftType, ""));
                 }
                 if (rightType != Type.STRING) {
-                    errors.add(new BulletError("The type of the second argument in " + node + " must be STRING. Type given: " + rightType, null));
+                    errors.add(new BulletError("The type of the second argument in " + node + " must be STRING. Type given: " + rightType, ""));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case CONTAINS_VALUE:
                 if (!isCollection(leftType)) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST or MAP. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST or MAP. Type given: " + leftType, ""));
                 }
                 if (!Type.isPrimitive(rightType)) {
-                    errors.add(new BulletError("The type of the second argument in " + node + " must be primitive. Type given: " + rightType, null));
+                    errors.add(new BulletError("The type of the second argument in " + node + " must be primitive. Type given: " + rightType, ""));
                 }
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
@@ -246,10 +268,10 @@ public class TypeChecker {
                        Optional.empty();
             case IN:
                 if (!Type.isPrimitive(leftType)) {
-                    errors.add(new BulletError("The type of the left operand in " + node + " must be primitive. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the left operand in " + node + " must be primitive. Type given: " + leftType, ""));
                 }
                 if (!isCollection(rightType)) {
-                    errors.add(new BulletError("The type of the right operand in " + node + " must be some LIST or MAP. Type given: " + rightType, null));
+                    errors.add(new BulletError("The type of the right operand in " + node + " must be some LIST or MAP. Type given: " + rightType, ""));
                 }
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
@@ -264,10 +286,10 @@ public class TypeChecker {
                 return leftType != Type.BOOLEAN || rightType != Type.BOOLEAN ? makeError("The types of the arguments in " + node + " must be BOOLEAN. Types given: " + leftType + ", " + rightType) : Optional.empty();
             case FILTER:
                 if (!Type.isList(leftType)) {
-                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST. Type given: " + leftType, null));
+                    errors.add(new BulletError("The type of the first argument in " + node + " must be some LIST. Type given: " + leftType, ""));
                 }
                 if (rightType != Type.BOOLEAN_LIST) {
-                    errors.add(new BulletError("The type of the second argument in " + node + " must be BOOLEAN_LIST. Type given: " + rightType, null));
+                    errors.add(new BulletError("The type of the second argument in " + node + " must be BOOLEAN_LIST. Type given: " + rightType, ""));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
@@ -318,7 +340,7 @@ public class TypeChecker {
     }
 
     private static Optional<List<BulletError>> makeError(String message) {
-        return Optional.of(Collections.singletonList(new BulletError(message, null)));
+        return Optional.of(Collections.singletonList(new BulletError(message, "")));
     }
 
     private static boolean isComplex(Type type) {

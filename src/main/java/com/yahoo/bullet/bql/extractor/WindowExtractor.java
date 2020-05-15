@@ -7,31 +7,19 @@ package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
-import com.yahoo.bullet.parsing.Window;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static com.yahoo.bullet.parsing.Window.EMIT_EVERY_FIELD;
-import static com.yahoo.bullet.parsing.Window.INCLUDE_FIRST_FIELD;
-import static com.yahoo.bullet.parsing.Window.TYPE_FIELD;
+import com.yahoo.bullet.bql.tree.WindowNode;
+import com.yahoo.bullet.query.Window;
 
 public class WindowExtractor {
     static Window extractWindow(ProcessedQuery processedQuery) {
-        Map<String, Object> emit = new HashMap<>();
-        emit.put(EMIT_EVERY_FIELD, processedQuery.getWindow().getEmitEvery());
-        emit.put(TYPE_FIELD, processedQuery.getWindow().getEmitType().toString());
-
-        WindowIncludeNode windowInclude = processedQuery.getWindow().getWindowInclude();
-
-        if (windowInclude == null) {
-            return new Window(emit, null);
+        WindowNode window = processedQuery.getWindow();
+        if (window == null) {
+            return new Window();
         }
-
-        Map<String, Object> include = new HashMap<>();
-        include.put(TYPE_FIELD, windowInclude.getIncludeUnit().toString());
-        include.put(INCLUDE_FIRST_FIELD, windowInclude.getFirst());
-
-        return new Window(emit, include);
+        WindowIncludeNode windowInclude = window.getWindowInclude();
+        if (windowInclude == null) {
+            return new Window(window.getEmitEvery(), window.getEmitType());
+        }
+        return new Window(window.getEmitEvery(), window.getEmitType(), windowInclude.getIncludeUnit(), windowInclude.getFirst());
     }
 }

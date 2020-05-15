@@ -6,17 +6,22 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class TopKNode extends ExpressionNode {
     private final Integer size;
     private final Long threshold;
     private final List<ExpressionNode> expressions;
+
+    public TopKNode(Integer size, Long threshold, List<ExpressionNode> expressions, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.size = size;
+        this.threshold = threshold;
+        this.expressions = expressions;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

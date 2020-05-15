@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
@@ -15,36 +16,22 @@ import com.yahoo.bullet.bql.query.QueryValidator;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.common.BulletException;
+import com.yahoo.bullet.query.Query;
 import com.yahoo.bullet.typesystem.Schema;
-import com.yahoo.bullet.typesystem.Type;
-import lombok.AccessLevel;
-import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class BulletQueryBuilder {
     private static final Gson GSON = new GsonBuilder().create();
     private final QueryProcessor queryProcessor = new QueryProcessor();
     private final BQLParser bqlParser = new BQLParser();
-    private final QueryExtractor queryExtractor;
     private final BQLConfig config;
-    // Exposed for testing only
-    @Setter(AccessLevel.PACKAGE)
-    private Schema schema;
-
-    private static final Schema SCHEMA = new Schema(Arrays.asList(new Schema.PlainField("abc", Type.INTEGER),
-                                                                  new Schema.PlainField("def", Type.FLOAT),
-                                                                  new Schema.PlainField("aaa", Type.STRING_MAP_LIST),
-                                                                  new Schema.PlainField("bbb", Type.STRING_MAP_MAP),
-                                                                  new Schema.PlainField("ccc", Type.INTEGER_LIST),
-                                                                  new Schema.PlainField("ddd", Type.STRING_MAP),
-                                                                  new Schema.PlainField("eee", Type.STRING_LIST),
-                                                                  new Schema.PlainField("a", Type.LONG),
-                                                                  new Schema.PlainField("b", Type.BOOLEAN),
-                                                                  new Schema.PlainField("c", Type.STRING)));
+    private final Schema schema;
 
     /**
      * Constructor that initializes a BulletQueryBuilder.
@@ -53,7 +40,6 @@ public class BulletQueryBuilder {
      */
     public BulletQueryBuilder(BulletConfig bulletConfig) {
         config = new BQLConfig(bulletConfig);
-        queryExtractor = new QueryExtractor(new BQLConfig(config));
         schema = config.getSchema();
     }
 
@@ -64,28 +50,36 @@ public class BulletQueryBuilder {
      * @return A {@link BQLResult}.
      */
     public BQLResult buildQuery(String bql) {
-        Objects.requireNonNull(bql);
+        try {
+            Objects.requireNonNull(bql);
 
-        // Parse BQL to node tree.
-        QueryNode queryNode = bqlParser.createQueryNode(bql);
+            // Parse BQL to node tree.
+            QueryNode queryNode = bqlParser.createQueryNode(bql);
 
-        ProcessedQuery processedQuery = queryProcessor.process(queryNode);
+            ProcessedQuery processedQuery = queryProcessor.process(queryNode);
 
-        // Can let this part just fall through and have queryExtractor return null for query if there are errors in processedQuery
-        // Feel like it's better to just catch here though
-        if (!processedQuery.getErrors().isEmpty()) {
-            return new BQLResult(processedQuery.getErrors());
+            if (!processedQuery.getErrors().isEmpty()) {
+                return new BQLResult(processedQuery.getErrors());
+            }
+
+            Query query = QueryExtractor.extractQuery(processedQuery);
+
+            query.configure(config);
+
+            List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
+            if (!errors.isEmpty()) {
+                return new BQLResult(errors);
+            }
+            return new BQLResult(query);
+        } catch (BulletException e) {
+            return null;
+        } catch (NullPointerException e) {
+            return makeBQLResultError(e.getMessage(), "This is most likely an application error and not a user error.");
+        } catch (ParsingException e) {
+            return makeBQLResultError(e.getMessage(), "This is a parsing exception.");
+        } catch (Exception e) {
+            return makeBQLResultError(e.getMessage(), "This is most likely an application error and not a user error.");
         }
-
-        Query query = queryExtractor.extractQuery(processedQuery);
-
-        //List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
-        List<BulletError> errors = QueryValidator.validate(processedQuery, query, SCHEMA);
-        if (!errors.isEmpty()) {
-            return new BQLResult(errors);
-        }
-
-        return new BQLResult(query);
     }
 
     /**
@@ -96,5 +90,9 @@ public class BulletQueryBuilder {
      */
     public String toJson(Query query) {
         return GSON.toJson(query);
+    }
+
+    private BQLResult makeBQLResultError(String error, String resolution) {
+        return new BQLResult(Collections.singletonList(new BulletError(error, resolution)));
     }
 }

@@ -7,11 +7,11 @@ package com.yahoo.bullet.bql.tree;
 
 import org.testng.annotations.Test;
 
-public class SortItemNodeTest extends NodeTest {
+public class SortItemNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new SortItemNode(new LiteralNode(5), SortItemNode.Ordering.ASCENDING),
-                              new SortItemNode(new LiteralNode(true), SortItemNode.Ordering.ASCENDING),
-                              new SortItemNode(new LiteralNode(5), SortItemNode.Ordering.DESCENDING));
+        NodeUtils.testEqualsAndHashCode(() -> new SortItemNode(new LiteralNode(5, null), SortItemNode.Ordering.ASCENDING, null),
+                                        new SortItemNode(new LiteralNode(true, null), SortItemNode.Ordering.ASCENDING, null),
+                                        new SortItemNode(new LiteralNode(5, null), SortItemNode.Ordering.DESCENDING, null));
     }
 }

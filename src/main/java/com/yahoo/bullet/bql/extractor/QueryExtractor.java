@@ -5,72 +5,59 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
-import com.yahoo.bullet.bql.BQLConfig;
 import com.yahoo.bullet.bql.query.ExpressionProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
-import com.yahoo.bullet.common.BulletConfig;
-import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.query.Projection;
+import com.yahoo.bullet.query.Query;
+import com.yahoo.bullet.query.Window;
+import com.yahoo.bullet.query.aggregations.Aggregation;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.postaggregations.PostAggregation;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 @Slf4j
 public class QueryExtractor {
-    private final Long queryMaxDuration;
-
-    /**
-     * Constructs a QueryExtractor from a {@link BQLConfig}.
-     *
-     * @param bqlConfig A {@link BQLConfig}.
-     */
-    public QueryExtractor(BQLConfig bqlConfig) {
-        queryMaxDuration = bqlConfig.getAs(BulletConfig.QUERY_MAX_DURATION, Long.class);
-    }
-
     /**
      * Creates a {@link Query} from the given {@link ProcessedQuery}.
      *
      * @param processedQuery The query components to create a query from.
      * @return A {@link Query} created from the given {@link ProcessedQuery}.
      */
-    public Query extractQuery(ProcessedQuery processedQuery) {
-        Query query = new Query();
-
-        extractFilter(processedQuery, query);
-        extractProjection(processedQuery, query);
-        extractAggregation(processedQuery, query);
-        extractPostAggregations(processedQuery, query);
-        extractWindow(processedQuery, query);
-        extractDuration(processedQuery, query, queryMaxDuration);
-
-        return query;
+    public static Query extractQuery(ProcessedQuery processedQuery) {
+        return new Query(extractProjection(processedQuery),
+                         extractFilter(processedQuery),
+                         extractAggregation(processedQuery),
+                         extractPostAggregations(processedQuery),
+                         extractWindow(processedQuery),
+                         extractDuration(processedQuery));
     }
 
-    private static void extractFilter(ProcessedQuery processedQuery, Query query) {
-        if (processedQuery.getWhereNode() != null) {
-            query.setFilter(ExpressionProcessor.visit(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping()));
+    private static Projection extractProjection(ProcessedQuery processedQuery) {
+        return ProjectionExtractor.extractProjection(processedQuery);
+    }
+
+    private static Expression extractFilter(ProcessedQuery processedQuery) {
+        if (processedQuery.getWhereNode() == null) {
+            return null;
         }
+        return ExpressionProcessor.visit(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping());
     }
 
-    private static void extractProjection(ProcessedQuery processedQuery, Query query) {
-        query.setProjection(ProjectionExtractor.extractProjection(processedQuery));
+    private static Aggregation extractAggregation(ProcessedQuery processedQuery) {
+        return AggregationExtractor.extractAggregation(processedQuery);
     }
 
-    private static void extractAggregation(ProcessedQuery processedQuery, Query query) {
-        query.setAggregation(AggregationExtractor.extractAggregation(processedQuery));
+    private static List<PostAggregation> extractPostAggregations(ProcessedQuery processedQuery) {
+        return PostAggregationExtractor.extractPostAggregations(processedQuery);
     }
 
-    private static void extractPostAggregations(ProcessedQuery processedQuery, Query query) {
-        query.setPostAggregations(PostAggregationExtractor.extractPostAggregations(processedQuery));
+    private static Window extractWindow(ProcessedQuery processedQuery) {
+        return WindowExtractor.extractWindow(processedQuery);
     }
 
-    private static void extractWindow(ProcessedQuery processedQuery, Query query) {
-        if (processedQuery.getWindow() != null) {
-            query.setWindow(WindowExtractor.extractWindow(processedQuery));
-        }
-    }
-
-    private static void extractDuration(ProcessedQuery processedQuery, Query query, Long queryMaxDuration) {
-        if (processedQuery.getTimeDuration() != null) {
-            query.setDuration(Math.min(processedQuery.getTimeDuration(), queryMaxDuration));
-        }
+    private static Long extractDuration(ProcessedQuery processedQuery) {
+        return processedQuery.getTimeDuration();
     }
 }

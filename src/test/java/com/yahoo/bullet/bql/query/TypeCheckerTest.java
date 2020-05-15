@@ -5,9 +5,9 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
 import org.testng.annotations.Test;

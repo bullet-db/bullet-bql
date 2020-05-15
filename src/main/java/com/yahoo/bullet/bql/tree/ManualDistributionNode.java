@@ -5,43 +5,33 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.aggregations.Distribution.Type;
+import com.yahoo.bullet.query.aggregations.Distribution;
+import com.yahoo.bullet.query.aggregations.DistributionType;
+import com.yahoo.bullet.query.aggregations.ManualDistribution;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static com.yahoo.bullet.aggregations.Distribution.POINTS;
-import static com.yahoo.bullet.aggregations.Distribution.TYPE;
 
 public class ManualDistributionNode extends DistributionNode {
     private final List<Double> points;
 
     /**
-     * Constructor that requires a List of {@link ExpressionNode} columns, a {@link Type} and a List of Double points.
+     * Constructor that requires a List of {@link ExpressionNode} columns, a {@link DistributionType} and a List of Double points.
      *
-     * @param type A {@link Type}.
+     * @param type A {@link DistributionType}.
      * @param expression An {@link ExpressionNode}.
      * @param points A List of Double.
+     * @param nodeLocation The location of the node.
      */
-    public ManualDistributionNode(Type type, ExpressionNode expression, List<Double> points) {
-        super(type, expression);
+    public ManualDistributionNode(DistributionType type, ExpressionNode expression, List<Double> points, NodeLocation nodeLocation) {
+        super(type, expression, nodeLocation);
         this.points = points;
     }
 
     @Override
-    public Map<String, Object> getAttributes() {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put(TYPE, type);
-        attributes.put(POINTS, points);
-        return attributes;
-    }
-
-    @Override
-    public String attributesToString() {
-        return getDistributionType() + "(" + expression.getName() + ", MANUAL, " + points.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
+    public Distribution getAggregation(Integer size) {
+        return new ManualDistribution(expression.getName(), type, size, points);
     }
 
     @Override
@@ -61,5 +51,10 @@ public class ManualDistributionNode extends DistributionNode {
     @Override
     public int hashCode() {
         return Objects.hash(type, expression, points);
+    }
+
+    @Override
+    public String toString() {
+        return type.getName() + "(" + expression.getName() + ", MANUAL, " + points.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
     }
 }

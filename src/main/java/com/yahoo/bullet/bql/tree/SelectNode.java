@@ -11,16 +11,20 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class SelectNode extends Node {
     private final boolean distinct;
     private final List<SelectItemNode> selectItems;
+
+    public SelectNode(boolean distinct, List<SelectItemNode> selectItems, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.distinct = distinct;
+        this.selectItems = selectItems;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

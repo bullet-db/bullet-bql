@@ -10,6 +10,7 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +42,7 @@ public class TransientFieldExtractor {
     private static Set<String> extractSelect(ProcessedQuery processedQuery) {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .map(processedQuery::getAliasOrName)
-                                                                             .collect(Collectors.toSet());
+                                                                             .collect(Collectors.toCollection(HashSet::new));
         orderByFields.removeAll(getSelectFields(processedQuery));
         return orderByFields;
     }
@@ -62,7 +63,7 @@ public class TransientFieldExtractor {
                                             processedQuery.getAggregateNodes().stream()),
                               processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
                       .map(processedQuery::getAliasOrName)
-                      .collect(Collectors.toSet());
+                      .collect(Collectors.toCollection(HashSet::new));
         transientFields.removeAll(getSelectFields(processedQuery));
         return transientFields;
     }
@@ -80,7 +81,7 @@ public class TransientFieldExtractor {
         Set<String> orderByFields = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
                                                                              .filter(processedQuery::isNotSimpleFieldExpression)
                                                                              .map(processedQuery::getAliasOrName)
-                                                                             .collect(Collectors.toSet());
+                                                                             .collect(Collectors.toCollection(HashSet::new));
         orderByFields.removeAll(getSelectFields(processedQuery));
         return orderByFields;
     }

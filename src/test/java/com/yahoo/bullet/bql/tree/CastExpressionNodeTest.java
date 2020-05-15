@@ -10,11 +10,11 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class CastExpressionNodeTest extends NodeTest {
+public class CastExpressionNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new CastExpressionNode(identifier("abc"), Type.INTEGER),
-                              new CastExpressionNode(identifier("def"), Type.INTEGER),
-                              new CastExpressionNode(identifier("abc"), Type.FLOAT));
+        NodeUtils.testEqualsAndHashCode(() -> new CastExpressionNode(identifier("abc"), Type.INTEGER, null),
+                                        new CastExpressionNode(identifier("def"), Type.INTEGER, null),
+                                        new CastExpressionNode(identifier("abc"), Type.FLOAT, null));
     }
 }

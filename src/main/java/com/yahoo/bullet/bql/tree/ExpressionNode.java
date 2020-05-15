@@ -13,6 +13,10 @@ package com.yahoo.bullet.bql.tree;
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 
 public abstract class ExpressionNode extends Node {
+    protected ExpressionNode(NodeLocation location) {
+        super(location);
+    }
+
     @Override
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitExpression(this, context);

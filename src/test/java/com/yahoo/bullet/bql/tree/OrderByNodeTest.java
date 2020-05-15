@@ -9,9 +9,9 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 
-public class OrderByNodeTest extends NodeTest {
+public class OrderByNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new OrderByNode(Collections.emptyList()), new OrderByNode(null));
+        NodeUtils.testEqualsAndHashCode(() -> new OrderByNode(Collections.emptyList(), null), new OrderByNode(null, null));
     }
 }

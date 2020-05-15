@@ -5,20 +5,23 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.parsing.expressions.BinaryExpression.Modifier;
-import com.yahoo.bullet.parsing.expressions.Operation;
+import com.yahoo.bullet.query.expressions.Operation;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class BinaryExpressionNode extends ExpressionNode {
     private final ExpressionNode left;
     private final ExpressionNode right;
     private final Operation op;
-    private final Modifier modifier;
+
+    public BinaryExpressionNode(ExpressionNode left, ExpressionNode right, Operation op, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.left = left;
+        this.right = right;
+        this.op = op;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
@@ -36,12 +39,11 @@ public class BinaryExpressionNode extends ExpressionNode {
         BinaryExpressionNode other = (BinaryExpressionNode) obj;
         return Objects.equals(left, other.left) &&
                Objects.equals(right, other.right) &&
-               op == other.op &&
-               modifier == other.modifier;
+               op == other.op;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(left, right, op, modifier);
+        return Objects.hash(left, right, op);
     }
 }

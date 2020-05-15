@@ -10,7 +10,6 @@
  */
 package com.yahoo.bullet.bql.util;
 
-import com.yahoo.bullet.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.bql.tree.ASTVisitor;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
@@ -37,7 +36,9 @@ import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
-import com.yahoo.bullet.parsing.Window;
+import com.yahoo.bullet.query.Window;
+import com.yahoo.bullet.query.expressions.BinaryExpression;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import lombok.AllArgsConstructor;
 
 import java.util.List;
@@ -190,7 +191,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitDistribution(DistributionNode node, Void context) {
-            return node.attributesToString();
+            return node.toString();
         }
 
         @Override
@@ -215,13 +216,37 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitBinaryExpression(BinaryExpressionNode node, Void context) {
-            if (node.getOp().isInfix()) {
-                if (node.getModifier() != null) {
-                    return process(node.getLeft()) + " " + node.getOp() + " " + node.getModifier() + " " + process(node.getRight());
-                }
-                return process(node.getLeft()) + " " + node.getOp() + " " + process(node.getRight());
+            switch (node.getOp()) {
+                case ADD:
+                case SUB:
+                case MUL:
+                case DIV:
+                case EQUALS:
+                case EQUALS_ANY:
+                case EQUALS_ALL:
+                case NOT_EQUALS:
+                case NOT_EQUALS_ANY:
+                case NOT_EQUALS_ALL:
+                case GREATER_THAN:
+                case GREATER_THAN_ANY:
+                case GREATER_THAN_ALL:
+                case LESS_THAN:
+                case LESS_THAN_ANY:
+                case LESS_THAN_ALL:
+                case GREATER_THAN_OR_EQUALS:
+                case GREATER_THAN_OR_EQUALS_ANY:
+                case GREATER_THAN_OR_EQUALS_ALL:
+                case LESS_THAN_OR_EQUALS:
+                case LESS_THAN_OR_EQUALS_ANY:
+                case LESS_THAN_OR_EQUALS_ALL:
+                case IN:
+                case AND:
+                case OR:
+                case XOR:
+                    return process(node.getLeft()) + " " + node.getOp() + " " + process(node.getRight());
+                default:
+                    return node.getOp() + "(" + process(node.getLeft()) + ", " + process(node.getRight()) + ")";
             }
-            return node.getOp() + "(" + process(node.getLeft()) + ", " + process(node.getRight()) + ")";
         }
 
         @Override

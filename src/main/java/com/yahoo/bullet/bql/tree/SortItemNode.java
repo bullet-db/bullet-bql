@@ -10,14 +10,13 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.parsing.OrderBy;
+import com.yahoo.bullet.query.postaggregations.OrderBy;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class SortItemNode extends Node {
     @Getter
     @RequiredArgsConstructor
@@ -30,6 +29,12 @@ public class SortItemNode extends Node {
 
     private final ExpressionNode expression;
     private final Ordering ordering;
+
+    public SortItemNode(ExpressionNode expression, Ordering ordering, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.expression = expression;
+        this.ordering = ordering;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

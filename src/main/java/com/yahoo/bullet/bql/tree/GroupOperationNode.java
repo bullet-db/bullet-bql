@@ -6,17 +6,21 @@
 package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
+import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.GroupOperationType;
 
 @Getter
-@RequiredArgsConstructor
 public class GroupOperationNode extends ExpressionNode {
     private final GroupOperationType op;
     private final ExpressionNode expression;
+
+    public GroupOperationNode(GroupOperationType op, ExpressionNode expression, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.op = op;
+        this.expression = expression;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

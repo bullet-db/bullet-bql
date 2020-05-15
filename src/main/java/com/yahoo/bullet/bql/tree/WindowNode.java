@@ -5,18 +5,23 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.parsing.Window.Unit;
+import com.yahoo.bullet.query.Window.Unit;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Objects;
 
 @Getter
-@RequiredArgsConstructor
 public class WindowNode extends Node {
-    private final Long emitEvery;
+    private final Integer emitEvery;
     private final Unit emitType;
     private final WindowIncludeNode windowInclude;
+
+    public WindowNode(Integer emitEvery, Unit emitType, WindowIncludeNode windowInclude, NodeLocation nodeLocation) {
+        super(nodeLocation);
+        this.emitEvery = emitEvery;
+        this.emitType = emitType;
+        this.windowInclude = windowInclude;
+    }
 
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {

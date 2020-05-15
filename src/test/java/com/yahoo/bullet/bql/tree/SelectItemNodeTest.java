@@ -9,12 +9,12 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class SelectItemNodeTest extends NodeTest {
+public class SelectItemNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new SelectItemNode(false, new LiteralNode(5), identifier("abc")),
-                              new SelectItemNode(true, new LiteralNode(5), identifier("abc")),
-                              new SelectItemNode(false, new LiteralNode(true), identifier("abc")),
-                              new SelectItemNode(false, new LiteralNode(5), identifier("def")));
+        NodeUtils.testEqualsAndHashCode(() -> new SelectItemNode(false, new LiteralNode(5, null), identifier("abc"), null),
+                                        new SelectItemNode(true, new LiteralNode(5, null), identifier("abc"), null),
+                                        new SelectItemNode(false, new LiteralNode(true, null), identifier("abc"), null),
+                                        new SelectItemNode(false, new LiteralNode(5, null), identifier("def"), null));
     }
 }

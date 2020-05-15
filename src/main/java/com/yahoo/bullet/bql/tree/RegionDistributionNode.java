@@ -5,24 +5,19 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import com.yahoo.bullet.aggregations.Distribution.Type;
+import com.yahoo.bullet.query.aggregations.Distribution;
+import com.yahoo.bullet.query.aggregations.DistributionType;
+import com.yahoo.bullet.query.aggregations.RegionDistribution;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
-import static com.yahoo.bullet.aggregations.Distribution.RANGE_END;
-import static com.yahoo.bullet.aggregations.Distribution.RANGE_INCREMENT;
-import static com.yahoo.bullet.aggregations.Distribution.RANGE_START;
-import static com.yahoo.bullet.aggregations.Distribution.TYPE;
-
 public class RegionDistributionNode extends DistributionNode {
-    private final Double start;
-    private final Double end;
-    private final Double increment;
+    private final double start;
+    private final double end;
+    private final double increment;
 
     /**
-     * Constructs a RegionDistributionNode from a {@link Type}, {@link ExpressionNode}, {@link Double} start,
+     * Constructs a RegionDistributionNode from a {@link DistributionType}, {@link ExpressionNode}, {@link Double} start,
      * a {@link Double} end, and {@link Double} increment.
      *
      * @param type The distribution type.
@@ -30,27 +25,18 @@ public class RegionDistributionNode extends DistributionNode {
      * @param start The start of the range.
      * @param end The end of the range.
      * @param increment The interval between points.
+     * @param nodeLocation The location of the node.
      */
-    public RegionDistributionNode(Type type, ExpressionNode expression, Double start, Double end, Double increment) {
-        super(type, expression);
+    public RegionDistributionNode(DistributionType type, ExpressionNode expression, double start, double end, double increment, NodeLocation nodeLocation) {
+        super(type, expression, nodeLocation);
         this.start = start;
         this.end = end;
         this.increment = increment;
     }
 
     @Override
-    public Map<String, Object> getAttributes() {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put(TYPE, type);
-        attributes.put(RANGE_START, start);
-        attributes.put(RANGE_END, end);
-        attributes.put(RANGE_INCREMENT, increment);
-        return attributes;
-    }
-
-    @Override
-    public String attributesToString() {
-        return getDistributionType() + "(" + expression.getName() + ", REGION, " + start + ", " + end + ", " + increment + ")";
+    public Distribution getAggregation(Integer size) {
+        return new RegionDistribution(expression.getName(), type, size, start, end, increment);
     }
 
     @Override
@@ -72,5 +58,10 @@ public class RegionDistributionNode extends DistributionNode {
     @Override
     public int hashCode() {
         return Objects.hash(type, expression, start, end, increment);
+    }
+
+    @Override
+    public String toString() {
+        return type.getName() + "(" + expression.getName() + ", REGION, " + start + ", " + end + ", " + increment + ")";
     }
 }

@@ -11,20 +11,20 @@ import org.testng.annotations.Test;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 
-public class FieldExpressionNodeTest extends NodeTest {
+public class FieldExpressionNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        testEqualsAndHashCode(() -> new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), null),
-                              new FieldExpressionNode(identifier("---"), 0, identifier("def"), identifier("ghi"), null),
-                              new FieldExpressionNode(identifier("abc"), 1, identifier("def"), identifier("ghi"), null),
-                              new FieldExpressionNode(identifier("abc"), 0, identifier("---"), identifier("ghi"), null),
-                              new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("---"), null));
+        NodeUtils.testEqualsAndHashCode(() -> new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), null, null),
+                                        new FieldExpressionNode(identifier("---"), 0, identifier("def"), identifier("ghi"), null, null),
+                                        new FieldExpressionNode(identifier("abc"), 1, identifier("def"), identifier("ghi"), null, null),
+                                        new FieldExpressionNode(identifier("abc"), 0, identifier("---"), identifier("ghi"), null, null),
+                                        new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("---"), null, null));
     }
 
     @Test
     public void testEqualsAndHashCodeTypeDoesntMatter() {
-        FieldExpressionNode a = new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), Type.STRING_MAP_LIST);
-        FieldExpressionNode b = new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), Type.BOOLEAN);
+        FieldExpressionNode a = new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), Type.STRING_MAP_LIST, null);
+        FieldExpressionNode b = new FieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), Type.BOOLEAN, null);
         Assert.assertEquals(a, b);
         Assert.assertEquals(a.hashCode(), b.hashCode());
     }

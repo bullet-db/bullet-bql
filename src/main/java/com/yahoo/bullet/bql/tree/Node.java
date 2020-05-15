@@ -10,7 +10,14 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 public abstract class Node {
+    @Getter
+    private final NodeLocation location;
+
     /**
      * Makes Node accessible for {@link ASTVisitor}; use {@link ASTVisitor#process(Node, Object)}.
      *
