@@ -90,7 +90,7 @@ public class QueryValidator {
             for (ExpressionNode node : selectItems) {
                 Type type = processedQuery.getPreAggregationMapping().get(node).getType();
                 if (!Type.isPrimitive(type)) {
-                    processedQuery.getErrors().add(new BulletError("The following SELECT DISTINCT field is non-primitive: " + node,
+                    processedQuery.getErrors().add(new BulletError("The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
                                                                    "Please specify primitive fields only for SELECT DISTINCT."));
                 }
             }
@@ -101,7 +101,7 @@ public class QueryValidator {
             for (ExpressionNode node : processedQuery.getGroupByNodes()) {
                 Type type = processedQuery.getPreAggregationMapping().get(node).getType();
                 if (!Type.isPrimitive(type)) {
-                    processedQuery.getErrors().add(new BulletError("The following GROUP BY field is non-primitive: " + node,
+                    processedQuery.getErrors().add(new BulletError("The GROUP BY field " + node + " is non-primitive. Type given: " + type,
                                                                    "Please specify primitive fields only for GROUP BY."));
                 }
             }

@@ -334,6 +334,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.LESS_THAN_OR_EQUALS;
             case BQLBaseLexer.RLIKE:
                 return Operation.REGEX_LIKE;
+            case BQLBaseLexer.RLIKEANY:
+                return Operation.REGEX_LIKE_ANY;
             case BQLBaseLexer.SIZEIS:
                 return Operation.SIZE_IS;
             case BQLBaseLexer.CONTAINSKEY:

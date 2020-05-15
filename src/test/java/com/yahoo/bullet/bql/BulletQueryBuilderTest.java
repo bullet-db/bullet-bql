@@ -498,6 +498,14 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testMultipleDistinctNonPrimitive() {
+        build("SELECT DISTINCT aaa, bbb FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The SELECT DISTINCT field aaa is non-primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(1).getError(), "The SELECT DISTINCT field bbb is non-primitive. Type given: STRING_MAP_MAP");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
     public void testDistinctWithAlias() {
         build("SELECT DISTINCT abc AS one, def AS two FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
@@ -588,6 +596,14 @@ public class BulletQueryBuilderTest {
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
         Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc", "abc"));
         Assert.assertTrue(aggregation.getOperations().isEmpty());
+    }
+
+    @Test
+    public void testGroupByNonPrimitive() {
+        build("SELECT aaa, bbb FROM STREAM() GROUP BY aaa, bbb");
+        Assert.assertEquals(errors.get(0).getError(), "The GROUP BY field aaa is non-primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(1).getError(), "The GROUP BY field bbb is non-primitive. Type given: STRING_MAP_MAP");
+        Assert.assertEquals(errors.size(), 2);
     }
 
     @Test
@@ -1777,6 +1793,14 @@ public class BulletQueryBuilderTest {
         build("SELECT RLIKE('foo', 0), RLIKE(0, 'foo') FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "The types of the arguments in RLIKE('foo', 0) must be STRING. Types given: STRING, INTEGER");
         Assert.assertEquals(errors.get(1).getError(), "The types of the arguments in RLIKE(0, 'foo') must be STRING. Types given: INTEGER, STRING");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckRegexLikeAny() {
+        build("SELECT RLIKEANY(0, 'foo') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "The type of the left operand in RLIKEANY(0, 'foo') must be STRING. Type given: INTEGER");
+        Assert.assertEquals(errors.get(1).getError(), "The type of the right operand in RLIKEANY(0, 'foo') must be STRING_LIST. Type given: STRING");
         Assert.assertEquals(errors.size(), 2);
     }
 
