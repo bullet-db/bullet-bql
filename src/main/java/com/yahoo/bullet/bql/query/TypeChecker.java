@@ -313,12 +313,25 @@ public class TypeChecker {
                     return Type.INTEGER;
                 }
             case EQUALS:
+            case EQUALS_ANY:
+            case EQUALS_ALL:
             case NOT_EQUALS:
+            case NOT_EQUALS_ANY:
+            case NOT_EQUALS_ALL:
             case GREATER_THAN:
+            case GREATER_THAN_ANY:
+            case GREATER_THAN_ALL:
             case GREATER_THAN_OR_EQUALS:
+            case GREATER_THAN_OR_EQUALS_ANY:
+            case GREATER_THAN_OR_EQUALS_ALL:
             case LESS_THAN:
+            case LESS_THAN_ANY:
+            case LESS_THAN_ALL:
             case LESS_THAN_OR_EQUALS:
+            case LESS_THAN_OR_EQUALS_ANY:
+            case LESS_THAN_OR_EQUALS_ALL:
             case REGEX_LIKE:
+            case REGEX_LIKE_ANY:
             case SIZE_IS:
             case CONTAINS_KEY:
             case CONTAINS_VALUE:
