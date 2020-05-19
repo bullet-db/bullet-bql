@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql;
 
+import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.query.Query;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,14 +14,18 @@ import java.io.InputStreamReader;
 
 @Slf4j
 public class BulletBQL {
-    private static BulletQueryBuilder BULLET_QUERY_BUILDER = new BulletQueryBuilder(new BQLConfig());
-
     /**
      * Print out a Bullet JSON by parsing BQL using default BulletConfig.
      *
      * @param args A BQL string.
      */
     public static void main(String[] args) {
+        BQLConfig config = new BQLConfig();
+        config.set(BulletConfig.RECORD_SCHEMA_FILE_NAME, "src/test/resources/test_schema.json");
+        config.validate();
+
+        BulletQueryBuilder builder = new BulletQueryBuilder(config);
+
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             try {
@@ -28,13 +33,13 @@ public class BulletBQL {
                 if (line.isEmpty()) {
                     return;
                 }
-                BQLResult result = BULLET_QUERY_BUILDER.buildQuery(line);
+                BQLResult result = builder.buildQuery(line);
                 if (result.hasErrors()) {
                     System.out.println(result.getErrors());
                     continue;
                 }
                 Query query = result.getQuery();
-                System.out.println(BULLET_QUERY_BUILDER.toJson(query));
+                System.out.println(builder.toJson(query));
             } catch (Exception e) {
                 e.printStackTrace();
             }
