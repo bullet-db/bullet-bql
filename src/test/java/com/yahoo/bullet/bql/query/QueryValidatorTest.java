@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class QueryValidatorTest {
+    /*
     @Test
     public void testInvalidComputation() {
         ProcessedQuery processedQuery = new ProcessedQuery();
@@ -64,4 +65,5 @@ public class QueryValidatorTest {
         Assert.assertEquals(errors.get(1).getError(), "A query with RAW aggregation and PASS_THROUGH projection cannot have a CULLING post-aggregation.");
         Assert.assertEquals(errors.size(), 2);
     }
+    */
 }

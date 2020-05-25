@@ -11,12 +11,10 @@ import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
 import com.yahoo.bullet.query.Query;
-import com.yahoo.bullet.query.aggregations.AggregationType;
 import com.yahoo.bullet.query.aggregations.Distribution;
 import com.yahoo.bullet.query.aggregations.DistributionType;
 import com.yahoo.bullet.query.aggregations.TopK;
 import com.yahoo.bullet.query.postaggregations.Computation;
-import com.yahoo.bullet.query.postaggregations.Culling;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.postaggregations.PostAggregation;
 import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
@@ -35,6 +33,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
+/**
+ * RAW PASS_THROUGH queries pass Bullet records as is through projection and aggregation. This means that BQL
+ * should not generate post-aggregations such as computation and culling for these queries as these can modify
+ * records.
+ *
+ * A RAW aggregation is only possible for SELECT and SELECT_ALL queries. Out of these two, only SELECT_ALL queries
+ * can have a PASS_THROUGH projection. This means any RAW PASS_THROUGH query is also a SELECT_ALL query.
+ * SELECT_ALL queries exit early in the culling extractor if they have a PASS_THROUGH projection (i.e. no
+ * projection expression nodes in its ProcessedQuery), and SELECT_ALL queries exit early in the computation extractor.
+ *
+ * In this way, BQL cannot / does not generate computation and culling post-aggregations for RAW PASS_THROUGH queries.
+ *
+ */
 public class QueryValidator {
     private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
 
@@ -150,10 +162,6 @@ public class QueryValidator {
             return processedQuery.getErrors();
         }
 
-        // Sanity check
-        boolean rawPassThrough = query.getProjection().getType() == Projection.Type.PASS_THROUGH &&
-                                 query.getAggregation().getType() == AggregationType.RAW;
-
         Type type;
         for (PostAggregation postAggregation : query.getPostAggregations()) {
             switch (postAggregation.getType()) {
@@ -172,10 +180,6 @@ public class QueryValidator {
                                                                        "Please specify non-overlapping field names and aliases."));
                     });
                     schema.addLayer(new Schema(fields));
-                    if (rawPassThrough) {
-                        processedQuery.getErrors().add(new BulletError("A query with RAW aggregation and PASS_THROUGH projection cannot have a COMPUTATION post-aggregation.",
-                                                                       "This is an application error."));
-                    }
                     break;
                 case ORDER_BY:
                     for (OrderBy.SortItem sortItem : ((OrderBy) postAggregation).getFields()) {
@@ -187,19 +191,6 @@ public class QueryValidator {
                                 processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + sortItem.getField(), "Please specify a primitive field."));
                             }
                         }
-                    }
-                    break;
-                case CULLING:
-                    // Sanity check
-                    for (String transientField : ((Culling) postAggregation).getTransientFields()) {
-                        if (Type.isNull(schema.getType(transientField))) {
-                            processedQuery.getErrors().add(new BulletError("CULLING contains a non-existent field: " + transientField,
-                                                                           "This is an application error."));
-                        }
-                    }
-                    if (rawPassThrough) {
-                        processedQuery.getErrors().add(new BulletError("A query with RAW aggregation and PASS_THROUGH projection cannot have a CULLING post-aggregation.",
-                                                                       "This is an application error."));
                     }
                     break;
             }

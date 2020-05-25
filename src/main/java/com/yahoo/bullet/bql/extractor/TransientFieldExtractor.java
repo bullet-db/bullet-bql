@@ -48,6 +48,14 @@ public class TransientFieldExtractor {
     }
 
     private static Set<String> extractAll(ProcessedQuery processedQuery) {
+        /*
+        A SELECT_ALL PASS_THROUGH query only has simple fields, so it will never have a culling post-aggregation.
+        Without this check, this method should still return an empty set and therefore result in no culling, but this is
+        a simpler guarantee of correctness.
+        */
+        if (processedQuery.getProjection() == null) {
+            return null;
+        }
         return getDisjointedComplexOrderByFields(processedQuery);
     }
 
