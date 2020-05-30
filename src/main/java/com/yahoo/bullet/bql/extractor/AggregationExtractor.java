@@ -15,18 +15,22 @@ import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.query.aggregations.Aggregation;
 import com.yahoo.bullet.query.aggregations.CountDistinct;
-import com.yahoo.bullet.query.aggregations.Group;
+import com.yahoo.bullet.query.aggregations.GroupAll;
+import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.aggregations.Raw;
 import com.yahoo.bullet.query.aggregations.TopK;
 import com.yahoo.bullet.query.expressions.Expression;
 import com.yahoo.bullet.query.expressions.FieldExpression;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
@@ -68,8 +72,7 @@ public class AggregationExtractor {
     */
     private static Aggregation extractDistinct(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
-        Group aggregation = new Group(processedQuery.getLimit());
-        aggregation.setFields(toAliasedFields(processedQuery, expressions));
+        GroupBy aggregation = new GroupBy(processedQuery.getLimit(), toAliasedFields(processedQuery, expressions), Collections.emptySet());
         addPostAggregationMapping(processedQuery, expressions);
         return aggregation;
     }
@@ -80,15 +83,16 @@ public class AggregationExtractor {
     the record beforehand.
     */
     private static Aggregation extractGroup(ProcessedQuery processedQuery) {
-        Group aggregation = new Group(processedQuery.getLimit());
+        Aggregation aggregation;
+        Set<GroupOperation> operations = processedQuery.getGroupOpNodes().stream().map(node -> {
+            String field = node.getOp() != COUNT ? node.getExpression().getName() : null;
+            return new GroupOperation(node.getOp(), field, processedQuery.getAliasOrName(node));
+        }).collect(Collectors.toSet());
         if (!processedQuery.getGroupByNodes().isEmpty()) {
-            aggregation.setFields(toAliasedFields(processedQuery, processedQuery.getGroupByNodes()));
+            aggregation = new GroupBy(processedQuery.getLimit(), toAliasedFields(processedQuery, processedQuery.getGroupByNodes()), operations);
+        } else {
+            aggregation = new GroupAll(operations);
         }
-        processedQuery.getGroupOpNodes().forEach(node -> {
-            // Use name and not alias since fields aren't renamed until after aggregation
-            String fieldName = node.getOp() != COUNT ? node.getExpression().getName() : null;
-            aggregation.addGroupOperation(node.getOp(), fieldName, processedQuery.getAliasOrName(node));
-        });
         addPostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
         addPostAggregationMapping(processedQuery, processedQuery.getGroupOpNodes());
         return aggregation;

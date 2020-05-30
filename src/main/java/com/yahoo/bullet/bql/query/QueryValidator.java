@@ -35,6 +35,8 @@ import java.util.stream.Stream;
 
 
 /**
+ *
+ *
  * RAW PASS_THROUGH queries pass Bullet records as is through projection and aggregation. This means that BQL
  * should not generate post-aggregations such as computation and culling for these queries as these can modify
  * records.
@@ -45,7 +47,6 @@ import java.util.stream.Stream;
  * projection expression nodes in its ProcessedQuery), and SELECT_ALL queries exit early in the computation extractor.
  *
  * In this way, BQL cannot / does not generate computation and culling post-aggregations for RAW PASS_THROUGH queries.
- *
  */
 public class QueryValidator {
     private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
@@ -65,6 +66,12 @@ public class QueryValidator {
     }
 
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
+        boolean noSchema = baseSchema == null;
+        if (baseSchema == null) {
+
+        }
+
+
         LayeredSchema schema = new LayeredSchema(baseSchema);
         ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery, schema);
 

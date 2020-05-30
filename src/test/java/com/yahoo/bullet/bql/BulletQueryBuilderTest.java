@@ -15,7 +15,8 @@ import com.yahoo.bullet.query.Window;
 import com.yahoo.bullet.query.aggregations.AggregationType;
 import com.yahoo.bullet.query.aggregations.CountDistinct;
 import com.yahoo.bullet.query.aggregations.DistributionType;
-import com.yahoo.bullet.query.aggregations.Group;
+import com.yahoo.bullet.query.aggregations.GroupAll;
+import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.aggregations.LinearDistribution;
 import com.yahoo.bullet.query.aggregations.ManualDistribution;
 import com.yahoo.bullet.query.aggregations.RegionDistribution;
@@ -467,7 +468,7 @@ public class BulletQueryBuilderTest {
         build("SELECT DISTINCT abc FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -483,7 +484,7 @@ public class BulletQueryBuilderTest {
         build("SELECT DISTINCT abc, def FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields().size(), 2);
@@ -510,7 +511,7 @@ public class BulletQueryBuilderTest {
         build("SELECT DISTINCT abc AS one, def AS two FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields().size(), 2);
@@ -533,7 +534,7 @@ public class BulletQueryBuilderTest {
                                                                                                   Operation.ADD,
                                                                                                   Type.INTEGER)));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
@@ -590,7 +591,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc FROM STREAM() GROUP BY abc");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -611,7 +612,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc AS def FROM STREAM() GROUP BY abc");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -627,7 +628,7 @@ public class BulletQueryBuilderTest {
                                                                                                                      Operation.ADD,
                                                                                                                      Type.INTEGER))));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
@@ -643,7 +644,7 @@ public class BulletQueryBuilderTest {
                                                                                                                      Operation.ADD,
                                                                                                                      Type.INTEGER))));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
@@ -659,7 +660,7 @@ public class BulletQueryBuilderTest {
                                                                                                                      Operation.ADD,
                                                                                                                      Type.INTEGER))));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
@@ -681,7 +682,7 @@ public class BulletQueryBuilderTest {
                                                                                                                      Operation.ADD,
                                                                                                                      Type.INTEGER))));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
@@ -704,7 +705,7 @@ public class BulletQueryBuilderTest {
                                                                                                                      Operation.ADD,
                                                                                                                      Type.INTEGER))));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
@@ -743,7 +744,7 @@ public class BulletQueryBuilderTest {
         build("SELECT AVG(abc) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupAll aggregation = (GroupAll) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
@@ -758,7 +759,7 @@ public class BulletQueryBuilderTest {
         build("SELECT SUM(abc) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupAll aggregation = (GroupAll) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
@@ -787,7 +788,7 @@ public class BulletQueryBuilderTest {
         build("SELECT AVG(abc) FROM STREAM() GROUP BY abc");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -811,7 +812,7 @@ public class BulletQueryBuilderTest {
                                                                                                                      Operation.ADD,
                                                                                                                      Type.INTEGER))));
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupAll aggregation = (GroupAll) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
@@ -827,7 +828,7 @@ public class BulletQueryBuilderTest {
         build("SELECT AVG(abc) + 5 FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupAll aggregation = (GroupAll) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
@@ -868,7 +869,7 @@ public class BulletQueryBuilderTest {
         build("SELECT AVG(abc) FROM STREAM() GROUP BY def HAVING AVG(abc) >= 5");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("def"));
@@ -916,7 +917,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc AS def, AVG(abc) FROM STREAM() GROUP BY abc HAVING abc >= 5");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -940,7 +941,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc, AVG(abc) AS avg FROM STREAM() GROUP BY abc HAVING AVG(abc) >= 5");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -964,7 +965,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc FROM STREAM() GROUP BY abc HAVING AVG(def) >= 5");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -992,7 +993,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc FROM STREAM() GROUP BY abc ORDER BY AVG(def)");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
@@ -1520,7 +1521,7 @@ public class BulletQueryBuilderTest {
         build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc ORDER BY COUNT(*) DESC");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
-        Group aggregation = (Group) query.getAggregation();
+        GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));

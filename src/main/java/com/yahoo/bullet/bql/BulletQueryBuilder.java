@@ -72,13 +72,11 @@ public class BulletQueryBuilder {
             }
             return new BQLResult(query);
         } catch (BulletException e) {
-            return null;
-        } catch (NullPointerException e) {
-            return makeBQLResultError(e.getMessage(), "This is most likely an application error and not a user error.");
+            return new BQLResult(Collections.singletonList(e.getError()));
         } catch (ParsingException e) {
-            return makeBQLResultError(e.getMessage(), "This is a parsing exception.");
+            return makeBQLResultError(e.getMessage(), "This is a parsing error.");
         } catch (Exception e) {
-            return makeBQLResultError(e.getMessage(), "This is most likely an application error and not a user error.");
+            return makeBQLResultError(e.getMessage(), "This is an application error and not a user error.");
         }
     }
 
