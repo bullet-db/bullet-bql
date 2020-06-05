@@ -37,7 +37,6 @@ import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.query.Window;
-import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import lombok.AllArgsConstructor;
 
@@ -166,14 +165,14 @@ public final class ExpressionFormatter {
         @Override
         protected String visitUnaryExpression(UnaryExpressionNode node, Void context) {
             if (node.isParenthesized()) {
-                return node.getOp().getName() + "(" + process(node.getExpression()) + ")";
+                return node.getOp() + "(" + process(node.getExpression()) + ")";
             }
-            return node.getOp().getName() + " " + process(node.getExpression());
+            return node.getOp() + " " + process(node.getExpression());
         }
 
         @Override
         protected String visitNAryExpression(NAryExpressionNode node, Void context) {
-            return node.getOp().getName() + "(" + join(node.getExpressions()) + ")";
+            return node.getOp() + "(" + join(node.getExpressions()) + ")";
         }
 
         @Override

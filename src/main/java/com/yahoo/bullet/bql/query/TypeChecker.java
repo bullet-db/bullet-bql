@@ -83,7 +83,7 @@ public class TypeChecker {
                 return Optional.empty();
         }
         // Unreachable normally
-        return makeError(node.getLocation() + "This is not a unary operation: " + op);
+        throw new IllegalArgumentException("This is not a supported unary operation: " + op);
     }
 
     public static Type getUnaryType(Operation op) {
@@ -116,7 +116,7 @@ public class TypeChecker {
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
         // Unreachable normally
-        return makeError(node.getLocation() + "This is not a supported n-ary operation: " + op);
+        throw new IllegalArgumentException("This is not a supported n-ary operation: " + op);
     }
 
     public static Type getNAryType(List<Type> types, Operation op) {
@@ -294,7 +294,7 @@ public class TypeChecker {
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
         // Unreachable normally
-        return makeError(node.getLocation() + "This is not a binary operation: " + op);
+        throw new IllegalArgumentException("This is not a supported binary operation: " + op);
     }
 
     public static Type getBinaryType(Type leftType, Type rightType, Operation op) {
@@ -353,7 +353,7 @@ public class TypeChecker {
     }
 
     private static Optional<List<BulletError>> makeError(String message) {
-        return Optional.of(Collections.singletonList(new BulletError(message, "")));
+        return Optional.of(Collections.singletonList(new BulletError(message, Collections.emptyList())));
     }
 
     private static boolean isComplex(Type type) {

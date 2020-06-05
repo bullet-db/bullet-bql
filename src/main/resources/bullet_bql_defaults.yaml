@@ -1,0 +1,2 @@
+# The max acceptable length of a bql query. Defaults to infinity
+bullet.bql.max.query.length:

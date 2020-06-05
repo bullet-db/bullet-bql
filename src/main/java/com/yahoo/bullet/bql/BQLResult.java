@@ -14,10 +14,12 @@ import java.util.List;
 @Getter
 public class BQLResult {
     private Query query;
+    private String bql;
     private List<BulletError> errors;
 
-    BQLResult(Query query) {
+    BQLResult(Query query, String bql) {
         this.query = query;
+        this.bql = bql;
     }
 
     BQLResult(List<BulletError> errors) {

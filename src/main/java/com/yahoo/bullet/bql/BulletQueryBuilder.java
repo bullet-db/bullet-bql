@@ -5,8 +5,6 @@
  */
 package com.yahoo.bullet.bql;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.query.QueryProcessor;
@@ -14,24 +12,25 @@ import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.query.QueryValidator;
 import com.yahoo.bullet.bql.tree.QueryNode;
+import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.common.BulletException;
+import com.yahoo.bullet.common.Utilities;
 import com.yahoo.bullet.query.Query;
 import com.yahoo.bullet.typesystem.Schema;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 public class BulletQueryBuilder {
-    private static final Gson GSON = new GsonBuilder().create();
     private final QueryProcessor queryProcessor = new QueryProcessor();
     private final BQLParser bqlParser = new BQLParser();
     private final BQLConfig config;
     private final Schema schema;
+    private final int maxQueryLength;
 
     /**
      * Constructor that initializes a BulletQueryBuilder.
@@ -41,6 +40,7 @@ public class BulletQueryBuilder {
     public BulletQueryBuilder(BulletConfig bulletConfig) {
         config = new BQLConfig(bulletConfig);
         schema = config.getSchema();
+        maxQueryLength = config.getAs(BQLConfig.BQL_MAX_QUERY_LENGTH, Integer.class);
     }
 
     /**
@@ -50,29 +50,35 @@ public class BulletQueryBuilder {
      * @return A {@link BQLResult}.
      */
     public BQLResult buildQuery(String bql) {
+        if (Utilities.isEmpty(bql)) {
+            return makeBQLResultError("The given BQL query is empty.", "Please specify a non-empty query.");
+        }
+        if (bql.length() > maxQueryLength) {
+            return makeBQLResultError("The given BQL string is too long. (" + bql.length() + " characters)",
+                                      "Please reduce the length of the query to at most " + maxQueryLength + " characters.");
+        }
         try {
-            Objects.requireNonNull(bql);
-
-            // Parse BQL to node tree.
+            // Parse BQL into node tree
             QueryNode queryNode = bqlParser.createQueryNode(bql);
 
+            // Parse node tree into query components
             ProcessedQuery processedQuery = queryProcessor.process(queryNode);
-
             if (!processedQuery.getErrors().isEmpty()) {
                 return new BQLResult(processedQuery.getErrors());
             }
 
+            // Build query from query components
             Query query = QueryExtractor.extractQuery(processedQuery);
-
             query.configure(config);
 
+            // Check query and type semantics
             List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
             if (!errors.isEmpty()) {
                 return new BQLResult(errors);
             }
-            return new BQLResult(query);
+            return new BQLResult(query, ExpressionFormatter.format(queryNode, true));
         } catch (BulletException e) {
-            return new BQLResult(Collections.singletonList(e.getError()));
+            return makeBQLResultError(e.getError());
         } catch (ParsingException e) {
             return makeBQLResultError(e.getMessage(), "This is a parsing error.");
         } catch (Exception e) {
@@ -80,17 +86,11 @@ public class BulletQueryBuilder {
         }
     }
 
-    /**
-     * Build a JSON from a {@link Query}.
-     *
-     * @param query A {@link Query}.
-     * @return A JSON String.
-     */
-    public String toJson(Query query) {
-        return GSON.toJson(query);
+    private BQLResult makeBQLResultError(BulletError error) {
+        return new BQLResult(Collections.singletonList(error));
     }
 
     private BQLResult makeBQLResultError(String error, String resolution) {
-        return new BQLResult(Collections.singletonList(new BulletError(error, resolution)));
+        return makeBQLResultError(new BulletError(error, resolution));
     }
 }

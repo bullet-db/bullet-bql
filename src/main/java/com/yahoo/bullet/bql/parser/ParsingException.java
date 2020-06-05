@@ -43,6 +43,6 @@ public class ParsingException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return format("Line %s:%s: %s", line, charPositionInLine + 1, super.getMessage());
+        return format("%s:%s: %s", line, charPositionInLine + 1, super.getMessage());
     }
 }

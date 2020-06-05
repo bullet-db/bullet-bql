@@ -21,6 +21,6 @@ public final class NodeLocation {
 
     @Override
     public String toString() {
-        return format("Line %s:%s: ", line, charPositionInLine + 1);
+        return format("%s:%s: ", line, charPositionInLine + 1);
     }
 }

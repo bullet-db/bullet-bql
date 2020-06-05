@@ -5,6 +5,10 @@
  */
 package com.yahoo.bullet.bql;
 
+import com.yahoo.bullet.query.Projection;
+import com.yahoo.bullet.query.Query;
+import com.yahoo.bullet.query.Window;
+import com.yahoo.bullet.query.aggregations.Raw;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
@@ -39,7 +43,7 @@ public class BulletBQLTest {
 
         String content = out.toString();
 
-        Assert.assertTrue(content.startsWith("{\"projection\":{\"type\":\"PASS_THROUGH\"},\"aggregation\":{\"size\":500,\"type\":\"RAW\"},\"window\":{},\"duration\":9223372036854775807}\n"));
+        Assert.assertTrue(content.startsWith("{projection: {fields: null, type: PASS_THROUGH}, filter: null, aggregation: {size: 500, type: RAW}, postAggregations: null, window: {emitEvery: null, emitType: null, includeType: null, includeFirst: null}, duration: 9223372036854775807}\n"));
         Assert.assertTrue(content.contains("error: Query does not match exactly one query type"));
     }
 

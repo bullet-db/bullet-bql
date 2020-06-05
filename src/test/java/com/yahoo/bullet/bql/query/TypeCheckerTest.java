@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
@@ -13,17 +12,12 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 public class TypeCheckerTest {
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported unary operation: \\+")
     public void testValidateUnaryTypeNotUnary() {
         // coverage
-        Optional<List<BulletError>> errors = TypeChecker.validateUnaryType(null, null, Operation.ADD);
-        Assert.assertTrue(errors.isPresent());
-        Assert.assertEquals(errors.get().get(0).getError(), "This is not a unary operation: +");
-        Assert.assertEquals(errors.get().size(), 1);
+        TypeChecker.validateUnaryType(null, null, Operation.ADD);
     }
 
     @Test
@@ -32,13 +26,10 @@ public class TypeCheckerTest {
         Assert.assertEquals(TypeChecker.getUnaryType(Operation.ADD), Type.UNKNOWN);
     }
 
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported n-ary operation: \\+")
     public void testValidateNAryTypeNotNAry() {
         // coverage
-        Optional<List<BulletError>> errors = TypeChecker.validateNAryType(null, Collections.emptyList(), Operation.ADD);
-        Assert.assertTrue(errors.isPresent());
-        Assert.assertEquals(errors.get().get(0).getError(), "This is not a supported n-ary operation: +");
-        Assert.assertEquals(errors.get().size(), 1);
+        TypeChecker.validateNAryType(null, Collections.emptyList(), Operation.ADD);
     }
 
     @Test
@@ -53,13 +44,10 @@ public class TypeCheckerTest {
         Assert.assertEquals(TypeChecker.getAggregateType(null, GroupOperation.GroupOperationType.COUNT), Type.UNKNOWN);
     }
 
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported binary operation: NOT")
     public void testValidateBinaryTypeNotBinary() {
         // coverage
-        Optional<List<BulletError>> errors = TypeChecker.validateBinaryType(null, null, null, Operation.NOT);
-        Assert.assertTrue(errors.isPresent());
-        Assert.assertEquals(errors.get().get(0).getError(), "This is not a binary operation: NOT");
-        Assert.assertEquals(errors.get().size(), 1);
+        TypeChecker.validateBinaryType(null, null, null, Operation.NOT);
     }
 
     @Test

@@ -39,7 +39,7 @@ public class BulletBQL {
                     continue;
                 }
                 Query query = result.getQuery();
-                System.out.println(builder.toJson(query));
+                System.out.println(query);
             } catch (Exception e) {
                 e.printStackTrace();
             }
