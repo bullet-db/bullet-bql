@@ -5,10 +5,6 @@
  */
 package com.yahoo.bullet.bql;
 
-import com.yahoo.bullet.query.Projection;
-import com.yahoo.bullet.query.Query;
-import com.yahoo.bullet.query.Window;
-import com.yahoo.bullet.query.aggregations.Raw;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
