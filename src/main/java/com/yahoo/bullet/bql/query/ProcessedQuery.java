@@ -23,6 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -107,22 +108,23 @@ public class ProcessedQuery {
             errors.add(new BulletError("Cannot have multiple top k.", "Please specify only one top k."));
         }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
-            errors.add(new BulletError("Aggregates cannot be nested.", ""));
+            errors.add(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates."));
         }
         if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Distributions cannot be treated as values.", ""));
+            errors.add(new BulletError("Distributions cannot be treated as values.", "Consider using the resulting distribution fields instead."));
         }
         if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Top k cannot be treated as a value.", ""));
+            errors.add(new BulletError("Top k cannot be treated as a value.", "Consider using the resulting top k count field instead."));
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
             errors.add(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."));
         }
         if (groupByNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
-            errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", ""));
+            errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause."));
         }
         if (havingNode != null && groupByNodes.isEmpty()) {
-            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", ""));
+            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", Arrays.asList("Please remove the HAVING clause.",
+                                                                                                              "Consider using a WHERE clause instead.")));
         }
         if (limit != null && limit <= 0) {
             errors.add(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));

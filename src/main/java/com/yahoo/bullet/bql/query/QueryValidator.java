@@ -33,7 +33,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 /**
  *
  *
@@ -66,12 +65,6 @@ public class QueryValidator {
     }
 
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
-        boolean noSchema = baseSchema == null;
-        if (baseSchema == null) {
-
-        }
-
-
         LayeredSchema schema = new LayeredSchema(baseSchema);
         ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery, schema);
 
@@ -108,7 +101,7 @@ public class QueryValidator {
             // Primitives only
             for (ExpressionNode node : selectItems) {
                 Type type = processedQuery.getPreAggregationMapping().get(node).getType();
-                if (!Type.isPrimitive(type)) {
+                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
                     processedQuery.getErrors().add(new BulletError("The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
                                                                    "Please specify primitive fields only for SELECT DISTINCT."));
                 }
@@ -119,7 +112,7 @@ public class QueryValidator {
             // Primitives only
             for (ExpressionNode node : processedQuery.getGroupByNodes()) {
                 Type type = processedQuery.getPreAggregationMapping().get(node).getType();
-                if (!Type.isPrimitive(type)) {
+                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
                     processedQuery.getErrors().add(new BulletError("The GROUP BY field " + node + " is non-primitive. Type given: " + type,
                                                                    "Please specify primitive fields only for GROUP BY."));
                 }

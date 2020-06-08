@@ -22,6 +22,9 @@ public class LayeredSchema {
     }
 
     public Type getType(String field) {
+        if (schema == null) {
+            return Type.UNKNOWN;
+        }
         Type type = schema.getType(field);
         if (type != Type.NULL) {
             return type;

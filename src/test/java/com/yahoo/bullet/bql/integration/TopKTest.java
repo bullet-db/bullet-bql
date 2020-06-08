@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.integration;
 
 import com.yahoo.bullet.bql.extractor.AggregationExtractor;
@@ -124,7 +129,7 @@ public class TopKTest extends IntegrationTest {
 
     @Test
     public void testTopKWithAdditionalFields() {
-        build("SELECT TOP(10, abc, def + 5), abc + 5, COUNT + 5 FROM STREAM()");
+        build("SELECT TOP(10, abc, def + 5), abc + 5, count + 5 FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 2);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", field("abc", Type.INTEGER)));
         Assert.assertEquals(query.getProjection().getFields().get(1), new Field("def + 5", binary(field("def", Type.FLOAT),
@@ -153,7 +158,7 @@ public class TopKTest extends IntegrationTest {
                                                                                         value(5),
                                                                                         Operation.ADD,
                                                                                         Type.INTEGER)));
-        Assert.assertEquals(computation.getFields().get(1), new Field("COUNT + 5", binary(field("COUNT", Type.LONG),
+        Assert.assertEquals(computation.getFields().get(1), new Field("count + 5", binary(field("count", Type.LONG),
                                                                                           value(5),
                                                                                           Operation.ADD,
                                                                                           Type.LONG)));

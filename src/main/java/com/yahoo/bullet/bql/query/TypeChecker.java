@@ -352,8 +352,12 @@ public class TypeChecker {
         return Optional.of(Collections.emptyList());
     }
 
+    private static BulletError makeErrorOnly(String message) {
+        return new BulletError(message, (List<String>) null);
+    }
+
     private static Optional<List<BulletError>> makeError(String message) {
-        return Optional.of(Collections.singletonList(new BulletError(message, Collections.emptyList())));
+        return Optional.of(Collections.singletonList(makeErrorOnly(message)));
     }
 
     private static boolean isComplex(Type type) {

@@ -38,7 +38,7 @@ import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.Gro
 
 @Slf4j
 public class AggregationExtractor {
-    public static final String DEFAULT_TOP_K_NAME = "COUNT";
+    public static final String DEFAULT_TOP_K_NAME = "count";
 
     static Aggregation extractAggregation(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {
@@ -144,7 +144,9 @@ public class AggregationExtractor {
     }
 
     private static <T> BinaryOperator<T> throwingMerger() {
-        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
+        return (u, v) -> {
+            throw new IllegalStateException(String.format("Duplicate key %s", u));
+        };
     }
 
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {

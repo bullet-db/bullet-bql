@@ -71,6 +71,15 @@ public class BulletQueryBuilderTest {
     }
 
     @Test
+    public void testMultiLineParsingException() {
+        BQLResult result = builder.buildQuery("SELECT * FROM STREAM();\n\n\n ;");
+        Assert.assertTrue(result.hasErrors());
+        Assert.assertEquals(result.getErrors().size(), 1);
+        Assert.assertEquals(result.getErrors().get(0).getError(), "4:2: extraneous input ';' expecting <EOF>");
+        Assert.assertEquals(result.getErrors().get(0).getResolutions(), Collections.singletonList("This is a parsing error."));
+    }
+
+    @Test
     public void testBulletException() {
         BQLResult result = builder.buildQuery("SELECT QUANTILE(abc, LINEAR, 0) FROM STREAM()");
         Assert.assertTrue(result.hasErrors());

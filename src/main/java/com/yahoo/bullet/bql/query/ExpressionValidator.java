@@ -74,7 +74,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
             if (expression.getType() != null) {
                 return expression.getType();
             }
-            // Aggregate to field expression mapping; guaranteed to be a simple field that exists in the schema
+            // Aggregate (i.e. not a FieldExpressionNode) to field expression mapping; guaranteed to be a simple field that exists in the schema
             if (expression instanceof FieldExpression) {
                 FieldExpression fieldExpression = (FieldExpression) expression;
                 Type type = schema.getType(fieldExpression.getField());

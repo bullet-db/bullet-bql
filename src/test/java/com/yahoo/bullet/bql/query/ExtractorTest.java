@@ -15,7 +15,7 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-// Has miscellaneous tests for now
+// Miscellaneous extractor tests
 public class ExtractorTest {
     @Test
     public void testConstructors() {
