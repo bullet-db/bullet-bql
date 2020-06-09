@@ -34,9 +34,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
+ * The validator processes the types for all expressions in a query and checks if they're semantically valid, e.g.
+ * a WHERE clause or HAVING clause should have an expression that can be casted to BOOLEAN. The validator also checks
+ * for duplicate fields, so a query that clobbers its fields with aliases is invalid.
  *
+ * Note: If no schema given to the validator, most expressions will be processed as type UNKNOWN, which vacuously
+ * passes through checks.
  *
- * RAW PASS_THROUGH queries pass Bullet records as is through projection and aggregation. This means that BQL
+ * Note: RAW PASS_THROUGH queries pass Bullet records as is through projection and aggregation. This means that BQL
  * should not generate post-aggregations such as computation and culling for these queries as these can modify
  * records.
  *

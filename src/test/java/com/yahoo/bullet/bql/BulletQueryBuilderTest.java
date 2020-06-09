@@ -7,6 +7,8 @@ package com.yahoo.bullet.bql;
 
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.common.BulletConfig;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.typesystem.Type;
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -59,6 +61,17 @@ public class BulletQueryBuilderTest {
         Assert.assertFalse(result.hasErrors());
         Assert.assertNotNull(result.getQuery());
         Assert.assertEquals(result.getBql(), "SELECT * FROM STREAM()");
+    }
+
+    @Test
+    public void testBQLNoSchema() {
+        BQLResult result = builder.buildQuery("SELECT foo FROM STREAM()");
+        Assert.assertFalse(result.hasErrors());
+        Assert.assertNotNull(result.getQuery());
+        Assert.assertEquals(result.getBql(), "SELECT foo FROM STREAM()");
+
+        Expression expression = result.getQuery().getProjection().getFields().get(0).getValue();
+        Assert.assertEquals(expression.getType(), Type.UNKNOWN);
     }
 
     @Test
