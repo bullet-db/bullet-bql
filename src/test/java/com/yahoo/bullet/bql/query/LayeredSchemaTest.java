@@ -36,13 +36,15 @@ public class LayeredSchemaTest {
     @Test
     public void testAddLayer() {
         LayeredSchema schema = new LayeredSchema(baseSchema);
-        Assert.assertEquals(schema.getType("def"), Type.NULL);
+        Assert.assertEquals(schema.getType("foo"), Type.NULL);
+        Assert.assertEquals(schema.getType("bar"), Type.NULL);
 
         Schema newSchema = new Schema();
-        newSchema.addField("def", Type.FLOAT);
+        newSchema.addField("foo", Type.FLOAT);
 
         schema.addLayer(newSchema);
-        Assert.assertEquals(schema.getType("def"), Type.FLOAT);
+        Assert.assertEquals(schema.getType("foo"), Type.FLOAT);
+        Assert.assertEquals(schema.getType("bar"), Type.NULL);
     }
 
     @Test
