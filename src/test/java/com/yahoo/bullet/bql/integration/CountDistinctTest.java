@@ -23,7 +23,7 @@ import static com.yahoo.bullet.bql.util.QueryUtil.field;
 import static com.yahoo.bullet.bql.util.QueryUtil.value;
 
 public class CountDistinctTest extends IntegrationTest {
-     @Test
+    @Test
     public void testCountDistinct() {
         build("SELECT COUNT(DISTINCT abc) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);

@@ -23,6 +23,7 @@ public class LayeredSchema {
 
     public Type getType(String field) {
         if (schema == null) {
+            // If the schema is null, ignore the subschema and just return Type.UNKNOWN
             return Type.UNKNOWN;
         }
         Type type = schema.getType(field);
