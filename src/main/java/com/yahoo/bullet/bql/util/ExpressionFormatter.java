@@ -40,6 +40,7 @@ import com.yahoo.bullet.query.Window;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import lombok.AllArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -263,12 +264,16 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitLiteral(LiteralNode node, Void context) {
-            Object value = node.getValue();
+            Serializable value = node.getValue();
             if (value == null) {
                 return "NULL";
             }
             if (value instanceof String) {
                 return formatStringLiteral((String) value, withFormat);
+            } else if (value instanceof Long) {
+                return value + "L";
+            } else if (value instanceof Float) {
+                return value + "f";
             }
             return value.toString();
         }

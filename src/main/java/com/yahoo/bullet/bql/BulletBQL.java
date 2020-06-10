@@ -6,7 +6,6 @@
 package com.yahoo.bullet.bql;
 
 import com.yahoo.bullet.common.BulletConfig;
-import com.yahoo.bullet.query.Query;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
@@ -38,8 +37,8 @@ public class BulletBQL {
                     System.out.println(result.getErrors());
                     continue;
                 }
-                Query query = result.getQuery();
-                System.out.println(query);
+                System.out.println(result.getQuery());
+                System.out.println(result.getBql());
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -188,16 +188,13 @@ public class TypeChecker {
             case MUL:
             case DIV:
                 if (!Type.isNumeric(leftType) || !Type.isNumeric(rightType)) {
-                    return makeError(node, "The left and right operands in " + node + " must be numbers. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, "The left and right operands in " + node + " must be numeric. Types given: " + leftType + ", " + rightType);
                 }
                 return Optional.empty();
             case EQUALS:
             case NOT_EQUALS:
-                if (Type.isNumeric(leftType) && Type.isNumeric(rightType)) {
-                    return Optional.empty();
-                }
-                if (leftType != rightType) {
-                    return makeError(node, "The left and right operands in " + node + " must be comparable or have the same type. Types given: " + leftType + ", " + rightType);
+                if (!Type.canCompare(leftType, rightType)) {
+                    return makeError(node, "The left and right operands in " + node + " must be comparable. Types given: " + leftType + ", " + rightType);
                 }
                 return Optional.empty();
             case EQUALS_ANY:
@@ -207,11 +204,8 @@ public class TypeChecker {
                 if (!Type.isList(rightType)) {
                     return makeError(node, "The right operand in " + node + " must be some LIST. Type given: " + rightType);
                 }
-                if (Type.isNumeric(leftType) && Type.isNumeric(rightType.getSubType())) {
-                    return Optional.empty();
-                }
-                if (leftType != rightType.getSubType()) {
-                    return makeError(node, "The type of the left operand and the subtype of the right operand in " + node + " must be comparable or the same. Types given: " + leftType + ", " + rightType);
+                if (!Type.canCompare(leftType, rightType.getSubType())) {
+                    return makeError(node, "The type of the left operand and the subtype of the right operand in " + node + " must be comparable. Types given: " + leftType + ", " + rightType);
                 }
                 return Optional.empty();
             case GREATER_THAN:
