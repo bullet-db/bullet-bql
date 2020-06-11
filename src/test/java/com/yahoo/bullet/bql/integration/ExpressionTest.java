@@ -220,17 +220,17 @@ public class ExpressionTest extends IntegrationTest {
 
     @Test
     public void testBinaryOperationsMisc() {
-        build("SELECT RLIKE(c, 'abc'), RLIKEANY(c, ['abc']), SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), " +
+        build("SELECT c RLIKE 'abc', c RLIKE ANY ['abc'], SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), " +
               "'abc' IN aaa, FILTER(aaa, [true, false]), b AND true, b OR false, b XOR true FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 10);
-        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("RLIKE(c, 'abc')", binary(field("c", Type.STRING),
-                                                                                                          value("abc"),
-                                                                                                          Operation.REGEX_LIKE,
-                                                                                                          Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("RLIKEANY(c, ['abc'])", binary(field("c", Type.STRING),
-                                                                                                               list(Type.STRING_LIST, value("abc")),
-                                                                                                               Operation.REGEX_LIKE_ANY,
-                                                                                                               Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("c RLIKE 'abc'", binary(field("c", Type.STRING),
+                                                                                                        value("abc"),
+                                                                                                        Operation.REGEX_LIKE,
+                                                                                                        Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("c RLIKE ANY ['abc']", binary(field("c", Type.STRING),
+                                                                                                             list(Type.STRING_LIST, value("abc")),
+                                                                                                             Operation.REGEX_LIKE_ANY,
+                                                                                                             Type.BOOLEAN)));
         Assert.assertEquals(query.getProjection().getFields().get(2), new Field("SIZEIS(c, 5)", binary(field("c", Type.STRING),
                                                                                                        value(5),
                                                                                                        Operation.SIZE_IS,

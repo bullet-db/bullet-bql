@@ -36,7 +36,8 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <bullet.core.version>1.0.0-SNAPSHOT</bullet.core.version>
+        <bullet.core.version>1.0.0</bullet.core.version>
+        <bullet.record.version>1.0.0</bullet.record.version>
         <air.main.basedir>${project.basedir}</air.main.basedir>
     </properties>
 
@@ -50,6 +51,11 @@
             <groupId>com.yahoo.bullet</groupId>
             <artifactId>bullet-core</artifactId>
             <version>${bullet.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.bullet</groupId>
+            <artifactId>bullet-record</artifactId>
+            <version>${bullet.record.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>

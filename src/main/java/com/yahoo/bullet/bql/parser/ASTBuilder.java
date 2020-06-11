@@ -334,8 +334,6 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.LESS_THAN_OR_EQUALS;
             case BQLBaseLexer.RLIKE:
                 return Operation.REGEX_LIKE;
-            case BQLBaseLexer.RLIKEANY:
-                return Operation.REGEX_LIKE_ANY;
             case BQLBaseLexer.SIZEIS:
                 return Operation.SIZE_IS;
             case BQLBaseLexer.CONTAINSKEY:
@@ -380,6 +378,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                     return Operation.GREATER_THAN_OR_EQUALS_ANY;
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ANY;
+                case BQLBaseLexer.RLIKE:
+                    return Operation.REGEX_LIKE_ANY;
             }
         } else if (modifier.getType() == BQLBaseLexer.ALL) {
             switch (op.getType()) {

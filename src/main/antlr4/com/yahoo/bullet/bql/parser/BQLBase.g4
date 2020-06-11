@@ -66,6 +66,7 @@ expression
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
     | left=expression op=IN right=expression                                                                            #infix
+    | left=expression op=RLIKE modifier=ANY? right=expression                                                           #infix
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
@@ -221,7 +222,6 @@ SUM: 'SUM';
 AVG: 'AVG';
 MIN: 'MIN';
 RLIKE: 'RLIKE';
-RLIKEANY: 'RLIKEANY';
 SIZEIS: 'SIZEIS';
 FILTER: 'FILTER';
 IF: 'IF';
