@@ -38,7 +38,7 @@ import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.Gro
 
 @Slf4j
 public class AggregationExtractor {
-    public static final String DEFAULT_TOP_K_NAME = "count";
+    public static final String DEFAULT_TOP_K_NAME = "Count";
 
     static Aggregation extractAggregation(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {

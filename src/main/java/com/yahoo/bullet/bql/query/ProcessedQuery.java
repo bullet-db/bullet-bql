@@ -39,13 +39,13 @@ import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.Gro
 @Getter
 public class ProcessedQuery {
     public enum QueryType {
-        TOP_K,
-        DISTRIBUTION,
-        COUNT_DISTINCT,
-        GROUP,
-        SELECT_DISTINCT,
-        SELECT_ALL,
         SELECT,
+        SELECT_ALL,
+        SELECT_DISTINCT,
+        GROUP,
+        COUNT_DISTINCT,
+        DISTRIBUTION,
+        TOP_K,
         SPECIAL_K,
         INVALID
     }
@@ -93,28 +93,32 @@ public class ProcessedQuery {
      */
     public ProcessedQuery validate() {
         if (queryTypeSet.size() != 1) {
-            errors.add(new BulletError("Query does not match exactly one query type: " + queryTypeSet, "Please specify a valid query."));
+            errors.add(new BulletError("Query does not match exactly one query type: " + queryTypeSet.stream().sorted().collect(Collectors.toList()),
+                                       "Please specify a valid query."));
         }
         if (aliases.values().contains("")) {
-            errors.add(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string as the alias."));
+            errors.add(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."));
         }
         if (countDistinctNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple count distincts.", "Please specify only one count distinct."));
+            errors.add(new BulletError("Cannot have multiple COUNT DISTINCT.", "Please specify only one COUNT DISTINCT."));
         }
         if (distributionNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple distributions.", "Please specify only one distribution."));
+            errors.add(new BulletError("Cannot have multiple distribution functions.", "Please specify only one distribution function."));
         }
         if (topKNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple top k.", "Please specify only one top k."));
+            errors.add(new BulletError("Cannot have multiple TOP functions.", "Please specify only one TOP function."));
         }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
             errors.add(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates."));
         }
         if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Distributions cannot be treated as values.", "Consider using the resulting distribution fields instead."));
+            errors.add(new BulletError("Distribution functions cannot be treated as values.", Arrays.asList("Please consider using the distribution's output fields instead.",
+                                                                                                            "For QUANTILE, the output fields are: [\"Value\", \"Quantile\"].",
+                                                                                                            "For FREQ and CUMFREQ, the output fields are: [\"Probability\", \"Count\", \"Quantile\"].")));
         }
         if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Top k cannot be treated as a value.", "Consider using the resulting top k count field instead."));
+            errors.add(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
+                                                                                                   "The output field can also be renamed by selecting TOP with an alias.")));
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
             errors.add(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."));
@@ -131,18 +135,18 @@ public class ProcessedQuery {
         }
         if (!countDistinctNodes.isEmpty()) {
             if (!orderByNodes.isEmpty()) {
-                errors.add(new BulletError("ORDER BY clause is not supported for queries with count distinct.", "Please remove the ORDER BY clause."));
+                errors.add(new BulletError("ORDER BY clause is not supported for queries with COUNT DISTINCT.", "Please remove the ORDER BY clause."));
             }
             if (limit != null) {
-                errors.add(new BulletError("LIMIT clause is not supported for queries with count distinct.", "Please remove the LIMIT clause."));
+                errors.add(new BulletError("LIMIT clause is not supported for queries with COUNT DISTINCT.", "Please remove the LIMIT clause."));
             }
         }
         if (!topKNodes.isEmpty()) {
             if (!orderByNodes.isEmpty()) {
-                errors.add(new BulletError("ORDER BY clause is not supported for queries with top k.", "Please remove the ORDER BY clause."));
+                errors.add(new BulletError("ORDER BY clause is not supported for queries with a TOP function.", "Please remove the ORDER BY clause."));
             }
             if (limit != null) {
-                errors.add(new BulletError("LIMIT clause is not supported for queries with top k.", "Please remove the LIMIT clause."));
+                errors.add(new BulletError("LIMIT clause is not supported for queries with a TOP function.", "Please remove the LIMIT clause."));
             }
         }
         if (isSpecialK()) {

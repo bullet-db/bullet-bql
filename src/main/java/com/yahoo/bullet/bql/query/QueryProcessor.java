@@ -33,6 +33,8 @@ import com.yahoo.bullet.bql.tree.WindowNode;
 import java.util.Arrays;
 
 public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, ProcessedQuery> {
+    private static final String MAX = "MAX";
+
     @Override
     public ProcessedQuery process(Node node) {
         return process(node, new ProcessedQuery());
@@ -83,7 +85,7 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitStream(StreamNode node, ProcessedQuery context) {
         String timeDuration = node.getTimeDuration();
         if (timeDuration != null) {
-            context.setTimeDuration(timeDuration.equalsIgnoreCase("MAX") ? Long.MAX_VALUE : Long.parseLong(timeDuration));
+            context.setTimeDuration(timeDuration.equalsIgnoreCase(MAX) ? Long.MAX_VALUE : Long.parseLong(timeDuration));
         }
         return context;
     }

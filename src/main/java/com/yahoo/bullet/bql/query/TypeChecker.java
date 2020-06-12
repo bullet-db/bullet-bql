@@ -101,7 +101,7 @@ public class TypeChecker {
                 return Type.INTEGER;
         }
         // Unreachable normally
-        return Type.UNKNOWN;
+        throw new IllegalArgumentException("This is not a supported unary operation: " + op);
     }
 
     public static Optional<List<BulletError>> validateNAryType(NAryExpressionNode node, List<Type> types, Operation op) {
@@ -131,7 +131,7 @@ public class TypeChecker {
                 return types.get(1);
         }
         // Unreachable normally
-        return Type.UNKNOWN;
+        throw new IllegalArgumentException("This is not a supported n-ary operation: " + op);
     }
 
     public static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Type type) {
@@ -164,7 +164,7 @@ public class TypeChecker {
                 return Type.DOUBLE;
         }
         // Unreachable normally
-        return Type.UNKNOWN;
+        throw new IllegalArgumentException("This is not a supported group operation: " + op);
     }
 
     public static Optional<List<BulletError>> validateCastType(CastExpressionNode node, Type type, Type castType) {
@@ -360,7 +360,7 @@ public class TypeChecker {
                 return leftType;
         }
         // Unreachable normally
-        return Type.UNKNOWN;
+        throw new IllegalArgumentException("This is not a supported binary operation: " + op);
     }
 
     // This is a static method and not a constant because a static final Optional is semantically inappropriate

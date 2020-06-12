@@ -28,6 +28,12 @@ public class SelectTest extends IntegrationTest {
 
     @Test
     public void testWhere() {
+        build("SELECT * FROM STREAM() WHERE b");
+        Assert.assertEquals(query.getFilter(), field("b", Type.BOOLEAN));
+    }
+
+    @Test
+    public void testWhereCastable() {
         build("SELECT * FROM STREAM() WHERE abc");
         Assert.assertEquals(query.getFilter(), field("abc", Type.INTEGER));
     }

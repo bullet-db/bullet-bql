@@ -107,7 +107,7 @@ unaryExpression
     ;
 
 functionExpression
-    : op=(RLIKE | RLIKEANY | SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
+    : op=(SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
       '(' left=expression ',' right=expression ')'                                                                      #binary
     | op=IF '(' expressions ')'                                                                                         #nAry
     | aggregateExpression                                                                                               #aggregate

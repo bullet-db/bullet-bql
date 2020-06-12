@@ -181,7 +181,7 @@ public final class ExpressionFormatter {
             if (node.getOp() == GroupOperation.GroupOperationType.COUNT) {
                 return "COUNT(*)";
             }
-            return node.getOp().getName() + "(" + process(node.getExpression()) + ")";
+            return node.getOp() + "(" + process(node.getExpression()) + ")";
         }
 
         @Override
