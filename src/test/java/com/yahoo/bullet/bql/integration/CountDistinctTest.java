@@ -126,21 +126,21 @@ public class CountDistinctTest extends IntegrationTest {
     @Test
     public void testCountDistinctMultipleNotAllowed() {
         build("SELECT COUNT(DISTINCT abc), COUNT(DISTINCT def) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have multiple count distincts.");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot have multiple COUNT DISTINCT.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testCountDistinctLimitNotAllowed() {
         build("SELECT COUNT(DISTINCT abc) FROM STREAM() LIMIT 10");
-        Assert.assertEquals(errors.get(0).getError(), "LIMIT clause is not supported for queries with count distinct.");
+        Assert.assertEquals(errors.get(0).getError(), "LIMIT clause is not supported for queries with COUNT DISTINCT.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testCountDistinctOrderByNotAllowed() {
         build("SELECT COUNT(DISTINCT abc) FROM STREAM() ORDER BY COUNT(DISTINCT abc)");
-        Assert.assertEquals(errors.get(0).getError(), "ORDER BY clause is not supported for queries with count distinct.");
+        Assert.assertEquals(errors.get(0).getError(), "ORDER BY clause is not supported for queries with COUNT DISTINCT.");
         Assert.assertEquals(errors.size(), 1);
     }
 }

@@ -57,28 +57,28 @@ public class TopKTest extends IntegrationTest {
     @Test
     public void testTopKMultipleNotAllowed() {
         build("SELECT TOP(10, abc), TOP(10, def) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have multiple top k.");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot have multiple TOP functions.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testTopKAsValueNotAllowed() {
         build("SELECT TOP(10, abc) + 5 FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Top k cannot be treated as a value.");
+        Assert.assertEquals(errors.get(0).getError(), "TOP function cannot be treated as a value.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testTopKLimitNotAllowed() {
         build("SELECT TOP(10, abc) FROM STREAM() LIMIT 10");
-        Assert.assertEquals(errors.get(0).getError(), "LIMIT clause is not supported for queries with top k.");
+        Assert.assertEquals(errors.get(0).getError(), "LIMIT clause is not supported for queries with a TOP function.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testTopKOrderByNotAllowed() {
         build("SELECT TOP(10, abc) FROM STREAM() ORDER BY abc");
-        Assert.assertEquals(errors.get(0).getError(), "ORDER BY clause is not supported for queries with top k.");
+        Assert.assertEquals(errors.get(0).getError(), "ORDER BY clause is not supported for queries with a TOP function.");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -129,7 +129,7 @@ public class TopKTest extends IntegrationTest {
 
     @Test
     public void testTopKWithAdditionalFields() {
-        build("SELECT TOP(10, abc, def + 5), abc + 5, count + 5 FROM STREAM()");
+        build("SELECT TOP(10, abc, def + 5), abc + 5, Count + 5 FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 2);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", field("abc", Type.INTEGER)));
         Assert.assertEquals(query.getProjection().getFields().get(1), new Field("def + 5", binary(field("def", Type.FLOAT),
@@ -158,7 +158,7 @@ public class TopKTest extends IntegrationTest {
                                                                                         value(5),
                                                                                         Operation.ADD,
                                                                                         Type.INTEGER)));
-        Assert.assertEquals(computation.getFields().get(1), new Field("count + 5", binary(field("count", Type.LONG),
+        Assert.assertEquals(computation.getFields().get(1), new Field("Count + 5", binary(field("Count", Type.LONG),
                                                                                           value(5),
                                                                                           Operation.ADD,
                                                                                           Type.LONG)));

@@ -20,7 +20,7 @@ public class TypeCheckerTest {
         TypeChecker.validateUnaryType(null, null, Operation.ADD);
     }
 
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported unary operation: \\+")
     public void testGetUnaryTypeNotUnary() {
         // coverage
         Assert.assertEquals(TypeChecker.getUnaryType(Operation.ADD), Type.UNKNOWN);
@@ -32,16 +32,16 @@ public class TypeCheckerTest {
         TypeChecker.validateNAryType(null, Collections.emptyList(), Operation.ADD);
     }
 
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported n-ary operation: \\+")
     public void testGetNAryTypeNotNAry() {
         // coverage
         Assert.assertEquals(TypeChecker.getNAryType(null, Operation.ADD), Type.UNKNOWN);
     }
 
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported group operation: COUNT")
     public void testGetAggregateType() {
         // coverage
-        Assert.assertEquals(TypeChecker.getAggregateType(null, GroupOperation.GroupOperationType.COUNT), Type.UNKNOWN);
+        TypeChecker.getAggregateType(null, GroupOperation.GroupOperationType.COUNT);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported binary operation: NOT")
@@ -65,9 +65,9 @@ public class TypeCheckerTest {
         Assert.assertEquals(TypeChecker.getBinaryType(Type.INTEGER, Type.INTEGER, Operation.ADD), Type.INTEGER);
     }
 
-    @Test
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported binary operation: NOT")
     public void testGetBinaryTypeNotBinary() {
         // coverage
-        Assert.assertEquals(TypeChecker.getBinaryType(null, null, Operation.NOT), Type.UNKNOWN);
+        TypeChecker.getBinaryType(null, null, Operation.NOT);
     }
 }

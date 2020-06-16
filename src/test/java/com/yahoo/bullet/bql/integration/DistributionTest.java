@@ -76,13 +76,13 @@ public class DistributionTest extends IntegrationTest {
     @Test
     public void testDistributionMultipleNotAllowed() {
         build("SELECT FREQ(abc, REGION, 2000, 20000, 500), CUMFREQ(abc, MANUAL, 20000, 2000, 15000, 45000) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have multiple distributions.");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot have multiple distribution functions.");
     }
 
     @Test
     public void testDistributionAsValueNotAllowed() {
         build("SELECT QUANTILE(abc, LINEAR, 11) + 5 FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Distributions cannot be treated as values.");
+        Assert.assertEquals(errors.get(0).getError(), "Distribution functions cannot be treated as values.");
     }
 
     @Test

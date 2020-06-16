@@ -113,8 +113,8 @@ public class ProcessedQuery {
         }
         if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
             errors.add(new BulletError("Distribution functions cannot be treated as values.", Arrays.asList("Please consider using the distribution's output fields instead.",
-                                                                                                            "For QUANTILE, the output fields are: [\"Value\", \"Quantile\"].",
-                                                                                                            "For FREQ and CUMFREQ, the output fields are: [\"Probability\", \"Count\", \"Quantile\"].")));
+                                                                                                            "For QUANTILE distributions, the output fields are: [\"Value\", \"Quantile\"].",
+                                                                                                            "For FREQ and CUMFREQ distributions, the output fields are: [\"Probability\", \"Count\", \"Quantile\"].")));
         }
         if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
             errors.add(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
@@ -127,8 +127,7 @@ public class ProcessedQuery {
             errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause."));
         }
         if (havingNode != null && groupByNodes.isEmpty()) {
-            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", Arrays.asList("Please remove the HAVING clause.",
-                                                                                                              "Consider using a WHERE clause instead.")));
+            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", "Please remove the HAVING clause, and consider using a WHERE clause instead."));
         }
         if (limit != null && limit <= 0) {
             errors.add(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));
