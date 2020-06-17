@@ -96,7 +96,7 @@ public class ProjectionExtractor {
 
     /*
     Project group by fields and any fields with aggregates (without their aliases since they'll be renamed in
-    the aggregation). We care about select or order by fields, since those are computed afterwards.
+    the aggregation). We don't care about select or order by fields, since those are computed afterwards.
     */
     private static Projection extractGroup(ProcessedQuery processedQuery) {
         // Project group by and aggregate fields (need to filter for non-null because COUNT(*) does not have a field)
