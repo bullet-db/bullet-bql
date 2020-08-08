@@ -9,28 +9,25 @@ import com.yahoo.bullet.bql.query.ExpressionProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.SelectItemNode;
-import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.postaggregations.Computation;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ComputationExtractor {
     static Computation extractComputation(ProcessedQuery processedQuery) {
         switch (processedQuery.getQueryType()) {
             case SELECT:
             case SELECT_ALL:
+            case SELECT_DISTINCT:
                 // No computations since everything is handled in the initial projection.
                 return null;
-            case SELECT_DISTINCT:
-                return extractDistinct(processedQuery);
             case GROUP:
             case COUNT_DISTINCT:
             case DISTRIBUTION:
@@ -43,31 +40,17 @@ public class ComputationExtractor {
     }
 
     /*
-    For SELECT DISTINCT, we only need to consider the computations in ORDER BY. Ignore any clauses that are just
-    simple field expressions or a repeat of a select field.
-    */
-    private static Computation extractDistinct(ProcessedQuery processedQuery) {
-        Set<ExpressionNode> expressions = processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression)
-                                                                                   .filter(processedQuery::isNotSimpleFieldExpression)
-                                                                                   .collect(Collectors.toSet());
-        processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).forEach(expressions::remove);
-        return getAliasedComputation(processedQuery, expressions);
-    }
-
-    /*
     For aggregates, we need to consider the computations in SELECT and ORDER BY. Ignore any clauses that are just
     simple field expressions, GROUP BY fields, or aggregates. (GROUP BY fields and aggregates are simple fields
     post-aggregation).
      */
     private static Computation extractAggregate(ProcessedQuery processedQuery) {
-        List<ExpressionNode> expressions =
-                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                      .filter(processedQuery::isNotGroupByNode)
-                      .filter(processedQuery::isNotSimpleFieldExpression)
-                      .filter(processedQuery::isNotAggregate)
-                      .distinct()
-                      .collect(Collectors.toList());
+        List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream()
+                                                                          .filter(processedQuery::isNotGroupByNode)
+                                                                          .filter(processedQuery::isNotSimpleFieldExpression)
+                                                                          .filter(processedQuery::isNotAggregate)
+                                                                          .distinct()
+                                                                          .collect(Collectors.toList());
         return getAliasedComputation(processedQuery, expressions);
     }
 
@@ -76,7 +59,7 @@ public class ComputationExtractor {
     aggregate fields.
     */
     private static Computation extractSpecialK(ProcessedQuery processedQuery) {
-        Set<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
+        Set<ExpressionNode> expressions = new HashSet<>(processedQuery.getSelectNodes());
         expressions.removeAll(processedQuery.getGroupByNodes());
         expressions.removeAll(processedQuery.getGroupOpNodes());
         return getAliasedComputation(processedQuery, expressions);

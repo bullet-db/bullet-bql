@@ -162,7 +162,7 @@ public class SpecialKTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "COUNT(*)");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("COUNT(*)", Type.LONG));
         Assert.assertEquals(orderBy.getFields().get(0).getDirection(), OrderBy.Direction.DESC);
     }
 

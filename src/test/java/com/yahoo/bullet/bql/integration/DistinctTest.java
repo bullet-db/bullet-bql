@@ -10,8 +10,6 @@ import com.yahoo.bullet.query.Projection;
 import com.yahoo.bullet.query.aggregations.AggregationType;
 import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.expressions.Operation;
-import com.yahoo.bullet.query.postaggregations.Computation;
-import com.yahoo.bullet.query.postaggregations.Culling;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
@@ -114,36 +112,27 @@ public class DistinctTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc", Type.INTEGER));
     }
 
     @Test
     public void testDistinctWithInvalidOrderByField() {
         build("SELECT DISTINCT abc FROM STREAM() ORDER BY def");
-        Assert.assertEquals(errors.get(0).getError(), "ORDER BY contains a non-existent field: def");
+        Assert.assertEquals(errors.get(0).getError(), "1:44: The field def does not exist in the schema.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testDistinctWithOrderByComputation() {
         build("SELECT DISTINCT abc FROM STREAM() ORDER BY abc + 5");
-        Assert.assertEquals(query.getPostAggregations().size(), 3);
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
 
-        Computation computation = (Computation) query.getPostAggregations().get(0);
-
-        Assert.assertEquals(computation.getFields().size(), 1);
-        Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
-                                                                                        value(5),
-                                                                                        Operation.ADD,
-                                                                                        Type.INTEGER)));
-
-        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
-
-        Culling culling = (Culling) query.getPostAggregations().get(2);
-
-        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc + 5"));
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.INTEGER),
+                                                                               value(5),
+                                                                               Operation.ADD,
+                                                                               Type.INTEGER));
     }
 }

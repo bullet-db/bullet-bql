@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.integration;
 
+import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
 import com.yahoo.bullet.query.aggregations.AggregationType;
 import com.yahoo.bullet.query.expressions.FieldExpression;
@@ -12,6 +13,8 @@ import com.yahoo.bullet.query.expressions.ValueExpression;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.util.Collections;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.field;
 
@@ -58,6 +61,14 @@ public class SelectTest extends IntegrationTest {
     }
 
     @Test
+    public void testWhereNotSelected() {
+        build("SELECT def FROM STREAM() WHERE abc");
+        Assert.assertEquals(query.getFilter(), field("abc", Type.INTEGER));
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def", field("def", Type.FLOAT))));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+    }
+
+    @Test
     public void testLimit() {
         build("SELECT * FROM STREAM() LIMIT 10");
         Assert.assertEquals(query.getAggregation().getSize(), (Integer) 10);
@@ -98,6 +109,7 @@ public class SelectTest extends IntegrationTest {
         build("SELECT 'abc' FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
         Assert.assertEquals(query.getProjection().getFields().get(0).getName(), "'abc'");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
 
         ValueExpression value = (ValueExpression) query.getProjection().getFields().get(0).getValue();
         Assert.assertEquals(value.getValue(), "abc");

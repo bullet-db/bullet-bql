@@ -104,7 +104,7 @@ public class CountDistinctTest extends IntegrationTest {
     }
 
     @Test
-    public void testCountDistinctAliasAsComputation() {
+    public void testCountDistinctAliasAsComputationSubstituteAlias() {
         build("SELECT COUNT(DISTINCT abc) AS count, COUNT(DISTINCT abc) + 5 FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
@@ -121,6 +121,26 @@ public class CountDistinctTest extends IntegrationTest {
                                                                                                                            value(5),
                                                                                                                            Operation.ADD,
                                                                                                                            Type.LONG))));
+    }
+
+    @Test
+    public void testCountDistinctAliasAsComputationUsingAlias() {
+        build("SELECT COUNT(DISTINCT abc) AS count, count + 5 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        CountDistinct aggregation = (CountDistinct) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.COUNT_DISTINCT);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getName(), "count");
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("count + 5", binary(field("count", Type.LONG),
+                                                                                                             value(5),
+                                                                                                             Operation.ADD,
+                                                                                                             Type.LONG))));
     }
 
     @Test

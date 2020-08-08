@@ -93,25 +93,51 @@ public class GroupByTest extends IntegrationTest {
     }
 
     @Test
-    public void testGroupByWithComputationAndOrderBy() {
+    public void testGroupByWithOrderByDoesNotSubstituteField1() {
+        // This ORDER BY clause is dependent on the field "abc" (which does not exist after the GROUP BY)
         build("SELECT abc + 5 FROM STREAM() GROUP BY abc + 5 ORDER BY abc + 5");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", binary(field("abc", Type.INTEGER),
-                                                                                                                     value(5),
-                                                                                                                     Operation.ADD,
-                                                                                                                     Type.INTEGER))));
+        Assert.assertEquals(errors.get(0).getError(), "1:56: The field abc does not exist in the schema.");
+    }
+
+    @Test
+    public void testGroupByWithOrderByDoesNotSubstituteField2() {
+        // This ORDER BY clause is dependent on the field "abc" (which does not exist after the GROUP BY)
+        build("SELECT abc + 5 FROM STREAM() GROUP BY abc + 5 ORDER BY (abc + 5) * 10");
+        Assert.assertEquals(errors.get(0).getError(), "1:57: The field abc does not exist in the schema.");
+    }
+
+    @Test
+    public void testGroupByWithComputationAndOrderBy() {
+        build("SELECT abc + 5 FROM STREAM() GROUP BY abc ORDER BY abc + 5");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
         GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
-        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
-        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc + 5", "abc + 5"));
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc", "abc"));
         Assert.assertTrue(aggregation.getOperations().isEmpty());
-        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().size(), 3);
 
-        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
+                                                                                        value(5),
+                                                                                        Operation.ADD,
+                                                                                        Type.INTEGER)));
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.INTEGER),
+                                                                               value(5),
+                                                                               Operation.ADD,
+                                                                               Type.INTEGER));
+
+        Culling culling = (Culling) query.getPostAggregations().get(2);
+
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc"));
     }
 
     @Test
@@ -133,43 +159,44 @@ public class GroupByTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("def", Type.INTEGER));
     }
 
     @Test
     public void testGroupByWithComputationAndOrderByComputation() {
-        // This creates a query that has an ORDER BY clause dependent on "abc" (which does not exist after the group by..)
-        build("SELECT abc + 5 FROM STREAM() GROUP BY abc + 5 ORDER BY (abc + 5) * 10");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", binary(field("abc", Type.INTEGER),
-                                                                                                                     value(5),
-                                                                                                                     Operation.ADD,
-                                                                                                                     Type.INTEGER))));
+        build("SELECT abc + 5 FROM STREAM() GROUP BY abc ORDER BY (abc + 5) * 10");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
         GroupBy aggregation = (GroupBy) query.getAggregation();
 
         Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
-        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
-        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc + 5", "abc + 5"));
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc", "abc"));
         Assert.assertTrue(aggregation.getOperations().isEmpty());
         Assert.assertEquals(query.getPostAggregations().size(), 3);
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Field field = new Field("(abc + 5) * 10", binary(field("abc + 5", Type.INTEGER),
-                                                         value(10),
-                                                         Operation.MUL,
-                                                         Type.INTEGER));
-
-        Assert.assertEquals(computation.getFields(), Collections.singletonList(field));
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
+                                                                                        value(5),
+                                                                                        Operation.ADD,
+                                                                                        Type.INTEGER)));
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "(abc + 5) * 10");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(binary(field("abc", Type.INTEGER),
+                                                                                      value(5),
+                                                                                      Operation.ADD,
+                                                                                      Type.INTEGER),
+                                                                               value(10),
+                                                                               Operation.MUL,
+                                                                               Type.INTEGER));
 
         Culling culling = (Culling) query.getPostAggregations().get(2);
 
-        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("(abc + 5) * 10"));
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc"));
     }
 
     @Test
@@ -228,8 +255,30 @@ public class GroupByTest extends IntegrationTest {
     }
 
     @Test
-    public void testGroupByHavingUsesFieldAlias() {
-        build("SELECT abc AS def, AVG(abc) FROM STREAM() GROUP BY abc HAVING abc >= 5");
+    public void testGroupBySubstituteFieldAlias() {
+        build("SELECT abc AS def FROM STREAM() GROUP BY abc HAVING abc >= 5");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupBy aggregation = (GroupBy) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc", "def"));
+        Assert.assertTrue(aggregation.getOperations().isEmpty());
+
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Having having = (Having) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(having.getExpression(), binary(field("def", Type.INTEGER),
+                                                           value(5),
+                                                           Operation.GREATER_THAN_OR_EQUALS,
+                                                           Type.BOOLEAN));
+    }
+
+    @Test
+    public void testGroupByHavingWithFieldAlias() {
+        build("SELECT abc AS def, AVG(abc) FROM STREAM() GROUP BY abc HAVING def >= 5");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
         GroupBy aggregation = (GroupBy) query.getAggregation();
@@ -252,8 +301,36 @@ public class GroupByTest extends IntegrationTest {
     }
 
     @Test
-    public void testGroupByHavingUsesAggregateAlias() {
-        build("SELECT abc, AVG(abc) AS avg FROM STREAM() GROUP BY abc HAVING AVG(abc) >= 5");
+    public void testGroupByHavingSubstituteAggregateAlias() {
+        build("SELECT AVG(abc) AS avg FROM STREAM() GROUP BY abc HAVING AVG(abc) >= 5");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupBy aggregation = (GroupBy) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc", "abc"));
+        Assert.assertEquals(aggregation.getOperations(), Collections.singleton(new GroupOperation(GroupOperation.GroupOperationType.AVG,
+                                                                                                  "abc",
+                                                                                                  "AVG(abc)")));
+
+        Assert.assertEquals(query.getPostAggregations().size(), 2);
+
+        Having having = (Having) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(having.getExpression(), binary(field("avg", Type.DOUBLE),
+                                                           value(5),
+                                                           Operation.GREATER_THAN_OR_EQUALS,
+                                                           Type.BOOLEAN));
+
+        Culling culling = (Culling) query.getPostAggregations().get(1);
+
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc"));
+    }
+
+    @Test
+    public void testGroupByHavingWithAggregateAlias() {
+        build("SELECT abc, AVG(abc) AS avg FROM STREAM() GROUP BY abc HAVING avg >= 5");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
         GroupBy aggregation = (GroupBy) query.getAggregation();
@@ -322,7 +399,7 @@ public class GroupByTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "AVG(def)");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("AVG(def)", Type.DOUBLE));
 
         Culling culling = (Culling) query.getPostAggregations().get(1);
 

@@ -9,17 +9,16 @@ import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
-import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
-import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
@@ -65,45 +64,70 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
 
     @Override
     protected Expression visitFieldExpression(FieldExpressionNode node, Map<ExpressionNode, Expression> context) {
+        String field = getMappedField(node, context);
         FieldExpression expression;
         if (node.getIndex() != null) {
             if (node.getSubKey() != null) {
-                expression = new FieldExpression(node.getField().getValue(), node.getIndex(), node.getSubKey().getValue());
+                expression = new FieldExpression(field, node.getIndex(), node.getSubKey().getValue());
             } else {
-                expression = new FieldExpression(node.getField().getValue(), node.getIndex());
+                expression = new FieldExpression(field, node.getIndex());
             }
         } else if (node.getKey() != null) {
             if (node.getSubKey() != null) {
-                expression = new FieldExpression(node.getField().getValue(), node.getKey().getValue(), node.getSubKey().getValue());
+                expression = new FieldExpression(field, node.getKey().getValue(), node.getSubKey().getValue());
             } else {
-                expression = new FieldExpression(node.getField().getValue(), node.getKey().getValue());
+                expression = new FieldExpression(field, node.getKey().getValue());
             }
         } else {
-            expression = new FieldExpression(node.getField().getValue());
+            expression = new FieldExpression(field);
         }
         expression.setType(node.getType());
         context.put(node, expression);
         return expression;
     }
 
+    private String getMappedField(FieldExpressionNode node, Map<ExpressionNode, Expression> context) {
+        String field = node.getField().getValue();
+        if (!node.hasIndexOrKey()) {
+            return field;
+        }
+        FieldExpression expression = (FieldExpression) context.get(new FieldExpressionNode(new IdentifierNode(field, false, null), null, null, null, null, null));
+        if (expression != null) {
+            return expression.getField();
+        }
+        return field;
+    }
+
     @Override
     protected Expression visitListExpression(ListExpressionNode node, Map<ExpressionNode, Expression> context) {
-        ListExpression expression = new ListExpression(node.getExpressions().stream().map(processFunc(context)).collect(Collectors.toList()));
-        context.put(node, expression);
-        return expression;
+        List<Expression> expressions = node.getExpressions().stream().map(processFunc(context)).collect(Collectors.toList());
+        if (expressions.contains(null)) {
+            return null;
+        }
+        ListExpression listExpression = new ListExpression(expressions);
+        context.put(node, listExpression);
+        return listExpression;
     }
 
     @Override
     protected Expression visitNullPredicate(NullPredicateNode node, Map<ExpressionNode, Expression> context) {
+        Expression operand = process(node.getExpression(), context);
+        if (operand == null) {
+            return null;
+        }
         Operation op = node.isNot() ? Operation.IS_NOT_NULL : Operation.IS_NULL;
-        UnaryExpression expression = new UnaryExpression(process(node.getExpression(), context), op);
+        UnaryExpression expression = new UnaryExpression(operand, op);
         context.put(node, expression);
         return expression;
     }
 
     @Override
     protected Expression visitUnaryExpression(UnaryExpressionNode node, Map<ExpressionNode, Expression> context) {
-        UnaryExpression expression = new UnaryExpression(process(node.getExpression(), context), node.getOp());
+        Expression operand = process(node.getExpression(), context);
+        if (operand == null) {
+            return null;
+        }
+        UnaryExpression expression = new UnaryExpression(operand, node.getOp());
         context.put(node, expression);
         return expression;
     }
@@ -111,6 +135,9 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
     @Override
     protected Expression visitNAryExpression(NAryExpressionNode node, Map<ExpressionNode, Expression> context) {
         List<Expression> operands = node.getExpressions().stream().map(processFunc(context)).collect(Collectors.toList());
+        if (operands.contains(null)) {
+            return null;
+        }
         NAryExpression expression = new NAryExpression(operands, node.getOp());
         context.put(node, expression);
         return expression;
@@ -118,36 +145,45 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
 
     @Override
     protected Expression visitGroupOperation(GroupOperationNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("This method should not be called.");
+        Expression operand = process(node.getExpression(), context);
+        if (operand == null) {
+            return null;
+        }
+        FieldExpression expression = new FieldExpression(node.getName());
+        context.put(node, expression);
+        return expression;
     }
 
     @Override
     protected Expression visitCountDistinct(CountDistinctNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("This method should not be called.");
-    }
-
-    @Override
-    protected Expression visitDistribution(DistributionNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("This method should not be called.");
-    }
-
-    @Override
-    protected Expression visitTopK(TopKNode node, Map<ExpressionNode, Expression> context) {
-        throw new RuntimeException("This method should not be called.");
+        List<Expression> expressions = node.getExpressions().stream().map(processFunc(context)).collect(Collectors.toList());
+        if (expressions.contains(null)) {
+            return null;
+        }
+        FieldExpression expression = new FieldExpression(node.getName());
+        context.put(node, expression);
+        return expression;
     }
 
     @Override
     protected Expression visitCastExpression(CastExpressionNode node, Map<ExpressionNode, Expression> context) {
-        CastExpression expression = new CastExpression(process(node.getExpression(), context), node.getCastType());
+        Expression operand = process(node.getExpression(), context);
+        if (operand == null) {
+            return null;
+        }
+        CastExpression expression = new CastExpression(operand, node.getCastType());
         context.put(node, expression);
         return expression;
     }
 
     @Override
     protected Expression visitBinaryExpression(BinaryExpressionNode node, Map<ExpressionNode, Expression> context) {
-        BinaryExpression expression = new BinaryExpression(process(node.getLeft(), context),
-                                                           process(node.getRight(), context),
-                                                           node.getOp());
+        Expression left = process(node.getLeft(), context);
+        Expression right = process(node.getRight(), context);
+        if (left == null || right == null) {
+            return null;
+        }
+        BinaryExpression expression = new BinaryExpression(left, right, node.getOp());
         context.put(node, expression);
         return expression;
     }
@@ -155,6 +191,9 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
     @Override
     protected Expression visitParenthesesExpression(ParenthesesExpressionNode node, Map<ExpressionNode, Expression> context) {
         Expression expression = process(node.getExpression(), context);
+        if (expression == null) {
+            return null;
+        }
         context.put(node, expression);
         return expression;
     }

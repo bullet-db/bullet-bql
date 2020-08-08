@@ -34,6 +34,7 @@ import java.util.Arrays;
 
 public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, ProcessedQuery> {
     private static final String MAX = "MAX";
+    public static final String DEFAULT_TOP_K_ALIAS = "Count";
 
     @Override
     public ProcessedQuery process(Node node) {
@@ -42,6 +43,11 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
 
     @Override
     protected ProcessedQuery visitNode(Node node, ProcessedQuery context) {
+        throw new RuntimeException("This method should not be called.");
+    }
+
+    @Override
+    protected ProcessedQuery visitExpression(ExpressionNode node, ProcessedQuery context) {
         throw new RuntimeException("This method should not be called.");
     }
 
@@ -70,10 +76,13 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     @Override
     protected ProcessedQuery visitSelectItem(SelectItemNode node, ProcessedQuery context) {
         super.visitSelectItem(node, context);
-        if (node.getExpression() != null) {
-            context.getSelectNodes().add(node);
+        ExpressionNode expression = node.getExpression();
+        if (expression != null) {
+            context.getSelectNodes().add(expression);
             if (node.getAlias() != null) {
-                context.getAliases().put(node.getExpression(), node.getAlias().getValue());
+                context.getAliases().put(expression, node.getAlias().getValue());
+            } else if (expression instanceof TopKNode) {
+                context.getAliases().put(expression, DEFAULT_TOP_K_ALIAS);
             }
         } else {
             context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT_ALL);
@@ -106,7 +115,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     @Override
     protected ProcessedQuery visitSortItem(SortItemNode node, ProcessedQuery context) {
         super.visitSortItem(node, context);
-        context.getOrderByNodes().add(node);
+        context.getOrderByNodes().add(node.getExpression());
+        context.getSortItemNodes().add(node);
         return context;
     }
 
@@ -114,11 +124,6 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
     protected ProcessedQuery visitWindow(WindowNode node, ProcessedQuery context) {
         context.setWindow(node);
         return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitExpression(ExpressionNode node, ProcessedQuery context) {
-        throw new RuntimeException("This method should not be called.");
     }
 
     @Override

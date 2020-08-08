@@ -25,28 +25,4 @@ public class ExpressionProcessorTest {
         // coverage
         new ExpressionProcessor().visitExpression(null, null);
     }
-
-    @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
-    public void testVisitGroupOperation() {
-        // coverage
-        new ExpressionProcessor().visitGroupOperation(null, null);
-    }
-
-    @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
-    public void testVisitCountDistinct() {
-        // coverage
-        new ExpressionProcessor().visitCountDistinct(null, null);
-    }
-
-    @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
-    public void testVisitDistribution() {
-        // coverage
-        new ExpressionProcessor().visitDistribution(null, null);
-    }
-
-    @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
-    public void testVisitTopK() {
-        // coverage
-        new ExpressionProcessor().visitTopK(null, null);
-    }
 }

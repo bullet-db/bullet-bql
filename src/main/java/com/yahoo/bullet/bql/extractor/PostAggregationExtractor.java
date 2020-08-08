@@ -7,7 +7,6 @@ package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.query.ExpressionProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
-import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.query.postaggregations.Computation;
 import com.yahoo.bullet.query.postaggregations.Culling;
 import com.yahoo.bullet.query.postaggregations.Having;
@@ -22,12 +21,10 @@ import java.util.stream.Collectors;
 public class PostAggregationExtractor {
     static List<PostAggregation> extractPostAggregations(ProcessedQuery processedQuery) {
         List<PostAggregation> postAggregations = new ArrayList<>();
-
         extractHaving(processedQuery, postAggregations);
         extractComputations(processedQuery, postAggregations);
         extractOrderBy(processedQuery, postAggregations);
         extractTransientFields(processedQuery, postAggregations);
-
         return !postAggregations.isEmpty() ? postAggregations : null;
     }
 
@@ -54,11 +51,9 @@ public class PostAggregationExtractor {
         if (processedQuery.getOrderByNodes().isEmpty() || processedQuery.getQueryType() == ProcessedQuery.QueryType.SPECIAL_K) {
             return;
         }
-        List<OrderBy.SortItem> fields = processedQuery.getOrderByNodes().stream().map(node -> {
-            ExpressionNode expression = node.getExpression();
-            String name = processedQuery.isSimpleAliasFieldExpression(expression) ? expression.getName() : processedQuery.getAliasOrName(expression);
-            return new OrderBy.SortItem(name, node.getOrdering().getDirection());
-        }).collect(Collectors.toCollection(ArrayList::new));
+        List<OrderBy.SortItem> fields = processedQuery.getSortItemNodes().stream().map(node ->
+                new OrderBy.SortItem(ExpressionProcessor.visit(node.getExpression(), processedQuery.getPostAggregationMapping()), node.getOrdering().getDirection())
+        ).collect(Collectors.toCollection(ArrayList::new));
         postAggregations.add(new OrderBy(fields));
     }
 

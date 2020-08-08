@@ -87,8 +87,8 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawAliasesClash() {
         build("SELECT abc, def AS abc, aaa, bbb AS aaa, ccc FROM STREAM()");
-        Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa]") ||
-                          errors.get(0).getError().equals("The following field names/aliases are shared: [aaa, abc]"));
+        Assert.assertTrue(errors.get(0).getError().equals("The following field names are shared: [abc, aaa]") ||
+                          errors.get(0).getError().equals("The following field names are shared: [aaa, abc]"));
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -104,7 +104,13 @@ public class RawTest extends IntegrationTest {
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("def", field("abc", Type.INTEGER)));
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.COPY);
-        Assert.assertNull(query.getPostAggregations());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+        Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregationType.CULLING);
+
+        Culling culling = (Culling) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(culling.getTransientFields().size(), 1);
+        Assert.assertTrue(culling.getTransientFields().contains("abc"));
     }
 
     @Test
@@ -138,7 +144,7 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc", Type.INTEGER));
     }
 
     @Test
@@ -151,6 +157,17 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawAllWithOrderByComputation() {
         build("SELECT * FROM STREAM() ORDER BY abc + 5");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.INTEGER),
+                                                                               value(5),
+                                                                               Operation.ADD,
+                                                                               Type.INTEGER));
+        /*
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
                                                                                                   value(5),
@@ -168,6 +185,7 @@ public class RawTest extends IntegrationTest {
 
         Assert.assertEquals(culling.getTransientFields().size(), 1);
         Assert.assertTrue(culling.getTransientFields().contains("abc + 5"));
+        */
     }
 
     @Test
@@ -181,7 +199,7 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc", Type.INTEGER));
     }
 
     @Test
@@ -197,7 +215,7 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("def", Type.FLOAT));
 
         Culling culling = (Culling) query.getPostAggregations().get(1);
 
@@ -208,13 +226,9 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawWithOrderByMultiple() {
         build("SELECT abc FROM STREAM() ORDER BY abc + 5 ASC, def DESC");
-        Assert.assertEquals(query.getProjection().getFields().size(), 3);
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc", field("abc", Type.INTEGER)));
-        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("abc + 5", binary(field("abc", Type.INTEGER),
-                                                                                                  value(5),
-                                                                                                  Operation.ADD,
-                                                                                                  Type.INTEGER)));
-        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("def", field("def", Type.FLOAT)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("def", field("def", Type.FLOAT)));
         Assert.assertEquals(query.getPostAggregations().size(), 2);
         Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregationType.ORDER_BY);
         Assert.assertEquals(query.getPostAggregations().get(1).getType(), PostAggregationType.CULLING);
@@ -222,29 +236,32 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 2);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.INTEGER),
+                                                                               value(5),
+                                                                               Operation.ADD,
+                                                                               Type.INTEGER));
         Assert.assertEquals(orderBy.getFields().get(0).getDirection(), OrderBy.Direction.ASC);
-        Assert.assertEquals(orderBy.getFields().get(1).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(1).getExpression(), field("def", Type.FLOAT));
         Assert.assertEquals(orderBy.getFields().get(1).getDirection(), OrderBy.Direction.DESC);
 
         Culling culling = (Culling) query.getPostAggregations().get(1);
 
-        Assert.assertEquals(culling.getTransientFields().size(), 2);
-        Assert.assertTrue(culling.getTransientFields().contains("abc + 5"));
-        Assert.assertTrue(culling.getTransientFields().contains("def"));
+        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("def"));
     }
 
     @Test
     public void testRawAliasWithOrderBy() {
         build("SELECT abc AS def FROM STREAM() ORDER BY abc");
-        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def", field("abc", Type.INTEGER))));
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("def", field("abc", Type.INTEGER)));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
         Assert.assertEquals(query.getPostAggregations().size(), 1);
         Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregationType.ORDER_BY);
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("def", Type.INTEGER));
     }
 
     @Test
@@ -257,7 +274,7 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("def", Type.INTEGER));
     }
 
     @Test
@@ -271,7 +288,7 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc", Type.FLOAT));
     }
 
     @Test
@@ -285,29 +302,32 @@ public class RawTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "def");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("def", Type.INTEGER));
     }
 
     @Test
     public void testRawAliasWithOrderByNoNestedAlias() {
         build("SELECT abc AS def, def AS abc FROM STREAM() ORDER BY abc + 5");
         Assert.assertEquals(query.getProjection().getFields(), Arrays.asList(new Field("def", field("abc", Type.INTEGER)),
-                                                                             new Field("abc", field("def", Type.FLOAT)),
-                                                                             new Field("abc + 5", binary(field("abc", Type.INTEGER),
-                                                                                                         value(5),
-                                                                                                         Operation.ADD,
-                                                                                                         Type.INTEGER))));
-        Assert.assertEquals(query.getPostAggregations().size(), 2);
+                                                                             new Field("abc", field("def", Type.FLOAT))));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
         Assert.assertEquals(query.getPostAggregations().get(0).getType(), PostAggregationType.ORDER_BY);
-        Assert.assertEquals(query.getPostAggregations().get(1).getType(), PostAggregationType.CULLING);
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.FLOAT), value(5), Operation.ADD, Type.FLOAT));
+    }
 
-        Culling culling = (Culling) query.getPostAggregations().get(1);
+    @Test
+    public void testRawAliasWithOrderBySubstituteSubfield() {
+        build("SELECT ccc AS def FROM STREAM() ORDER BY ccc[0]");
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("def", field("ccc", Type.INTEGER_LIST))));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
 
-        Assert.assertEquals(culling.getTransientFields(), Collections.singleton("abc + 5"));
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("def", 0, Type.INTEGER));
     }
 }

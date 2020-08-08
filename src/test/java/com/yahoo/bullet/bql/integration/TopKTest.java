@@ -6,6 +6,7 @@
 package com.yahoo.bullet.bql.integration;
 
 import com.yahoo.bullet.bql.extractor.AggregationExtractor;
+import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
 import com.yahoo.bullet.query.aggregations.AggregationType;
@@ -17,6 +18,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.binary;
 import static com.yahoo.bullet.bql.util.QueryUtil.field;
@@ -49,7 +52,7 @@ public class TopKTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
         Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc", "abc"));
         Assert.assertEquals(aggregation.getThreshold(), (Long) 100L);
-        Assert.assertEquals(aggregation.getName(), AggregationExtractor.DEFAULT_TOP_K_NAME);
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
         Assert.assertEquals(aggregation.getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());
     }
@@ -96,7 +99,7 @@ public class TopKTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getFieldsToNames().size(), 2);
         Assert.assertEquals(aggregation.getFieldsToNames().get("abc"), "abc");
         Assert.assertEquals(aggregation.getFieldsToNames().get("def"), "def");
-        Assert.assertEquals(aggregation.getName(), AggregationExtractor.DEFAULT_TOP_K_NAME);
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
         Assert.assertNull(aggregation.getThreshold());
         Assert.assertEquals(aggregation.getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());
@@ -121,7 +124,7 @@ public class TopKTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getFieldsToNames().size(), 2);
         Assert.assertEquals(aggregation.getFieldsToNames().get("abc"), "abc");
         Assert.assertEquals(aggregation.getFieldsToNames().get("def + 5"), "def + 5");
-        Assert.assertEquals(aggregation.getName(), AggregationExtractor.DEFAULT_TOP_K_NAME);
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
         Assert.assertNull(aggregation.getThreshold());
         Assert.assertEquals(aggregation.getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());
@@ -146,14 +149,16 @@ public class TopKTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getFieldsToNames().size(), 2);
         Assert.assertEquals(aggregation.getFieldsToNames().get("abc"), "abc");
         Assert.assertEquals(aggregation.getFieldsToNames().get("def + 5"), "def + 5");
-        Assert.assertEquals(aggregation.getName(), AggregationExtractor.DEFAULT_TOP_K_NAME);
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
         Assert.assertNull(aggregation.getThreshold());
         Assert.assertEquals(aggregation.getSize(), (Integer) 10);
         Assert.assertEquals(query.getPostAggregations().size(), 1);
 
         Computation computation = (Computation) query.getPostAggregations().get(0);
 
-        Assert.assertEquals(computation.getFields().size(), 2);
+        Set<Field> fields = new HashSet<>(computation.getFields());
+
+        Assert.assertEquals(fields.size(), 2);
         Assert.assertEquals(computation.getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
                                                                                         value(5),
                                                                                         Operation.ADD,
@@ -202,7 +207,7 @@ public class TopKTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getFieldsToNames().size(), 2);
         Assert.assertEquals(aggregation.getFieldsToNames().get("abc"), "one");
         Assert.assertEquals(aggregation.getFieldsToNames().get("def"), "two");
-        Assert.assertEquals(aggregation.getName(), AggregationExtractor.DEFAULT_TOP_K_NAME);
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
         Assert.assertNull(aggregation.getThreshold());
         Assert.assertEquals(aggregation.getSize(), (Integer) 10);
         Assert.assertNull(query.getPostAggregations());

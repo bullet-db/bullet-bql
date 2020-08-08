@@ -39,9 +39,6 @@ public class QueryExtractor {
     }
 
     private static Expression extractFilter(ProcessedQuery processedQuery) {
-        if (processedQuery.getWhereNode() == null) {
-            return null;
-        }
         return ExpressionProcessor.visit(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping());
     }
 

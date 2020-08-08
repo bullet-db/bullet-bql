@@ -10,8 +10,7 @@ import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
-import com.yahoo.bullet.bql.tree.SelectItemNode;
-import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.bql.query.OrderByProcessor;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
 
@@ -54,12 +53,22 @@ public class ProjectionExtractor {
     for order by though. So, anything else that shows up in ORDER BY needs to be projected.
     */
     private static Projection extractSelect(ProcessedQuery processedQuery) {
-        List<ExpressionNode> expressions =
-                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression).filter(processedQuery::isNotSimpleAliasFieldExpression))
-                      .distinct()
-                      .collect(Collectors.toList());
-        return new Projection(getAliasedFields(processedQuery, expressions), false);
+        //
+        processedQuery.setSelectNames(Stream.concat(processedQuery.getSelectNodes().stream().filter(processedQuery::isSimpleFieldExpression).map(ExpressionNode::getName),
+                                                    processedQuery.getAliases().values().stream())
+                                            .collect(Collectors.toSet()));
+        OrderByProcessor.visit(processedQuery.getOrderByNodes(), processedQuery);
+
+        //
+        List<ExpressionNode> expressions = Stream.concat(processedQuery.getSelectNodes().stream(),
+                                                         processedQuery.getOrderByExtraSelectNodes().stream())
+                                                 .collect(Collectors.toList());
+        ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
+        processedQuery.setProjection(expressions);
+        List<Field> fields = Stream.concat(processedQuery.getSelectNodes().stream().map(toAliasedField(processedQuery)),
+                                           processedQuery.getOrderByExtraSelectNodes().stream().map(toNonAliasedField(processedQuery)))
+                                   .collect(Collectors.toCollection(ArrayList::new));
+        return new Projection(fields, false);
     }
 
     /*
@@ -69,15 +78,9 @@ public class ProjectionExtractor {
     */
     private static Projection extractAll(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions =
-                Stream.concat(processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression),
-                              processedQuery.getOrderByNodes().stream().map(SortItemNode::getExpression))
-                      .filter(node -> processedQuery.isNotSimpleFieldExpression(node) || processedQuery.hasAlias(node))
-                      .distinct()
-                      .collect(Collectors.toList());
-        /*
-        If the only additional fields selected (including ORDER BY) are simple field expressions and none of
-        them have aliases, then no additional computations will be made.
-        */
+                processedQuery.getSelectNodes().stream().filter(node -> processedQuery.isNotSimpleFieldExpression(node) ||
+                                                                        processedQuery.hasAlias(node))
+                                                        .collect(Collectors.toList());
         if (expressions.isEmpty()) {
             return new Projection();
         }
@@ -86,12 +89,11 @@ public class ProjectionExtractor {
 
     // Project the select fields without their aliases since they'll be renamed in the aggregation instead.
     private static Projection extractDistinct(ProcessedQuery processedQuery) {
-        List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
         /*
         If all select fields are simple field expressions, then there's no need to project anything.
         Order by computations are done afterward and won't clobber the original record since the aggregation creates a new record.
         */
-        return getNonAliasedProjection(processedQuery, expressions);
+        return getNonAliasedProjection(processedQuery, processedQuery.getSelectNodes());
     }
 
     /*
@@ -137,20 +139,20 @@ public class ProjectionExtractor {
     If the expressions are all simple fields, there's nothing to project and any bullet record can be passed through
     as is.
      */
-    private static Projection getNonAliasedProjection(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
+    private static Projection getNonAliasedProjection(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         if (areAllSimpleFields(processedQuery, expressions)) {
             return new Projection();
         }
         return new Projection(getNonAliasedFields(processedQuery, expressions), false);
     }
 
-    private static List<Field> getAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
+    private static List<Field> getAliasedFields(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
         processedQuery.setProjection(expressions);
         return expressions.stream().map(toAliasedField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private static List<Field> getNonAliasedFields(ProcessedQuery processedQuery, List<ExpressionNode> expressions) {
+    private static List<Field> getNonAliasedFields(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
         processedQuery.setProjection(expressions);
         return expressions.stream().map(toNonAliasedField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));

@@ -6,7 +6,7 @@
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.SelectItemNode;
+import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
@@ -15,7 +15,6 @@ import com.yahoo.bullet.query.aggregations.Distribution;
 import com.yahoo.bullet.query.aggregations.DistributionType;
 import com.yahoo.bullet.query.aggregations.TopK;
 import com.yahoo.bullet.query.postaggregations.Computation;
-import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.postaggregations.PostAggregation;
 import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.typesystem.Schema;
@@ -23,8 +22,10 @@ import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,25 +70,71 @@ public class QueryValidator {
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
     }
 
+    // AVG(a) AS c, AVG(a) + 5, c + 5
+    // AVG(a) AS "AVG(b)", AVG(b) AS "AVG(a)", AVG(a) + 5
+
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
         LayeredSchema schema = new LayeredSchema(baseSchema);
         ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery, schema);
+        ProcessedQuery.QueryType queryType = processedQuery.getQueryType();
 
-        // If there's a WHERE clause, check that it can be evaluated as a boolean.
+        // Type-check everything in the pre-aggregation
+
+        // Some extra things to type check if it's select *
+        if (queryType == ProcessedQuery.QueryType.SELECT_ALL) {
+            expressionValidator.process(processedQuery.getSelectNodes(), processedQuery.getPreAggregationMapping());
+        }
+
+        // Check that filter clause can be evaluated as a boolean
+        expressionValidator.process(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping());
+        validateFilter(processedQuery);
+
+        // check everything in SELECT exists or is proper
+        expressionValidator.process(processedQuery.getProjection(), processedQuery.getPreAggregationMapping());
+        validateProjection(processedQuery, expressionValidator, schema, query);
+
+        // Process group by and aggregate nodes. Order doesn't matter. It only matters that they're using the schema after projections.
+        // If the query type is select distinct, the select nodes are the actual aggregate nodes.
+        if (queryType == ProcessedQuery.QueryType.SELECT_DISTINCT) {
+            expressionValidator.process(processedQuery.getSelectNodes(), processedQuery.getPreAggregationMapping());
+            validateSelectDistinct(processedQuery);
+        } else {
+            expressionValidator.process(processedQuery.getAggregateNodes(), processedQuery.getPreAggregationMapping());
+            expressionValidator.process(processedQuery.getGroupByNodes(), processedQuery.getPreAggregationMapping());
+            validateGroupBy(processedQuery);
+        }
+
+        // Replace schema with aggregation if it exists
+        validateAggregation(processedQuery, schema, queryType, query);
+
+        if (queryType != ProcessedQuery.QueryType.SELECT && queryType != ProcessedQuery.QueryType.SELECT_ALL) {
+            // set aliases allowed for actually existing aliases. AVG(a) without an alias does not get one. so the field "AVG(a)" would not be valid.
+            // this matters for group by, count distinct, top k, and special k to just avoid the weird edge case...
+            expressionValidator.setAliases(getAliases(processedQuery, queryType));
+            expressionValidator.process(getAdditionalSelectNodes(processedQuery, queryType), processedQuery.getPostAggregationMapping());
+        }
+
+        validatePostAggregations(processedQuery, expressionValidator, schema, query);
+
+        return processedQuery.getErrors();
+    }
+
+    private static void validateFilter(ProcessedQuery processedQuery) {
         if (processedQuery.getWhereNode() != null) {
-            Type type = expressionValidator.process(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping());
+            Type type = processedQuery.getPreAggregationMapping().get(processedQuery.getWhereNode()).getType();
             if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
                 processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(),
                                                                "Please specify a valid WHERE clause."));
             }
         }
+    }
 
+    private static void validateProjection(ProcessedQuery processedQuery, ExpressionValidator expressionValidator, LayeredSchema schema, Query query) {
         if (processedQuery.getProjection() != null) {
-            expressionValidator.process(processedQuery.getProjection(), processedQuery.getPreAggregationMapping());
             List<Schema.Field> fields = toSchemaFields(query.getProjection().getFields());
             duplicates(fields).ifPresent(duplicates -> {
-                processedQuery.getErrors().add(new BulletError("The following field names/aliases are shared: " + duplicates,
-                                                               "Please specify non-overlapping field names and aliases."));
+                processedQuery.getErrors().add(new BulletError("The following field names are shared: " + duplicates,
+                                                               "Please specify non-overlapping field names."));
             });
             if (query.getProjection().getType() == Projection.Type.COPY) {
                 schema.addLayer(new Schema(fields));
@@ -95,44 +142,33 @@ public class QueryValidator {
                 schema.replaceSchema(new Schema(fields));
             }
         }
+    }
 
-        // Process group by and aggregate nodes. Order doesn't matter. It only matters that they're using the schema after projections.
-        // If the query type is select distinct, the select nodes are the actual aggregate nodes.
-        ProcessedQuery.QueryType queryType = processedQuery.getQueryType();
-
-        if (queryType == ProcessedQuery.QueryType.SELECT_DISTINCT) {
-            List<ExpressionNode> selectItems = processedQuery.getSelectNodes().stream().map(SelectItemNode::getExpression).collect(Collectors.toList());
-            expressionValidator.process(selectItems, processedQuery.getPreAggregationMapping());
-            // Primitives only
-            for (ExpressionNode node : selectItems) {
-                Type type = processedQuery.getPreAggregationMapping().get(node).getType();
-                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                    processedQuery.getErrors().add(new BulletError("The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
-                                                                   "Please specify primitive fields only for SELECT DISTINCT."));
-                }
+    private static void validateSelectDistinct(ProcessedQuery processedQuery) {
+        for (ExpressionNode node : processedQuery.getSelectNodes()) {
+            Type type = processedQuery.getPreAggregationMapping().get(node).getType();
+            if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                processedQuery.getErrors().add(new BulletError("The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
+                                                               "Please specify primitive fields only for SELECT DISTINCT."));
             }
-        } else {
-            expressionValidator.process(processedQuery.getAggregateNodes(), processedQuery.getPreAggregationMapping());
-            expressionValidator.process(processedQuery.getGroupByNodes(), processedQuery.getPreAggregationMapping());
-            // Primitives only
-            for (ExpressionNode node : processedQuery.getGroupByNodes()) {
-                Type type = processedQuery.getPreAggregationMapping().get(node).getType();
-                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                    processedQuery.getErrors().add(new BulletError("The GROUP BY field " + node + " is non-primitive. Type given: " + type,
-                                                                   "Please specify primitive fields only for GROUP BY."));
-                }
-            }
-
         }
+    }
 
-        // Replace schema with aggregate fields
+    private static void validateGroupBy(ProcessedQuery processedQuery) {
+        for (ExpressionNode node : processedQuery.getGroupByNodes()) {
+            Type type = processedQuery.getPreAggregationMapping().get(node).getType();
+            if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                processedQuery.getErrors().add(new BulletError("The GROUP BY field " + node + " is non-primitive. Type given: " + type,
+                                                               "Please specify primitive fields only for GROUP BY."));
+            }
+        }
+    }
+
+    private static void validateAggregation(ProcessedQuery processedQuery, LayeredSchema schema, ProcessedQuery.QueryType queryType, Query query) {
         List<Schema.Field> aggregateFields = null;
         switch (queryType) {
             case SELECT_DISTINCT:
-                aggregateFields = processedQuery.getSelectNodes().stream()
-                                                                 .map(SelectItemNode::getExpression)
-                                                                 .map(toSchemaField(processedQuery))
-                                                                 .collect(Collectors.toList());
+                aggregateFields = processedQuery.getSelectNodes().stream().map(toSchemaField(processedQuery)).collect(Collectors.toList());
                 break;
             case GROUP:
                 aggregateFields = Stream.concat(processedQuery.getAggregateNodes().stream(),
@@ -162,16 +198,88 @@ public class QueryValidator {
             });
             schema.replaceSchema(new Schema(aggregateFields));
         }
+    }
 
-        if (query.getPostAggregations() == null) {
-            return processedQuery.getErrors();
+    private static Set<ExpressionNode> getAdditionalSelectNodes(ProcessedQuery processedQuery, ProcessedQuery.QueryType queryType) {
+        switch (queryType) {
+            case GROUP:
+                return processedQuery.getSelectNodes().stream()
+                                                      .filter(processedQuery::isSimpleFieldExpression)
+                                                      .filter(processedQuery::isNotGroupByNode)
+                                                      .collect(Collectors.toSet());
+            case DISTRIBUTION:
+                return processedQuery.getSelectNodes().stream()
+                                                      .filter(processedQuery::isSimpleFieldExpression)
+                                                      .collect(Collectors.toSet());
+            case COUNT_DISTINCT:
+                List<ExpressionNode> countDistinctExpressions = processedQuery.getCountDistinct().getExpressions();
+                return processedQuery.getSelectNodes().stream()
+                                                      .filter(processedQuery::isSimpleFieldExpression)
+                                                      .filter(node -> !countDistinctExpressions.contains(node))
+                                                      .collect(Collectors.toSet());
+            case TOP_K:
+                List<ExpressionNode> topKExpressions = processedQuery.getTopK().getExpressions();
+                return processedQuery.getSelectNodes().stream()
+                                                      .filter(processedQuery::isSimpleFieldExpression)
+                                                      .filter(node -> !topKExpressions.contains(node))
+                                                      .collect(Collectors.toSet());
+            case SPECIAL_K:
+                return processedQuery.getSelectNodes().stream()
+                                                      .filter(processedQuery::isSimpleFieldExpression)
+                                                      .filter(processedQuery::isNotGroupByNode)
+                                                      .collect(Collectors.toSet());
         }
+        return Collections.emptySet();
+    }
 
+    private static Set<String> getAliases(ProcessedQuery processedQuery, ProcessedQuery.QueryType queryType) {
+        Set<String> aliases;
+        String alias;
+        switch (queryType) {
+            case SELECT_DISTINCT:
+                return processedQuery.getSelectNodes().stream()
+                        .filter(node -> processedQuery.isSimpleFieldExpression(node) || processedQuery.hasAlias(node))
+                        .map(processedQuery::getAliasOrName)
+                        .collect(Collectors.toSet());
+            case GROUP:
+                return Stream.concat(processedQuery.getGroupByNodes().stream(),
+                                     processedQuery.getGroupOpNodes().stream())
+                             .filter(node -> processedQuery.isSimpleFieldExpression(node) || processedQuery.hasAlias(node))
+                             .map(processedQuery::getAliasOrName)
+                             .collect(Collectors.toSet());
+            case COUNT_DISTINCT:
+                alias = processedQuery.getAlias(processedQuery.getCountDistinct());
+                return alias != null ? Collections.singleton(alias) : Collections.emptySet();
+            case TOP_K:
+                TopKNode topK = processedQuery.getTopK();
+                aliases = new HashSet<>(Collections.singleton(processedQuery.getAlias(topK)));
+                aliases.addAll(topK.getExpressions().stream()
+                                                    .filter(node -> processedQuery.isSimpleFieldExpression(node) || processedQuery.hasAlias(node))
+                                                    .map(processedQuery::getAliasOrName)
+                                                    .collect(Collectors.toSet()));
+                return aliases;
+            case SPECIAL_K:
+                ExpressionNode count = processedQuery.getGroupOpNodes().iterator().next();
+                aliases = new HashSet<>(Collections.singleton(processedQuery.getAliasOrName(count)));
+                aliases.addAll(processedQuery.getGroupByNodes().stream()
+                                                               .filter(node -> processedQuery.isSimpleFieldExpression(node) || processedQuery.hasAlias(node))
+                                                               .map(processedQuery::getAliasOrName)
+                                                               .collect(Collectors.toSet()));
+                return aliases;
+        }
+        return null;
+    }
+
+    private static void validatePostAggregations(ProcessedQuery processedQuery, ExpressionValidator expressionValidator, LayeredSchema schema, Query query) {
+        if (query.getPostAggregations() == null) {
+            return;
+        }
         Type type;
         for (PostAggregation postAggregation : query.getPostAggregations()) {
             switch (postAggregation.getType()) {
                 case HAVING:
-                    type = expressionValidator.process(processedQuery.getHavingNode(), processedQuery.getPostAggregationMapping());
+                    expressionValidator.process(processedQuery.getHavingNode(), processedQuery.getPostAggregationMapping());
+                    type = processedQuery.getPostAggregationMapping().get(processedQuery.getHavingNode()).getType();
                     if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
                         processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(),
                                                                        "Please specify a valid HAVING clause."));
@@ -187,21 +295,16 @@ public class QueryValidator {
                     schema.addLayer(new Schema(fields));
                     break;
                 case ORDER_BY:
-                    for (OrderBy.SortItem sortItem : ((OrderBy) postAggregation).getFields()) {
-                        type = schema.getType(sortItem.getField());
-                        if (!Type.isUnknown(type)) {
-                            if (Type.isNull(type)) {
-                                processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-existent field: " + sortItem.getField(), "Please specify an existing field."));
-                            } else if (!Type.isPrimitive(type)) {
-                                processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + sortItem.getField(), "Please specify a primitive field."));
-                            }
+                    expressionValidator.process(processedQuery.getOrderByNodes(), processedQuery.getPostAggregationMapping());
+                    for (ExpressionNode orderByNode : processedQuery.getOrderByNodes()) {
+                        type = processedQuery.getPostAggregationMapping().get(orderByNode).getType();
+                        if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                            processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
                         }
                     }
                     break;
             }
         }
-
-        return processedQuery.getErrors();
     }
 
     private static Optional<Set<String>> duplicates(List<Schema.Field> fields) {
@@ -210,11 +313,19 @@ public class QueryValidator {
         return !duplicates.isEmpty() ? Optional.of(duplicates) : Optional.empty();
     }
 
+    private static Optional<Set<String>> overwritten(List<Schema.Field> fields, LayeredSchema schema) {
+        Set<String> overwritten = fields.stream().map(Schema.Field::getName).filter(name -> {
+            Type type = schema.getType(name);
+            return !Type.isUnknown(type) && !Type.isNull(type);
+        }).collect(Collectors.toSet());
+        return !overwritten.isEmpty() ? Optional.of(overwritten) : Optional.empty();
+    }
+
     private static List<Schema.Field> toSchemaFields(List<Field> fields) {
         return fields.stream().map(field -> new Schema.PlainField(field.getName(), field.getValue().getType())).collect(Collectors.toList());
     }
 
-    private static List<Schema.Field> toSchemaFields(List<ExpressionNode> expressions, ProcessedQuery processedQuery) {
+    private static List<Schema.Field> toSchemaFields(Collection<ExpressionNode> expressions, ProcessedQuery processedQuery) {
         return expressions.stream().map(toSchemaField(processedQuery)).collect(Collectors.toCollection(ArrayList::new));
     }
 

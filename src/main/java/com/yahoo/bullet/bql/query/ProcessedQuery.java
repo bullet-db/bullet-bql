@@ -12,7 +12,6 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
-import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
@@ -29,6 +28,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +50,8 @@ public class ProcessedQuery {
         INVALID
     }
 
+    private static final String DELIMITER = ", ";
+
     private Set<QueryType> queryTypeSet = EnumSet.noneOf(QueryType.class);
 
     @Setter
@@ -69,9 +71,13 @@ public class ProcessedQuery {
     private Map<ExpressionNode, String> aliases = new HashMap<>();
     private Set<ExpressionNode> subExpressionNodes = new HashSet<>();
 
-    private List<SelectItemNode> selectNodes = new ArrayList<>();
-    private List<ExpressionNode> groupByNodes = new ArrayList<>();
-    private List<SortItemNode> orderByNodes = new ArrayList<>();
+    private Set<ExpressionNode> selectNodes = new LinkedHashSet<>();
+    private Set<ExpressionNode> groupByNodes = new LinkedHashSet<>();
+    private Set<ExpressionNode> orderByNodes = new LinkedHashSet<>();
+    private Set<SortItemNode> sortItemNodes = new LinkedHashSet<>();
+    private Set<ExpressionNode> orderByExtraSelectNodes = new LinkedHashSet<>();
+    @Setter
+    private Set<String> selectNames;
 
     private Set<ExpressionNode> superAggregateNodes = new HashSet<>();
     private Set<ExpressionNode> aggregateNodes = new HashSet<>();
@@ -99,26 +105,8 @@ public class ProcessedQuery {
         if (aliases.values().contains("")) {
             errors.add(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."));
         }
-        if (countDistinctNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple COUNT DISTINCT.", "Please specify only one COUNT DISTINCT."));
-        }
-        if (distributionNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple distribution functions.", "Please specify only one distribution function."));
-        }
-        if (topKNodes.size() > 1) {
-            errors.add(new BulletError("Cannot have multiple TOP functions.", "Please specify only one TOP function."));
-        }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
             errors.add(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates."));
-        }
-        if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("Distribution functions cannot be treated as values.", Arrays.asList("Please consider using the distribution's output fields instead.",
-                                                                                                            "For QUANTILE distributions, the output fields are: [\"Value\", \"Quantile\"].",
-                                                                                                            "For FREQ and CUMFREQ distributions, the output fields are: [\"Probability\", \"Count\", \"Quantile\"].")));
-        }
-        if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
-            errors.add(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
-                                                                                                   "The output field can also be renamed by selecting TOP with an alias.")));
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
             errors.add(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."));
@@ -126,13 +114,10 @@ public class ProcessedQuery {
         if (groupByNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
             errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause."));
         }
-        if (havingNode != null && groupByNodes.isEmpty()) {
-            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", "Please remove the HAVING clause, and consider using a WHERE clause instead."));
-        }
-        if (limit != null && limit <= 0) {
-            errors.add(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));
-        }
         if (!countDistinctNodes.isEmpty()) {
+            if (countDistinctNodes.size() > 1) {
+                errors.add(new BulletError("Cannot have multiple COUNT DISTINCT.", "Please specify only one COUNT DISTINCT."));
+            }
             if (!orderByNodes.isEmpty()) {
                 errors.add(new BulletError("ORDER BY clause is not supported for queries with COUNT DISTINCT.", "Please remove the ORDER BY clause."));
             }
@@ -140,13 +125,36 @@ public class ProcessedQuery {
                 errors.add(new BulletError("LIMIT clause is not supported for queries with COUNT DISTINCT.", "Please remove the LIMIT clause."));
             }
         }
+        if (!distributionNodes.isEmpty()) {
+            if (distributionNodes.size() > 1) {
+                errors.add(new BulletError("Cannot have multiple distribution functions.", "Please specify only one distribution function."));
+            }
+            if (distributionNodes.stream().anyMatch(subExpressionNodes::contains)) {
+                errors.add(new BulletError("Distribution functions cannot be treated as values.", Arrays.asList("Please consider using the distribution's output fields instead.",
+                                                                                                                "For QUANTILE distributions, the output fields are: [\"Value\", \"Quantile\"].",
+                                                                                                                "For FREQ and CUMFREQ distributions, the output fields are: [\"Probability\", \"Count\", \"Quantile\"].")));
+            }
+        }
         if (!topKNodes.isEmpty()) {
+            if (topKNodes.size() > 1) {
+                errors.add(new BulletError("Cannot have multiple TOP functions.", "Please specify only one TOP function."));
+            }
+            if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
+                errors.add(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
+                                                                                                       "The output field can also be renamed by selecting TOP with an alias.")));
+            }
             if (!orderByNodes.isEmpty()) {
                 errors.add(new BulletError("ORDER BY clause is not supported for queries with a TOP function.", "Please remove the ORDER BY clause."));
             }
             if (limit != null) {
                 errors.add(new BulletError("LIMIT clause is not supported for queries with a TOP function.", "Please remove the LIMIT clause."));
             }
+        }
+        if (havingNode != null && groupByNodes.isEmpty()) {
+            errors.add(new BulletError("HAVING clause is only supported with GROUP BY clause.", "Please remove the HAVING clause, and consider using a WHERE clause instead."));
+        }
+        if (limit != null && limit <= 0) {
+            errors.add(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));
         }
         if (isSpecialK()) {
             queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
@@ -155,22 +163,22 @@ public class ProcessedQuery {
     }
 
     private boolean isSpecialK() {
-        if (getQueryType() != QueryType.GROUP || groupByNodes.isEmpty() || groupOpNodes.size() != 1 || orderByNodes.size() != 1 || limit == null) {
+        if (getQueryType() != QueryType.GROUP || groupByNodes.isEmpty() || groupOpNodes.size() != 1 || sortItemNodes.size() != 1 || limit == null) {
             return false;
         }
         GroupOperationNode groupOperationNode = groupOpNodes.iterator().next();
         if (groupOperationNode.getOp() != COUNT) {
             return false;
         }
-        Set<ExpressionNode> selectExpressions = selectNodes.stream().map(SelectItemNode::getExpression).collect(Collectors.toSet());
-        if (!selectExpressions.contains(groupOperationNode) || !selectExpressions.containsAll(groupByNodes)) {
+        if (!selectNodes.contains(groupOperationNode) || !selectNodes.containsAll(groupByNodes)) {
             return false;
         }
         // Compare by expression since both should point to the same field expression
         String alias = aliases.get(groupOperationNode);
-        SortItemNode sortItemNode = orderByNodes.get(0);
-        ExpressionNode sortExpressionNode = sortItemNode.getExpression();
-        if (!(sortExpressionNode.equals(groupOperationNode) || isSimpleAliasFieldExpressionMatchingAlias(sortExpressionNode, alias)) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
+        //SortItemNode sortItemNode = sortItemNodes.get(0);
+        SortItemNode sortItemNode = sortItemNodes.iterator().next();
+        ExpressionNode orderByNode = sortItemNode.getExpression();
+        if (!(orderByNode.equals(groupOperationNode) || isSimpleAliasFieldExpressionMatchingAlias(orderByNode, alias)) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
             return false;
         }
         // Optional HAVING
@@ -246,6 +254,16 @@ public class ProcessedQuery {
      */
     public boolean hasAlias(ExpressionNode node) {
         return aliases.containsKey(node);
+    }
+
+    /**
+     * Returns whether or not the given string is an alias.
+     *
+     * @param name A string.
+     * @return True if the given string is an alias and false otherwise.
+     */
+    public boolean isAlias(String name) {
+        return aliases.values().contains(name);
     }
 
     /**
@@ -344,20 +362,14 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression that references an alias and false otherwise.
      */
     public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
-        return isSimpleFieldExpression(node) && aliases.values().contains(((FieldExpressionNode) node).getField().getValue());
-    }
-
-    /**
-     * Returns whether or not the given node is not a simple field expression that references an alias.
-     *
-     * @param node An {@link ExpressionNode}.
-     * @return True if the given node is not a simple field expression that references an alias and false otherwise.
-     */
-    public boolean isNotSimpleAliasFieldExpression(ExpressionNode node) {
-        return !isSimpleAliasFieldExpression(node);
+        return isSimpleFieldExpression(node) && isAlias(((FieldExpressionNode) node).getField().getValue());
     }
 
     private boolean isSimpleAliasFieldExpressionMatchingAlias(ExpressionNode expressionNode, String alias) {
         return isSimpleAliasFieldExpression(expressionNode) && ((FieldExpressionNode) expressionNode).getField().getValue().equals(alias);
+    }
+
+    public boolean isNotSelectNode(ExpressionNode node) {
+        return !selectNodes.contains(node);
     }
 }

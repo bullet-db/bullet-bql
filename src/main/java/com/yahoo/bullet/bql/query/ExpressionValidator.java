@@ -29,7 +29,8 @@ import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.querying.evaluators.Evaluator;
 import com.yahoo.bullet.typesystem.Type;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 import java.util.Collection;
 import java.util.List;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  * Sets and returns type for visited expression. Accumulates errors found in processed query.
  *
  */
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<ExpressionNode, Expression>> {
     /**
      * Placeholder expression for just type information.
@@ -66,6 +67,8 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
 
     private final ProcessedQuery processedQuery;
     private final LayeredSchema schema;
+    @Setter
+    private Set<String> aliases;
 
     @Override
     public Type process(Node node, Map<ExpressionNode, Expression> mapping) {
@@ -75,11 +78,14 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
                 return expression.getType();
             }
             // Aggregate (i.e. not a FieldExpressionNode) to field expression mapping; guaranteed to be a simple field that exists in the schema
-            if (expression instanceof FieldExpression) {
-                FieldExpression fieldExpression = (FieldExpression) expression;
-                Type type = schema.getType(fieldExpression.getField());
-                if (!Type.isNull(type) && fieldExpression.getIndex() == null && fieldExpression.getKey() == null) {
+            if (expression instanceof FieldExpression && !(node instanceof FieldExpressionNode)) {
+                String field = ((FieldExpression) expression).getField();
+                Type type = schema.getType(field);
+                if (!Type.isNull(type)) {
                     return setType((ExpressionNode) node, type, mapping);
+                } else {
+                    processedQuery.getErrors().add(new BulletError(node.getLocation() + "The field " + field + " does not exist in the schema.", (List<String>) null));
+                    return setType((ExpressionNode) node, Type.UNKNOWN, mapping);
                 }
             }
         }
@@ -87,12 +93,17 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
     }
 
     public List<Type> process(Collection<? extends Node> nodes, Map<ExpressionNode, Expression> mapping) {
+        if (nodes == null) {
+            return null;
+        }
         return nodes.stream().map(node -> process(node, mapping)).collect(Collectors.toList());
     }
 
     @Override
     protected Type visitFieldExpression(FieldExpressionNode node, Map<ExpressionNode, Expression> mapping) {
-        Type type = schema.getType(node.getField().getValue());
+        FieldExpression expression = (FieldExpression) mapping.get(node);
+        String field = expression != null ? expression.getField() : node.getField().getValue();
+        Type type = aliases == null || aliases.contains(field) ? schema.getType(field) : Type.NULL;
         Optional<List<BulletError>> errors = TypeChecker.validateFieldType(node, type, node.hasIndexOrKey(), node.hasSubKey());
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
@@ -119,7 +130,6 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
         Optional<List<BulletError>> errors = TypeChecker.validateUnaryType(null, argType, op);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
-            return setType(node, Type.UNKNOWN, mapping);
         }
         return setType(node, TypeChecker.getUnaryType(op), mapping);
     }
@@ -130,7 +140,6 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
         Optional<List<BulletError>> errors = TypeChecker.validateUnaryType(node, argType, node.getOp());
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
-            return setType(node, Type.UNKNOWN, mapping);
         }
         return setType(node, TypeChecker.getUnaryType(node.getOp()), mapping);
     }
@@ -155,7 +164,7 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
         Optional<List<BulletError>> errors = TypeChecker.validateNumericType(node, argType);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
-            return setType(node, Type.UNKNOWN, mapping);
+            return setType(node, Type.DOUBLE, mapping);
         }
         return setType(node, TypeChecker.getAggregateType(argType, node.getOp()), mapping);
     }
@@ -166,7 +175,6 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
         Optional<List<BulletError>> errors = TypeChecker.validatePrimitiveTypes(node, argTypes);
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
-            return setType(node, Type.UNKNOWN, mapping);
         }
         return setType(node, Type.LONG, mapping);
     }
@@ -191,7 +199,6 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
         Optional<List<BulletError>> errors = TypeChecker.validateCastType(node, argType, node.getCastType());
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
-            return setType(node, Type.UNKNOWN, mapping);
         }
         return setType(node, node.getCastType(), mapping);
     }
@@ -203,7 +210,10 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
         Optional<List<BulletError>> errors = TypeChecker.validateBinaryType(node, leftType, rightType, node.getOp());
         if (errors.isPresent()) {
             processedQuery.getErrors().addAll(errors.get());
-            return setType(node, Type.UNKNOWN, mapping);
+            if (node.getOp() == Operation.FILTER) {
+                return setType(node, Type.UNKNOWN, mapping);
+            }
+            return setType(node, TypeChecker.getBinaryType(Type.DOUBLE, Type.DOUBLE, node.getOp()), mapping);
         }
         return setType(node, TypeChecker.getBinaryType(leftType, rightType, node.getOp()), mapping);
     }
