@@ -195,7 +195,7 @@ public class TopKTest extends IntegrationTest {
 
     @Test
     public void testTopKWithAlias() {
-        build("SELECT TOP(10, abc, def), abc AS one, def AS two FROM STREAM()");
+        build("SELECT TOP(10, abc, def), abc AS one, def AS two, abc + def FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
         TopK aggregation = (TopK) query.getAggregation();
@@ -210,6 +210,11 @@ public class TopKTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
         Assert.assertNull(aggregation.getThreshold());
         Assert.assertEquals(aggregation.getSize(), (Integer) 10);
-        Assert.assertNull(query.getPostAggregations());
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("abc + def", binary(field("one", Type.INTEGER), field("two", Type.FLOAT), Operation.ADD, Type.FLOAT)));
     }
 }

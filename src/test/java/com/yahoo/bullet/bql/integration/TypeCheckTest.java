@@ -109,4 +109,32 @@ public class TypeCheckTest extends IntegrationTest {
         Assert.assertEquals(errors.get(1).getError(), "1:8: The type of the second argument in FILTER('foo', 5) must be BOOLEAN_LIST. Type given: INTEGER");
         Assert.assertEquals(errors.size(), 2);
     }
+
+    @Test
+    public void testTypeCheckDistinct() {
+        build("SELECT DISTINCT aaa FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:17: The SELECT DISTINCT field aaa is non-primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckCountDistinct() {
+        build("SELECT COUNT(DISTINCT aaa) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in COUNT(DISTINCT aaa) must be primitive. Types given: [STRING_MAP_LIST]");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckDistribution() {
+        build("SELECT QUANTILE(aaa, LINEAR, 11) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in QUANTILE(aaa, LINEAR, 11) must be numeric. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckTopK() {
+        build("SELECT TOP(10, aaa) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in TOP(10, aaa) must be primitive. Types given: [STRING_MAP_LIST]");
+        Assert.assertEquals(errors.size(), 1);
+    }
 }

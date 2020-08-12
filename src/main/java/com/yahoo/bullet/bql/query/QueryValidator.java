@@ -123,7 +123,7 @@ public class QueryValidator {
         if (processedQuery.getWhereNode() != null) {
             Type type = processedQuery.getPreAggregationMapping().get(processedQuery.getWhereNode()).getType();
             if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
-                processedQuery.getErrors().add(new BulletError("WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(),
+                processedQuery.getErrors().add(new BulletError(processedQuery.getWhereNode().getLocation() + "WHERE clause cannot be casted to BOOLEAN: " + processedQuery.getWhereNode(),
                                                                "Please specify a valid WHERE clause."));
             }
         }
@@ -148,7 +148,7 @@ public class QueryValidator {
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
             Type type = processedQuery.getPreAggregationMapping().get(node).getType();
             if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                processedQuery.getErrors().add(new BulletError("The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
+                processedQuery.getErrors().add(new BulletError(node.getLocation() + "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
                                                                "Please specify primitive fields only for SELECT DISTINCT."));
             }
         }
@@ -158,7 +158,7 @@ public class QueryValidator {
         for (ExpressionNode node : processedQuery.getGroupByNodes()) {
             Type type = processedQuery.getPreAggregationMapping().get(node).getType();
             if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                processedQuery.getErrors().add(new BulletError("The GROUP BY field " + node + " is non-primitive. Type given: " + type,
+                processedQuery.getErrors().add(new BulletError(node.getLocation() + "The GROUP BY field " + node + " is non-primitive. Type given: " + type,
                                                                "Please specify primitive fields only for GROUP BY."));
             }
         }
@@ -281,7 +281,7 @@ public class QueryValidator {
                     expressionValidator.process(processedQuery.getHavingNode(), processedQuery.getPostAggregationMapping());
                     type = processedQuery.getPostAggregationMapping().get(processedQuery.getHavingNode()).getType();
                     if (!Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type)) {
-                        processedQuery.getErrors().add(new BulletError("HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(),
+                        processedQuery.getErrors().add(new BulletError(processedQuery.getHavingNode().getLocation() + "HAVING clause cannot be casted to BOOLEAN: " + processedQuery.getHavingNode(),
                                                                        "Please specify a valid HAVING clause."));
                     }
                     break;
@@ -299,7 +299,7 @@ public class QueryValidator {
                     for (ExpressionNode orderByNode : processedQuery.getOrderByNodes()) {
                         type = processedQuery.getPostAggregationMapping().get(orderByNode).getType();
                         if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                            processedQuery.getErrors().add(new BulletError("ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
+                            processedQuery.getErrors().add(new BulletError(orderByNode.getLocation() + "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
                         }
                     }
                     break;

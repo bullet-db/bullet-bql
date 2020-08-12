@@ -150,4 +150,32 @@ public class GroupAllTest extends IntegrationTest {
         Assert.assertEquals(errors.size(), 1);
     }
 
+    @Test
+    public void testGroupOpRenameComputationToExistingOpNoCulling() {
+        build("SELECT AVG(abc) + 5 AS \"AVG(abc)\" FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupAll aggregation = (GroupAll) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
+        Assert.assertEquals(aggregation.getOperations(), Collections.singleton(new GroupOperation(GroupOperation.GroupOperationType.AVG,
+                                                                                                  "abc",
+                                                                                                  "AVG(abc)")));
+
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc)", binary(field("AVG(abc)", Type.DOUBLE),
+                                                                                                            value(5),
+                                                                                                            Operation.ADD,
+                                                                                                            Type.DOUBLE))));
+    }
+
+    @Test
+    public void testGroupOpCannotBeUsedAsFieldInComputation() {
+        build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:18: The field AVG(abc) does not exist in the schema.");
+    }
 }

@@ -61,10 +61,11 @@ public class TransientFieldExtractor {
 
     // Remove every field that's not a select field.
     private static Set<String> extractAggregate(ProcessedQuery processedQuery) {
-        return Stream.concat(processedQuery.getGroupByNodes().stream(),
-                             processedQuery.getAggregateNodes().stream())
-                     .filter(processedQuery::isNotSelectNode)
-                     .map(processedQuery::getAliasOrName)
-                     .collect(Collectors.toCollection(HashSet::new));
+        Set<String> fields = Stream.concat(processedQuery.getGroupByNodes().stream(),
+                                           processedQuery.getAggregateNodes().stream())
+                                   .map(processedQuery::getAliasOrName)
+                                   .collect(Collectors.toCollection(HashSet::new));
+        processedQuery.getSelectNodes().stream().map(processedQuery::getAliasOrName).forEach(fields::remove);
+        return fields;
     }
 }

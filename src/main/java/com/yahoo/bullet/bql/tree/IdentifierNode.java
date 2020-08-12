@@ -39,13 +39,11 @@ public class IdentifierNode extends ExpressionNode {
             return false;
         }
         IdentifierNode other = (IdentifierNode) obj;
-        //return Objects.equals(value, other.value) && quoted == other.quoted;
         return Objects.equals(value, other.value);
     }
 
     @Override
     public int hashCode() {
-        //return Objects.hash(value, quoted);
         return Objects.hash(value);
     }
 }

@@ -111,7 +111,6 @@ public class ExpressionTest extends IntegrationTest {
     @Test
     public void testBoolean() {
         build("SELECT true, false FROM STREAM()");
-        build("SELECT true, false FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 2);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("true", value(true)));
         Assert.assertEquals(query.getProjection().getFields().get(1), new Field("false", value(false)));
@@ -228,9 +227,9 @@ public class ExpressionTest extends IntegrationTest {
                                                                                                         Operation.REGEX_LIKE,
                                                                                                         Type.BOOLEAN)));
         Assert.assertEquals(query.getProjection().getFields().get(1), new Field("c RLIKE ANY ['abc']", binary(field("c", Type.STRING),
-                                                                                                             list(Type.STRING_LIST, value("abc")),
-                                                                                                             Operation.REGEX_LIKE_ANY,
-                                                                                                             Type.BOOLEAN)));
+                                                                                                              list(Type.STRING_LIST, value("abc")),
+                                                                                                              Operation.REGEX_LIKE_ANY,
+                                                                                                              Type.BOOLEAN)));
         Assert.assertEquals(query.getProjection().getFields().get(2), new Field("SIZEIS(c, 5)", binary(field("c", Type.STRING),
                                                                                                        value(5),
                                                                                                        Operation.SIZE_IS,
@@ -344,8 +343,8 @@ public class ExpressionTest extends IntegrationTest {
 
         Assert.assertEquals(field.getName(), "[abc, 5, 10]");
         Assert.assertEquals(field.getValue(), list(Type.INTEGER_LIST, field("abc", Type.INTEGER),
-                                                                 value(5),
-                                                                 value(10)));
+                                                                      value(5),
+                                                                      value(10)));
         Assert.assertEquals(field.getValue().getType(), Type.INTEGER_LIST);
     }
 

@@ -13,6 +13,8 @@ import com.yahoo.bullet.query.aggregations.LinearDistribution;
 import com.yahoo.bullet.query.aggregations.ManualDistribution;
 import com.yahoo.bullet.query.aggregations.RegionDistribution;
 import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.query.postaggregations.Computation;
+import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -100,5 +102,54 @@ public class DistributionTest extends IntegrationTest {
         Assert.assertEquals(aggregation.getNumberOfPoints(), 11);
         Assert.assertEquals(aggregation.getSize(), defaultSize);
         Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testDistributionWithOrderBy() {
+        build("SELECT QUANTILE(abc, LINEAR, 11) FROM STREAM() ORDER BY Value, Quantile");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        LinearDistribution aggregation = (LinearDistribution) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.DISTRIBUTION);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getDistributionType(), DistributionType.QUANTILE);
+        Assert.assertEquals(aggregation.getNumberOfPoints(), 11);
+        Assert.assertEquals(aggregation.getSize(), defaultSize);
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(orderBy.getFields().size(), 2);
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("Value", Type.DOUBLE));
+        Assert.assertEquals(orderBy.getFields().get(1).getExpression(), field("Quantile", Type.DOUBLE));
+    }
+
+    @Test
+    public void testDistributionWithAdditionalComputation() {
+        build("SELECT QUANTILE(abc, LINEAR, 11), Value + 5, Quantile + 5 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        LinearDistribution aggregation = (LinearDistribution) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.DISTRIBUTION);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc"));
+        Assert.assertEquals(aggregation.getDistributionType(), DistributionType.QUANTILE);
+        Assert.assertEquals(aggregation.getNumberOfPoints(), 11);
+        Assert.assertEquals(aggregation.getSize(), defaultSize);
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields().size(), 2);
+        Assert.assertEquals(computation.getFields().get(0), new Field("Value + 5", binary(field("Value", Type.DOUBLE), value(5), Operation.ADD, Type.DOUBLE)));
+        Assert.assertEquals(computation.getFields().get(1), new Field("Quantile + 5", binary(field("Quantile", Type.DOUBLE), value(5), Operation.ADD, Type.DOUBLE)));
+    }
+
+    @Test
+    public void testDistributionWithAdditionalInvalidField() {
+        build("SELECT QUANTILE(abc, LINEAR, 11), abc FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:35: The field abc does not exist in the schema.");
+        Assert.assertEquals(errors.size(), 1);
     }
 }

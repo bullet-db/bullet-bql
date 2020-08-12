@@ -114,6 +114,16 @@ public class RawTest extends IntegrationTest {
     }
 
     @Test
+    public void testRawAllWithAliasNameSwapped() {
+        build("SELECT *, abc AS def, def AS abc FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("def", field("abc", Type.INTEGER)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("abc", field("def", Type.FLOAT)));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.COPY);
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
     public void testRawAllWithComputation() {
         build("SELECT *, abc + 5 FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -150,7 +160,7 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawAllWithOrderByNonPrimitiveNotAllowed() {
         build("SELECT * FROM STREAM() ORDER BY aaa");
-        Assert.assertEquals(errors.get(0).getError(), "ORDER BY contains a non-primitive field: aaa");
+        Assert.assertEquals(errors.get(0).getError(), "1:33: ORDER BY contains a non-primitive field: aaa");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -167,25 +177,6 @@ public class RawTest extends IntegrationTest {
                                                                                value(5),
                                                                                Operation.ADD,
                                                                                Type.INTEGER));
-        /*
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
-        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
-                                                                                                  value(5),
-                                                                                                  Operation.ADD,
-                                                                                                  Type.INTEGER)));
-        Assert.assertEquals(query.getProjection().getType(), Projection.Type.COPY);
-        Assert.assertEquals(query.getPostAggregations().size(), 2);
-
-        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
-
-        Assert.assertEquals(orderBy.getFields().size(), 1);
-        Assert.assertEquals(orderBy.getFields().get(0).getField(), "abc + 5");
-
-        Culling culling = (Culling) query.getPostAggregations().get(1);
-
-        Assert.assertEquals(culling.getTransientFields().size(), 1);
-        Assert.assertTrue(culling.getTransientFields().contains("abc + 5"));
-        */
     }
 
     @Test
