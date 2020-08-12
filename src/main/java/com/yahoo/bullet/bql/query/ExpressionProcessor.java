@@ -86,11 +86,16 @@ public class ExpressionProcessor extends DefaultTraversalVisitor<Expression, Map
         return expression;
     }
 
+    /*
+    If a subfield's base field has an alias, a mapping must exist for just the simple field alone.
+    This method checks if that mapping exists and returns the alias if it does.
+    */
     private String getMappedField(FieldExpressionNode node, Map<ExpressionNode, Expression> context) {
         String field = node.getField().getValue();
         if (!node.hasIndexOrKey()) {
             return field;
         }
+        // TODO optimize
         FieldExpression expression = (FieldExpression) context.get(new FieldExpressionNode(new IdentifierNode(field, false, null), null, null, null, null, null));
         if (expression != null) {
             return expression.getField();

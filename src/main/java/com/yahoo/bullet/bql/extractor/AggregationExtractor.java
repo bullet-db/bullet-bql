@@ -58,6 +58,7 @@ public class AggregationExtractor {
         throw new ParsingException("Unknown query type");
     }
 
+    // If there is a projection, add a mapping for simple fields that were selected with aliases.
     private static Aggregation extractRaw(ProcessedQuery processedQuery) {
         if (processedQuery.getProjection() != null) {
             addSimplePostAggregationMapping(processedQuery, processedQuery.getProjection());
@@ -68,7 +69,7 @@ public class AggregationExtractor {
     /*
     For SELECT DISTINCT, the GROUP BY fields are exactly the SELECT items. They're mapped as expression/field name
     to alias (if it exists; otherwise, just name). If there are non-field expressions (i.e. computations), all fields
-    will be projected.
+    will have been projected.
     */
     private static Aggregation extractDistinct(ProcessedQuery processedQuery) {
         addSimplePostAggregationMapping(processedQuery, processedQuery.getSelectNodes());
@@ -110,7 +111,7 @@ public class AggregationExtractor {
         return processedQuery.getDistribution().getAggregation(processedQuery.getLimit());
     }
 
-    // Fields get mapped to their aliases (if they exist; otherwise just their names)
+    // Fields get mapped to their aliases (if they exist; otherwise just their names). Top K is given an alias by default.
     private static Aggregation extractTopK(ProcessedQuery processedQuery) {
         TopKNode topK = processedQuery.getTopK();
         Map<String, String> fields = toAliasedFields(processedQuery, topK.getExpressions());
@@ -141,15 +142,23 @@ public class AggregationExtractor {
         };
     }
 
+    // Aggregates must be mapped to a field expression after postaggregation so that it is possible to actually to their values in the record.
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {
         Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
         expressions.forEach(node -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
     }
 
+    // Aggregates must be mapped to a field expression after postaggregation so that it is possible to actually to their values in the record.
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, ExpressionNode expression) {
         processedQuery.getPostAggregationMapping().put(expression, new FieldExpression(processedQuery.getAliasOrName(expression)));
     }
 
+    /*
+    Add a mapping for any simple field with an alias to redirect that simple field to the alias in postaggregations if
+    the field's name is not covered by any other aliases.
+    For example, for "abc AS def", usage of the field "abc" in postaggregations gets mapped to "def" as long as "abc"
+    itself is not another alias like "abc + 5 AS abc".
+    */
     private static void addSimplePostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {
         Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
         expressions.stream()

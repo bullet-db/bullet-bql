@@ -173,9 +173,8 @@ public class ProcessedQuery {
         if (!selectNodes.contains(groupOperationNode) || !selectNodes.containsAll(groupByNodes)) {
             return false;
         }
-        // Compare by expression since both should point to the same field expression
+        // Compare by expression node or alias name
         String alias = aliases.get(groupOperationNode);
-        //SortItemNode sortItemNode = sortItemNodes.get(0);
         SortItemNode sortItemNode = sortItemNodes.iterator().next();
         ExpressionNode orderByNode = sortItemNode.getExpression();
         if (!(orderByNode.equals(groupOperationNode) || isSimpleAliasFieldExpressionMatchingAlias(orderByNode, alias)) || sortItemNode.getOrdering() != SortItemNode.Ordering.DESCENDING) {
@@ -367,9 +366,5 @@ public class ProcessedQuery {
 
     private boolean isSimpleAliasFieldExpressionMatchingAlias(ExpressionNode expressionNode, String alias) {
         return isSimpleAliasFieldExpression(expressionNode) && ((FieldExpressionNode) expressionNode).getField().getValue().equals(alias);
-    }
-
-    public boolean isNotSelectNode(ExpressionNode node) {
-        return !selectNodes.contains(node);
     }
 }

@@ -40,10 +40,9 @@ public class ComputationExtractor {
     }
 
     /*
-    For aggregates, we need to consider the computations in SELECT and ORDER BY. Ignore any clauses that are just
-    simple field expressions, GROUP BY fields, or aggregates. (GROUP BY fields and aggregates are simple fields
-    post-aggregation).
-     */
+    For aggregates, we need to consider the computations in SELECT. Ignore any clauses that are just simple fields,
+    GROUP BY fields, or aggregates. (GROUP BY fields and aggregates are simple fields post-aggregation).
+    */
     private static Computation extractAggregate(ProcessedQuery processedQuery) {
         List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream()
                                                                           .filter(processedQuery::isNotGroupByNode)
@@ -54,10 +53,7 @@ public class ComputationExtractor {
         return getAliasedComputation(processedQuery, expressions);
     }
 
-    /*
-    For Special K, the computations are what's left over from the select fields after removing all the group by and
-    aggregate fields.
-    */
+    // For Special K, the computations are the select fields minus the group by and aggregate fields.
     private static Computation extractSpecialK(ProcessedQuery processedQuery) {
         Set<ExpressionNode> expressions = new HashSet<>(processedQuery.getSelectNodes());
         expressions.removeAll(processedQuery.getGroupByNodes());

@@ -42,17 +42,14 @@ public class PostAggregationExtractor {
         }
     }
 
-    /*
-    If an order by field references an alias (by itself), then we won't replace it with an alias that might exist, e.g.
-    SELECT abc AS def, def AS abc FROM STREAM() ORDER BY abc; will order by "abc" and won't be replaced by "def" .
-    */
     private static void extractOrderBy(ProcessedQuery processedQuery, List<PostAggregation> postAggregations) {
         // Special K has an ORDER BY clause, but it's subsumed by Top K
         if (processedQuery.getOrderByNodes().isEmpty() || processedQuery.getQueryType() == ProcessedQuery.QueryType.SPECIAL_K) {
             return;
         }
-        List<OrderBy.SortItem> fields = processedQuery.getSortItemNodes().stream().map(node ->
-                new OrderBy.SortItem(ExpressionProcessor.visit(node.getExpression(), processedQuery.getPostAggregationMapping()), node.getOrdering().getDirection())
+        List<OrderBy.SortItem> fields = processedQuery.getSortItemNodes().stream().map(
+                node -> new OrderBy.SortItem(ExpressionProcessor.visit(node.getExpression(), processedQuery.getPostAggregationMapping()),
+                                             node.getOrdering().getDirection())
         ).collect(Collectors.toCollection(ArrayList::new));
         postAggregations.add(new OrderBy(fields));
     }

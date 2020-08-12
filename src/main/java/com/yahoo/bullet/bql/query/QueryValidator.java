@@ -39,7 +39,7 @@ import java.util.stream.Stream;
  * a WHERE clause or HAVING clause should have an expression that can be casted to BOOLEAN. The validator also checks
  * for duplicate fields, so a query that clobbers its fields with aliases is invalid.
  *
- * Note: If no schema given to the validator, most expressions will be processed as type UNKNOWN, which vacuously
+ * Note: If no schema is given to the validator, most expressions will be processed as type UNKNOWN, which vacuously
  * passes through checks.
  *
  * Note: RAW PASS_THROUGH queries pass Bullet records as is through projection and aggregation. This means that BQL
@@ -51,7 +51,7 @@ import java.util.stream.Stream;
  * SELECT_ALL queries exit early in the culling extractor if they have a PASS_THROUGH projection (i.e. no
  * projection expression nodes in its ProcessedQuery), and SELECT_ALL queries exit early in the computation extractor.
  *
- * In this way, BQL cannot / does not generate computation and culling post-aggregations for RAW PASS_THROUGH queries.
+ * In this way, BQL cannot and does not generate computation and culling post-aggregations for RAW PASS_THROUGH queries.
  */
 public class QueryValidator {
     private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
@@ -70,31 +70,25 @@ public class QueryValidator {
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
     }
 
-    // AVG(a) AS c, AVG(a) + 5, c + 5
-    // AVG(a) AS "AVG(b)", AVG(b) AS "AVG(a)", AVG(a) + 5
-
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
         LayeredSchema schema = new LayeredSchema(baseSchema);
         ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery, schema);
         ProcessedQuery.QueryType queryType = processedQuery.getQueryType();
 
-        // Type-check everything in the pre-aggregation
-
-        // Some extra things to type check if it's select *
+        // Type check the select fields for a SELECT * query since there can be fields not covered by the projection.
         if (queryType == ProcessedQuery.QueryType.SELECT_ALL) {
             expressionValidator.process(processedQuery.getSelectNodes(), processedQuery.getPreAggregationMapping());
         }
 
-        // Check that filter clause can be evaluated as a boolean
+        // Check that the filter clause can be evaluated as a boolean
         expressionValidator.process(processedQuery.getWhereNode(), processedQuery.getPreAggregationMapping());
         validateFilter(processedQuery);
 
-        // check everything in SELECT exists or is proper
+        // Type check everything in SELECT exists or is proper
         expressionValidator.process(processedQuery.getProjection(), processedQuery.getPreAggregationMapping());
-        validateProjection(processedQuery, expressionValidator, schema, query);
+        validateProjection(processedQuery, schema, query);
 
-        // Process group by and aggregate nodes. Order doesn't matter. It only matters that they're using the schema after projections.
-        // If the query type is select distinct, the select nodes are the actual aggregate nodes.
+        // Process group by and aggregate nodes. If the query type is select distinct, the select nodes are the aggregate nodes.
         if (queryType == ProcessedQuery.QueryType.SELECT_DISTINCT) {
             expressionValidator.process(processedQuery.getSelectNodes(), processedQuery.getPreAggregationMapping());
             validateSelectDistinct(processedQuery);
@@ -108,8 +102,8 @@ public class QueryValidator {
         validateAggregation(processedQuery, schema, queryType, query);
 
         if (queryType != ProcessedQuery.QueryType.SELECT && queryType != ProcessedQuery.QueryType.SELECT_ALL) {
-            // set aliases allowed for actually existing aliases. AVG(a) without an alias does not get one. so the field "AVG(a)" would not be valid.
-            // this matters for group by, count distinct, top k, and special k to just avoid the weird edge case...
+            // Set aliases allowed for actually existing aliases, e.g. the field "AVG(a)" is not a valid reference to the aggregate AVG(a).
+            // This matters for group by, count distinct, top k, and special k queries to avoid an edge case
             expressionValidator.setAliases(getAliases(processedQuery, queryType));
             expressionValidator.process(getAdditionalSelectNodes(processedQuery, queryType), processedQuery.getPostAggregationMapping());
         }
@@ -129,7 +123,7 @@ public class QueryValidator {
         }
     }
 
-    private static void validateProjection(ProcessedQuery processedQuery, ExpressionValidator expressionValidator, LayeredSchema schema, Query query) {
+    private static void validateProjection(ProcessedQuery processedQuery, LayeredSchema schema, Query query) {
         if (processedQuery.getProjection() != null) {
             List<Schema.Field> fields = toSchemaFields(query.getProjection().getFields());
             duplicates(fields).ifPresent(duplicates -> {
@@ -311,14 +305,6 @@ public class QueryValidator {
         Map<String, Long> fieldsToCount = fields.stream().map(Schema.Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         Set<String> duplicates = fieldsToCount.keySet().stream().filter(s -> fieldsToCount.get(s) > 1).collect(Collectors.toSet());
         return !duplicates.isEmpty() ? Optional.of(duplicates) : Optional.empty();
-    }
-
-    private static Optional<Set<String>> overwritten(List<Schema.Field> fields, LayeredSchema schema) {
-        Set<String> overwritten = fields.stream().map(Schema.Field::getName).filter(name -> {
-            Type type = schema.getType(name);
-            return !Type.isUnknown(type) && !Type.isNull(type);
-        }).collect(Collectors.toSet());
-        return !overwritten.isEmpty() ? Optional.of(overwritten) : Optional.empty();
     }
 
     private static List<Schema.Field> toSchemaFields(List<Field> fields) {

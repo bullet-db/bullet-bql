@@ -46,20 +46,15 @@ public class ProjectionExtractor {
         throw new ParsingException("Unknown query type");
     }
 
-    /*
-    Need to project all SELECT fields and any ORDER BY fields that are not simple alias fields. For example, if we
-    select a field "abc" AS "def" and order by "def", we don't want to end up projecting "def" along with "abc" since
-    the order by was actually referring to "abc". If "abc" wasn't aliased as "def", we would want to project "def"
-    for order by though. So, anything else that shows up in ORDER BY needs to be projected.
-    */
+    // Projects all SELECT fields and any simple fields ORDER BY is dependent on.
     private static Projection extractSelect(ProcessedQuery processedQuery) {
-        //
+        // The set of fields that will be in the schema from SELECT.
         processedQuery.setSelectNames(Stream.concat(processedQuery.getSelectNodes().stream().filter(processedQuery::isSimpleFieldExpression).map(ExpressionNode::getName),
                                                     processedQuery.getAliases().values().stream())
                                             .collect(Collectors.toSet()));
+        // Populates a set of fields that ORDER BY clauses depend on but are not in SELECT.
         OrderByProcessor.visit(processedQuery.getOrderByNodes(), processedQuery);
 
-        //
         List<ExpressionNode> expressions = Stream.concat(processedQuery.getSelectNodes().stream(),
                                                          processedQuery.getOrderByExtraSelectNodes().stream())
                                                  .collect(Collectors.toList());
@@ -89,16 +84,13 @@ public class ProjectionExtractor {
 
     // Project the select fields without their aliases since they'll be renamed in the aggregation instead.
     private static Projection extractDistinct(ProcessedQuery processedQuery) {
-        /*
-        If all select fields are simple field expressions, then there's no need to project anything.
-        Order by computations are done afterward and won't clobber the original record since the aggregation creates a new record.
-        */
+        // If all select fields are simple field expressions, then there's no need to project anything.
         return getNonAliasedProjection(processedQuery, processedQuery.getSelectNodes());
     }
 
     /*
     Project group by fields and any fields with aggregates (without their aliases since they'll be renamed in
-    the aggregation). We don't care about select or order by fields, since those are computed afterwards.
+    the aggregation). We don't care about select fields, since those are computed afterwards.
     */
     private static Projection extractGroup(ProcessedQuery processedQuery) {
         // Project group by and aggregate fields (need to filter for non-null because COUNT(*) does not have a field)
@@ -138,7 +130,7 @@ public class ProjectionExtractor {
     /*
     If the expressions are all simple fields, there's nothing to project and any bullet record can be passed through
     as is.
-     */
+     \*/
     private static Projection getNonAliasedProjection(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         if (areAllSimpleFields(processedQuery, expressions)) {
             return new Projection();

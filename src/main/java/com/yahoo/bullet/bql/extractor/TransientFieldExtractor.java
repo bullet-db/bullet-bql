@@ -37,7 +37,7 @@ public class TransientFieldExtractor {
         throw new ParsingException("Unknown query type");
     }
 
-    // Remove every order by field that's not a select field.
+    // Remove every extra order by field because none of them are selected.
     private static Set<String> extractSelect(ProcessedQuery processedQuery) {
         return processedQuery.getOrderByExtraSelectNodes().stream().map(ExpressionNode::getName).collect(Collectors.toCollection(HashSet::new));
     }
