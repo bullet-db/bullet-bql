@@ -10,716 +10,462 @@
  */
 package com.yahoo.bullet.bql.parser;
 
-import com.yahoo.bullet.aggregations.Distribution.Type;
-import com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType;
-import com.yahoo.bullet.bql.tree.AllColumns;
-import com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression;
-import com.yahoo.bullet.bql.tree.BetweenPredicate;
-import com.yahoo.bullet.bql.tree.InfixExpression;
-import com.yahoo.bullet.bql.tree.BooleanLiteral;
-import com.yahoo.bullet.bql.tree.CastExpression;
-import com.yahoo.bullet.bql.tree.ComparisonExpression;
-import com.yahoo.bullet.bql.tree.ContainsPredicate;
-import com.yahoo.bullet.bql.tree.DecimalLiteral;
-import com.yahoo.bullet.bql.tree.DoubleLiteral;
-import com.yahoo.bullet.bql.tree.Expression;
-import com.yahoo.bullet.bql.tree.FunctionCall;
-import com.yahoo.bullet.bql.tree.GroupBy;
-import com.yahoo.bullet.bql.tree.GroupingElement;
-import com.yahoo.bullet.bql.tree.Identifier;
-import com.yahoo.bullet.bql.tree.InPredicate;
-import com.yahoo.bullet.bql.tree.IsEmptyPredicate;
-import com.yahoo.bullet.bql.tree.IsNotEmptyPredicate;
-import com.yahoo.bullet.bql.tree.IsNotNullPredicate;
-import com.yahoo.bullet.bql.tree.IsNullPredicate;
-import com.yahoo.bullet.bql.tree.LikePredicate;
-import com.yahoo.bullet.bql.tree.LinearDistribution;
-import com.yahoo.bullet.bql.tree.LogicalBinaryExpression;
-import com.yahoo.bullet.bql.tree.LongLiteral;
-import com.yahoo.bullet.bql.tree.ManualDistribution;
+import com.yahoo.bullet.bql.tree.CastExpressionNode;
+import com.yahoo.bullet.bql.tree.CountDistinctNode;
+import com.yahoo.bullet.bql.tree.ExpressionNode;
+import com.yahoo.bullet.bql.tree.FieldExpressionNode;
+import com.yahoo.bullet.bql.tree.GroupByNode;
+import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.IdentifierNode;
+import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
+import com.yahoo.bullet.bql.tree.LinearDistributionNode;
+import com.yahoo.bullet.bql.tree.ListExpressionNode;
+import com.yahoo.bullet.bql.tree.LiteralNode;
+import com.yahoo.bullet.bql.tree.ManualDistributionNode;
+import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NodeLocation;
-import com.yahoo.bullet.bql.tree.NotExpression;
-import com.yahoo.bullet.bql.tree.NullLiteral;
-import com.yahoo.bullet.bql.tree.OrderBy;
-import com.yahoo.bullet.bql.tree.ParensExpression;
-import com.yahoo.bullet.bql.tree.QualifiedName;
-import com.yahoo.bullet.bql.tree.Query;
-import com.yahoo.bullet.bql.tree.QueryBody;
-import com.yahoo.bullet.bql.tree.QuerySpecification;
-import com.yahoo.bullet.bql.tree.ReferenceWithFunction;
-import com.yahoo.bullet.bql.tree.RegionDistribution;
-import com.yahoo.bullet.bql.tree.Relation;
-import com.yahoo.bullet.bql.tree.Select;
-import com.yahoo.bullet.bql.tree.SelectItem;
-import com.yahoo.bullet.bql.tree.SimpleGroupBy;
-import com.yahoo.bullet.bql.tree.SingleColumn;
-import com.yahoo.bullet.bql.tree.SortItem;
-import com.yahoo.bullet.bql.tree.Stream;
-import com.yahoo.bullet.bql.tree.StringLiteral;
-import com.yahoo.bullet.bql.tree.TopK;
-import com.yahoo.bullet.bql.tree.ValueListExpression;
-import com.yahoo.bullet.bql.tree.WindowInclude;
-import com.yahoo.bullet.bql.tree.WindowInclude.IncludeType;
-import com.yahoo.bullet.bql.tree.Windowing;
-import com.yahoo.bullet.parsing.Clause.Operation;
-import com.yahoo.bullet.parsing.Window.Unit;
+import com.yahoo.bullet.bql.tree.NullPredicateNode;
+import com.yahoo.bullet.bql.tree.OrderByNode;
+import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
+import com.yahoo.bullet.bql.tree.QueryNode;
+import com.yahoo.bullet.bql.tree.RegionDistributionNode;
+import com.yahoo.bullet.bql.tree.SelectNode;
+import com.yahoo.bullet.bql.tree.SelectItemNode;
+import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.bql.tree.StreamNode;
+import com.yahoo.bullet.bql.tree.TopKNode;
+import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
+import com.yahoo.bullet.bql.tree.WindowIncludeNode;
+import com.yahoo.bullet.bql.tree.WindowNode;
+import com.yahoo.bullet.query.Window.Unit;
+import com.yahoo.bullet.query.aggregations.DistributionType;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.typesystem.Type;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.yahoo.bullet.aggregations.Distribution.Type.CDF;
-import static com.yahoo.bullet.aggregations.Distribution.Type.PMF;
-import static com.yahoo.bullet.aggregations.Distribution.Type.QUANTILE;
-import static com.yahoo.bullet.bql.tree.WindowInclude.IncludeType.FIRST;
-import static com.yahoo.bullet.parsing.Window.Unit.ALL;
-import static java.util.Arrays.asList;
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
+import static com.yahoo.bullet.query.aggregations.DistributionType.CDF;
+import static com.yahoo.bullet.query.aggregations.DistributionType.PMF;
+import static com.yahoo.bullet.query.aggregations.DistributionType.QUANTILE;
 
 class ASTBuilder extends BQLBaseBaseVisitor<Node> {
-    private final ParsingOptions parsingOptions;
-
-    ASTBuilder(ParsingOptions parsingOptions) {
-        this.parsingOptions = requireNonNull(parsingOptions, "ParsingOptions is null");
+    @Override
+    public Node visitQuery(BQLBaseParser.QueryContext context) {
+        return new QueryNode((SelectNode) visit(context.select()),
+                             (StreamNode) visit(context.stream()),
+                             stripParentheses((ExpressionNode) visitIfPresent(context.where)),
+                             (GroupByNode) visitIfPresent(context.groupBy()),
+                             stripParentheses((ExpressionNode) visitIfPresent(context.having)),
+                             (OrderByNode) visitIfPresent(context.orderBy()),
+                             (WindowNode) visitIfPresent(context.window()),
+                             getTextIfPresent(context.limit),
+                             getLocation(context));
     }
 
     @Override
-    public Node visitSingleStatement(BQLBaseParser.SingleStatementContext context) throws IllegalArgumentException,
-            UnsupportedOperationException, ParsingException, NullPointerException, AssertionError {
-        return visit(context.statement());
+    public Node visitSelect(BQLBaseParser.SelectContext context) {
+        return new SelectNode(context.DISTINCT() != null,
+                              visit(context.selectItem(), SelectItemNode.class),
+                              getLocation(context));
     }
 
     @Override
-    public Node visitSingleExpression(BQLBaseParser.SingleExpressionContext context) throws IllegalArgumentException,
-            UnsupportedOperationException, ParsingException, NullPointerException, AssertionError {
-        return visit(context.expression());
-    }
-
-    // ******************* Statements **********************
-
-    @Override
-    public Node visitQueryNoWith(BQLBaseParser.QueryNoWithContext context) throws IllegalArgumentException,
-            UnsupportedOperationException, ParsingException, NullPointerException, AssertionError {
-        QueryBody term = (QueryBody) visit(context.queryTerm());
-        Optional<OrderBy> orderBy = Optional.empty();
-        if (context.ORDER() != null) {
-            orderBy = Optional.of(new OrderBy(getLocation(context.ORDER()), visit(context.sortItem(), SortItem.class)));
-        }
-        Optional<Windowing> windowing = visitIfPresent(context.windowOperation(), Windowing.class);
-        QuerySpecification query = (QuerySpecification) term;
-
-        return new Query(
-                getLocation(context),
-                Optional.empty(),
-                new QuerySpecification(
-                        getLocation(context),
-                        query.getSelect(),
-                        query.getFrom(),
-                        query.getWhere(),
-                        query.getGroupBy(),
-                        query.getHaving(),
-                        orderBy,
-                        getTextIfPresent(context.limit),
-                        windowing),
-                Optional.empty(),
-                Optional.empty());
-    }
-
-    @Override
-    public Node visitSortItem(BQLBaseParser.SortItemContext context) {
-        return new SortItem(
-                getLocation(context),
-                (Expression) visit(context.expression()),
-                Optional.ofNullable(context.ordering)
-                        .map(ASTBuilder::getOrderingType)
-                        .orElse(SortItem.Ordering.ASCENDING),
-                SortItem.NullOrdering.UNDEFINED);
-    }
-
-    @Override
-    public Node visitEmitEvery(BQLBaseParser.EmitEveryContext context) {
-        Long emitEvery = Long.parseLong(context.emitEvery.getText());
-        Unit emitType = Unit.valueOf(context.emitType.getText().toUpperCase());
-        WindowInclude include = (WindowInclude) visitInclude(context.include());
-        return new Windowing(getLocation(context), emitEvery, emitType, include);
-    }
-
-    @Override
-    public Node visitInclude(BQLBaseParser.IncludeContext context) {
-        Unit unit = Unit.valueOf(context.includeUnit.getText().toUpperCase());
-        Optional<IncludeType> type = Optional.empty();
-        Optional<Long> number = Optional.empty();
-
-        if (unit != ALL) {
-            type = getIncludeType(context);
-            number = Optional.of(Long.parseLong(context.INTEGER_VALUE().getText()));
-        }
-
-        return new WindowInclude(getLocation(context), unit, type, number);
-    }
-
-    @Override
-    public Node visitTumbling(BQLBaseParser.TumblingContext context) {
-        Long emitEvery = Long.parseLong(context.emitEvery.getText());
-        Unit emitType = Unit.valueOf(context.emitType.getText().toUpperCase());
-        WindowInclude include = new WindowInclude(
-                getLocation(context),
-                emitType,
-                Optional.of(FIRST),
-                Optional.of(emitEvery));
-
-        return new Windowing(getLocation(context), emitEvery, emitType, include);
-    }
-
-    @Override
-    public Node visitQuerySpecification(BQLBaseParser.QuerySpecificationContext context) throws IllegalArgumentException,
-            UnsupportedOperationException, ParsingException, NullPointerException, AssertionError {
-        List<SelectItem> selectItems = visit(context.selectItem(), SelectItem.class);
-        Optional<Relation> from = Optional.of((Relation) (visit(context.relation())));
-
-        return new QuerySpecification(
-                getLocation(context),
-                new Select(getLocation(context.SELECT()), isDistinct(context.setQuantifier()), selectItems),
-                from,
-                visitIfPresent(context.where, Expression.class),
-                visitIfPresent(context.groupBy(), GroupBy.class),
-                visitIfPresent(context.having, Expression.class),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty());
-    }
-
-    @Override
-    public Node visitTopKThreshold(BQLBaseParser.TopKThresholdContext context) throws ParsingException {
-        return new ComparisonExpression(
-                getLocation(context),
-                getComparisonOperator(((TerminalNode) context.comparisonOperator().getChild(0)).getSymbol()),
-                (Expression) (visit(context.expression())),
-                new LongLiteral(getLocation(context.right), context.right.getText()),
-                false);
-    }
-
-    @Override
-    public Node visitGroupBy(BQLBaseParser.GroupByContext context) {
-        return new GroupBy(
-                getLocation(context),
-                false,
-                visit(asList(context.groupingElement()), GroupingElement.class));
-    }
-
-    @Override
-    public Node visitSingleGroupingSet(BQLBaseParser.SingleGroupingSetContext context) {
-        return new SimpleGroupBy(
-                getLocation(context),
-                visit(context.groupingExpressions().referenceExpression(), Expression.class));
-    }
-
-    @Override
-    public Node visitSelectAll(BQLBaseParser.SelectAllContext context) {
-        Optional<Identifier> alias = visitIfPresent(context.identifier(), Identifier.class);
-        if (context.qualifiedName() != null) {
-            return new AllColumns(getLocation(context), getQualifiedName(context.qualifiedName()), alias);
-        }
-
-        return new AllColumns(getLocation(context));
-    }
-
-    @Override
-    public Node visitSelectSingle(BQLBaseParser.SelectSingleContext context) {
-        return new SingleColumn(
-                getLocation(context),
-                (Expression) visit(context.primaryExpression()),
-                visitIfPresent(context.identifier(), Identifier.class));
-    }
-
-    // ***************** Boolean Expressions ******************
-
-    @Override
-    public Node visitLogicalNot(BQLBaseParser.LogicalNotContext context) {
-        return new NotExpression(getLocation(context), (Expression) visit(context.booleanExpression()));
-    }
-
-    @Override
-    public Node visitLogicalBinary(BQLBaseParser.LogicalBinaryContext context) throws IllegalArgumentException {
-        return new LogicalBinaryExpression(
-                getLocation(context.operator),
-                getLogicalBinaryOperator(context.operator),
-                (Expression) visit(context.left),
-                (Expression) visit(context.right));
-    }
-
-    @Override
-    public Node visitParenthesizedExpression(BQLBaseParser.ParenthesizedExpressionContext context) {
-        return visit(context.booleanExpression());
-    }
-
-    // *************** From Clause *****************
-
-    @Override
-    public Node visitSampledRelation(BQLBaseParser.SampledRelationContext context) {
-        return visit(context.aliasedRelation());
-    }
-
-    @Override
-    public Node visitAliasedRelation(BQLBaseParser.AliasedRelationContext context) {
-        return visit(context.relationPrimary());
+    public Node visitSelectItem(BQLBaseParser.SelectItemContext context) {
+        return new SelectItemNode(context.ASTERISK() != null,
+                                  stripParentheses((ExpressionNode) visitIfPresent(context.expression())),
+                                  (IdentifierNode) visitIfPresent(context.identifier()),
+                                  getLocation(context));
     }
 
     @Override
     public Node visitStream(BQLBaseParser.StreamContext context) {
-        Optional<String> timeDuration = getTextIfPresent(context.timeDuration);
-        Optional<String> recordDuration = getTextIfPresent(context.recordDuration);
-        return new Stream(getLocation(context), timeDuration, recordDuration);
-    }
-    // ********************* Predicates *******************
-
-    @Override
-    public Node visitPredicated(BQLBaseParser.PredicatedContext context) {
-        return visit(context.predicate());
+        return new StreamNode(getTextIfPresent(context.timeDuration), getLocation(context));
     }
 
     @Override
-    public Node visitReferenceWithFunction(BQLBaseParser.ReferenceWithFunctionContext context) {
-        return new ReferenceWithFunction(
-                getLocation(context),
-                getFunctionOperator(((TerminalNode) context.functionName().getChild(0)).getSymbol()),
-                (Expression) visit(context.referenceExpression()));
+    public Node visitGroupBy(BQLBaseParser.GroupByContext context) {
+        return new GroupByNode(visitExpressionsList(context.expressions()).stream().map(this::stripParentheses).collect(Collectors.toList()),
+                               getLocation(context));
     }
 
     @Override
-    public Node visitComparison(BQLBaseParser.ComparisonContext context) throws IllegalArgumentException {
-        return new ComparisonExpression(
-                getLocation(context.comparisonOperator()),
-                getComparisonOperator(((TerminalNode) context.comparisonOperator().getChild(0)).getSymbol()),
-                (Expression) visit(context.value),
-                (Expression) visit(context.right),
-                false);
+    public Node visitOrderBy(BQLBaseParser.OrderByContext context) {
+        return new OrderByNode(visit(context.sortItem(), SortItemNode.class), getLocation(context));
     }
 
     @Override
-    public Node visitDistinctFrom(BQLBaseParser.DistinctFromContext context) {
-        Expression expression = new ComparisonExpression(
-                getLocation(context),
-                Operation.NOT_EQUALS,
-                (Expression) visit(context.value),
-                (Expression) visit(context.right),
-                true);
-
-        if (context.NOT() != null) {
-            expression = new NotExpression(getLocation(context), expression);
-        }
-
-        return expression;
+    public Node visitSortItem(BQLBaseParser.SortItemContext context) {
+        return new SortItemNode(stripParentheses((ExpressionNode) visit(context.expression())),
+                                getOrdering(context.ordering),
+                                getLocation(context));
     }
 
     @Override
-    public Node visitBetween(BQLBaseParser.BetweenContext context) {
-        Expression expression = new BetweenPredicate(
-                getLocation(context),
-                (Expression) visit(context.value),
-                (Expression) visit(context.lower),
-                (Expression) visit(context.upper));
+    public Node visitWindow(BQLBaseParser.WindowContext context) {
+        Integer emitEvery = Integer.parseInt(context.emitEvery.getText());
+        Unit emitType = Unit.valueOf(context.emitType.getText().toUpperCase());
+        return new WindowNode(emitEvery,
+                              emitType,
+                              (WindowIncludeNode) visitIfPresent(context.include()),
+                              getLocation(context));
+    }
 
-        if (context.NOT() != null) {
-            expression = new NotExpression(getLocation(context), expression);
-        }
+    @Override
+    public Node visitInclude(BQLBaseParser.IncludeContext context) {
+        Integer first = context.INTEGER_VALUE() != null ? Integer.parseInt(context.INTEGER_VALUE().getText()) : null;
+        Unit includeUnit = Unit.valueOf(context.includeUnit.getText().toUpperCase());
+        return new WindowIncludeNode(first, includeUnit, getLocation(context));
+    }
 
-        return expression;
+    @Override
+    public Node visitFieldExpression(BQLBaseParser.FieldExpressionContext context) {
+        return new FieldExpressionNode((IdentifierNode) visit(context.field),
+                                       context.index != null ? Integer.valueOf(context.index.getText()) : null,
+                                       (IdentifierNode) visitIfPresent(context.key),
+                                       (IdentifierNode) visitIfPresent(context.subKey),
+                                       getType(context.fieldType()),
+                                       getLocation(context));
+    }
+
+    @Override
+    public Node visitListExpression(BQLBaseParser.ListExpressionContext context) {
+        return new ListExpressionNode(visitExpressionsList(context.expressions()), getLocation(context));
     }
 
     @Override
     public Node visitNullPredicate(BQLBaseParser.NullPredicateContext context) {
-        Expression child = (Expression) visit(context.value);
+        return new NullPredicateNode((ExpressionNode) visit(context.expression()),
+                                     context.NOT() != null,
+                                     getLocation(context));
+    }
 
-        if (context.NOT() == null) {
-            return new IsNullPredicate(getLocation(context), child);
+    @Override
+    public Node visitUnaryExpression(BQLBaseParser.UnaryExpressionContext context) {
+        return new UnaryExpressionNode(getOperation(context.op),
+                                       (ExpressionNode) visit(context.expression()),
+                                       context.parens != null,
+                                       getLocation(context));
+    }
+
+    @Override
+    public Node visitBinary(BQLBaseParser.BinaryContext context) {
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op),
+                                        getLocation(context));
+    }
+
+    @Override
+    public Node visitNAry(BQLBaseParser.NAryContext context) {
+        return new NAryExpressionNode(getOperation(context.op),
+                                      visitExpressionsList(context.expressions()),
+                                      getLocation(context));
+    }
+
+    @Override
+    public Node visitGroupOperation(BQLBaseParser.GroupOperationContext context) {
+        GroupOperation.GroupOperationType op = GroupOperation.GroupOperationType.valueOf(context.op.getText().toUpperCase());
+        return new GroupOperationNode(op, (ExpressionNode) visitIfPresent(context.expression()), getLocation(context));
+    }
+
+    @Override
+    public Node visitCountDistinct(BQLBaseParser.CountDistinctContext context) {
+        return new CountDistinctNode(visitExpressionsList(context.expressions()), getLocation(context));
+    }
+
+    @Override
+    public Node visitDistribution(BQLBaseParser.DistributionContext context) {
+        DistributionType type = getDistributionType(context);
+        ExpressionNode expression = (ExpressionNode) visit(context.expression());
+        switch (context.inputMode().iMode.getType()) {
+            case BQLBaseLexer.LINEAR: {
+                int numberOfPoints = Integer.parseInt(context.inputMode().numberOfPoints.getText());
+                return new LinearDistributionNode(type, expression, numberOfPoints, getLocation(context));
+            }
+            case BQLBaseLexer.REGION: {
+                double start = getSignedNumber(context.inputMode().start).doubleValue();
+                double end = getSignedNumber(context.inputMode().end).doubleValue();
+                double increment = getSignedNumber(context.inputMode().increment).doubleValue();
+                return new RegionDistributionNode(type, expression, start, end, increment, getLocation(context));
+            }
+            case BQLBaseLexer.MANUAL: {
+                List<Double> points = context.inputMode().number().stream().map(this::getSignedNumber).map(Number::doubleValue).collect(Collectors.toList());
+                return new ManualDistributionNode(type, expression, points, getLocation(context));
+            }
         }
-
-        return new IsNotNullPredicate(getLocation(context), child);
-    }
-
-    @Override
-    public Node visitEmptyPredicate(BQLBaseParser.EmptyPredicateContext context) {
-        Expression child = (Expression) visit(context.value);
-
-        if (context.NOT() == null) {
-            return new IsEmptyPredicate(getLocation(context), child);
-        }
-
-        return new IsNotEmptyPredicate(getLocation(context), child);
-    }
-
-    @Override
-    public Node visitLikeList(BQLBaseParser.LikeListContext context) {
-        Expression result = new LikePredicate(
-                getLocation(context),
-                (Expression) visit(context.value),
-                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
-
-        if (context.NOT() != null) {
-            result = new NotExpression(getLocation(context), result);
-        }
-
-        return result;
-    }
-
-    @Override
-    public Node visitInList(BQLBaseParser.InListContext context) {
-        Expression result = new InPredicate(
-                getLocation(context),
-                (Expression) visit(context.value),
-                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
-
-        if (context.NOT() != null) {
-            result = new NotExpression(getLocation(context), result);
-        }
-
-        return result;
-    }
-
-    @Override
-    public Node visitContainsList(BQLBaseParser.ContainsListContext context) {
-        Expression result = new ContainsPredicate(
-                getLocation(context),
-                getContainsOperator(((TerminalNode) context.containsOperator().getChild(0)).getSymbol()),
-                (Expression) visit(context.value),
-                new ValueListExpression(getLocation(context), visit(context.valueExpressionList().valueExpression(), Expression.class)));
-
-        if (context.NOT() != null) {
-            result = new NotExpression(getLocation(context), result);
-        }
-        return result;
-    }
-
-    // ************** Value Expressions **************
-
-    @Override
-    public Node visitArithmeticUnary(BQLBaseParser.ArithmeticUnaryContext context) {
-        Expression child = (Expression) visit(context.number());
-        if (context.operator.getType() == BQLBaseLexer.MINUS) {
-            return ArithmeticUnaryExpression.negative(getLocation(context), child);
-        } else {
-            return ArithmeticUnaryExpression.positive(getLocation(context), child);
-        }
-    }
-
-    // ********************* Primary Expressions **********************
-
-    @Override
-    public Node visitColumnReference(BQLBaseParser.ColumnReferenceContext context) {
-        // Use true as a way to skip the pattern checks because these have extra characters.
-        return new Identifier(getLocation(context), context.getText(), true);
-    }
-
-    @Override
-    public Node visitFunctionCall(BQLBaseParser.FunctionCallContext context) {
-        return new FunctionCall(
-                getLocation(context),
-                getGroupOperationType(context),
-                Optional.empty(),
-                Optional.empty(),
-                isDistinct(context.setQuantifier()),
-                visit(context.referenceExpression(), Expression.class));
-    }
-
-    @Override
-    public Node visitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) {
-        return new Identifier(getLocation(context), context.getText(), false);
-    }
-
-    @Override
-    public Node visitDistributionOperation(BQLBaseParser.DistributionOperationContext context) throws IllegalArgumentException, UnsupportedOperationException {
-        List<Expression> columns = visit(asList(context.referenceExpression()), Expression.class);
-        Type type = getDistributionType(context);
-        NodeLocation location = getLocation(context);
-        String iMode = context.inputMode().iMode.getText().toUpperCase();
-
-        switch (iMode) {
-            case "LINEAR":
-                Long numberOfPoints = Long.parseLong(context.inputMode().numberOfPoints.getText());
-                return new LinearDistribution(location, columns, type, numberOfPoints);
-            case "REGION":
-                Double start = getSignedDouble(context.inputMode().start);
-                Double end = getSignedDouble(context.inputMode().end);
-                Double increment = getSignedDouble(context.inputMode().increment);
-                return new RegionDistribution(location, columns, type, start, end, increment);
-            case "MANUAL":
-                List<Double> points = new ArrayList<>();
-                for (BQLBaseParser.SignedNumberContext t : context.inputMode().signedNumber()) {
-                    points.add(getSignedDouble(t));
-                }
-                return new ManualDistribution(location, columns, type, points);
-        }
-
-        throw new UnsupportedOperationException("Not yet implemented");
+        throw new ParsingException("Unknown input mode");
     }
 
     @Override
     public Node visitTopK(BQLBaseParser.TopKContext context) {
-        return visit(context.topKConfig());
+        Integer size = Integer.parseInt(context.size.getText());
+        Long threshold = context.threshold != null ? Long.parseLong(context.threshold.getText()) : null;
+        return new TopKNode(size, threshold, visitExpressionsList(context.expressions()), getLocation(context));
     }
 
     @Override
-    public Node visitTopKConfig(BQLBaseParser.TopKConfigContext context) {
-        List<Expression> columns = visit(context.referenceExpression(), Expression.class);
-        Long size = Long.parseLong(context.size.getText());
-        Optional<Long> threshold = Optional.empty();
-        if (context.threshold != null) {
-            threshold = Optional.of(Long.parseLong(context.threshold.getText()));
+    public Node visitCast(BQLBaseParser.CastContext context) {
+        Type castType = Type.valueOf(context.primitiveType().getText().toUpperCase());
+        return new CastExpressionNode((ExpressionNode) visit(context.expression()), castType, getLocation(context));
+    }
+
+    @Override
+    public Node visitInfix(BQLBaseParser.InfixContext context) {
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op, context.modifier),
+                                        getLocation(context));
+    }
+
+    @Override
+    public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
+        ExpressionNode expression = (ExpressionNode) visit(context.expression());
+        if (expression instanceof BinaryExpressionNode) {
+            return new ParenthesesExpressionNode(expression, getLocation(context));
         }
-        return new TopK(getLocation(context), columns, size, threshold);
+        return expression;
     }
 
     @Override
-    public Node visitCastExpression(BQLBaseParser.CastExpressionContext context) {
-        BQLBaseParser.CastTypeContext castTypeContext = context.castType();
-        return new CastExpression(getLocation(context),
-                                  (Expression) visit(context.arithmeticExpression()),
-                                  castTypeContext.getText());
+    public Node visitUnquotedIdentifier(BQLBaseParser.UnquotedIdentifierContext context) {
+        return new IdentifierNode(context.getText(), false, getLocation(context));
     }
 
     @Override
-    public Node visitInfixExpression(BQLBaseParser.InfixExpressionContext context) {
-        return new InfixExpression(getLocation(context),
-                                   (Expression) visit(context.left),
-                                   (Expression) visit(context.right),
-                                   context.op.getText());
-    }
-
-    @Override
-    public Node visitLeafExpression(BQLBaseParser.LeafExpressionContext context) {
-        return visit(context.valueExpression());
-    }
-
-    @Override
-    public Node visitParensExpression(BQLBaseParser.ParensExpressionContext context) {
-        return new ParensExpression(getLocation(context),
-                                    (Expression) visit(context.arithmeticExpression()));
+    public Node visitQuotedIdentifier(BQLBaseParser.QuotedIdentifierContext context) {
+        return new IdentifierNode(unquoteDouble(context.getText()), true, getLocation(context));
     }
 
     // ************** Literals **************
 
     @Override
     public Node visitNullLiteral(BQLBaseParser.NullLiteralContext context) {
-        return new NullLiteral(getLocation(context));
+        return new LiteralNode(null, getLocation(context));
     }
 
     @Override
-    public Node visitBasicStringLiteral(BQLBaseParser.BasicStringLiteralContext context) {
-        return new StringLiteral(getLocation(context), unquote(context.STRING().getText()));
-    }
-
-    @Override
-    public Node visitIntegerLiteral(BQLBaseParser.IntegerLiteralContext context) {
-        return new LongLiteral(getLocation(context), context.getText());
-    }
-
-    @Override
-    public Node visitDecimalLiteral(BQLBaseParser.DecimalLiteralContext context) throws ParsingException, AssertionError {
-        switch (parsingOptions.getDecimalLiteralTreatment()) {
-            case AS_DOUBLE:
-                return new DoubleLiteral(getLocation(context), context.getText());
-            case AS_DECIMAL:
-                return new DecimalLiteral(getLocation(context), context.getText());
-            case REJECT:
-                throw parseError("Unexpected decimal literal: " + context.getText(), context);
-        }
-
-        throw new AssertionError("Unreachable");
-    }
-
-    @Override
-    public Node visitDoubleLiteral(BQLBaseParser.DoubleLiteralContext context) {
-        return new DoubleLiteral(getLocation(context), context.getText());
+    public Node visitNumericLiteral(BQLBaseParser.NumericLiteralContext context) {
+        return new LiteralNode(getSignedNumber(context.number()), getLocation(context));
     }
 
     @Override
     public Node visitBooleanValue(BQLBaseParser.BooleanValueContext context) {
-        return new BooleanLiteral(getLocation(context), context.getText());
+        return new LiteralNode(Boolean.valueOf(context.getText()), getLocation(context));
+    }
+
+    @Override
+    public Node visitStringLiteral(BQLBaseParser.StringLiteralContext context) {
+        return new LiteralNode(unquoteSingle(context.getText()), getLocation(context));
     }
 
     // ***************** Helpers *****************
 
-    @Override
-    protected Node defaultResult() {
+    private ExpressionNode stripParentheses(ExpressionNode expression) {
+        if (expression instanceof ParenthesesExpressionNode) {
+            return ((ParenthesesExpressionNode) expression).getExpression();
+        }
+        return expression;
+    }
+
+    private static SortItemNode.Ordering getOrdering(Token token) {
+        return token != null && token.getType() == BQLBaseLexer.DESC ? SortItemNode.Ordering.DESCENDING :
+                                                                       SortItemNode.Ordering.ASCENDING;
+    }
+
+    private Node visitIfPresent(ParserRuleContext context) {
+        return context != null ? visit(context) : null;
+    }
+
+    private <T> List<T> visit(List<? extends ParserRuleContext> contexts, Class<T> type) {
+        return contexts.stream().map(this::visit)
+                                .map(type::cast)
+                                .collect(Collectors.toList());
+    }
+
+    private List<ExpressionNode> visitExpressionsList(BQLBaseParser.ExpressionsContext context) {
+        if (context == null) {
+            return Collections.emptyList();
+        }
+        return visit(context.expression(), ExpressionNode.class);
+    }
+
+    private static String unquoteSingle(String value) {
+        // "" -> "
+        return value.substring(1, value.length() - 1).replace("''", "'");
+    }
+
+    private static String unquoteDouble(String value) {
+        // '' -> '
+        return value.substring(1, value.length() - 1).replace("\"\"", "\"");
+    }
+
+    private static String getTextIfPresent(Token token) {
+        return token != null ? token.getText() : null;
+    }
+
+    private static Operation getOperation(Token token) {
+        switch (token.getType()) {
+            case BQLBaseLexer.PLUS:
+                return Operation.ADD;
+            case BQLBaseLexer.MINUS:
+                return Operation.SUB;
+            case BQLBaseLexer.ASTERISK:
+                return Operation.MUL;
+            case BQLBaseLexer.SLASH:
+                return Operation.DIV;
+            case BQLBaseLexer.EQ:
+                return Operation.EQUALS;
+            case BQLBaseLexer.NEQ:
+                return Operation.NOT_EQUALS;
+            case BQLBaseLexer.GT:
+                return Operation.GREATER_THAN;
+            case BQLBaseLexer.LT:
+                return Operation.LESS_THAN;
+            case BQLBaseLexer.GTE:
+                return Operation.GREATER_THAN_OR_EQUALS;
+            case BQLBaseLexer.LTE:
+                return Operation.LESS_THAN_OR_EQUALS;
+            case BQLBaseLexer.RLIKE:
+                return Operation.REGEX_LIKE;
+            case BQLBaseLexer.SIZEIS:
+                return Operation.SIZE_IS;
+            case BQLBaseLexer.CONTAINSKEY:
+                return Operation.CONTAINS_KEY;
+            case BQLBaseLexer.CONTAINSVALUE:
+                return Operation.CONTAINS_VALUE;
+            case BQLBaseLexer.IN:
+                return Operation.IN;
+            case BQLBaseLexer.AND:
+                return Operation.AND;
+            case BQLBaseLexer.OR:
+                return Operation.OR;
+            case BQLBaseLexer.XOR:
+                return Operation.XOR;
+            case BQLBaseLexer.FILTER:
+                return Operation.FILTER;
+            case BQLBaseLexer.NOT:
+                return Operation.NOT;
+            case BQLBaseLexer.SIZEOF:
+                return Operation.SIZE_OF;
+            case BQLBaseLexer.IF:
+                return Operation.IF;
+        }
         return null;
     }
 
-    @Override
-    protected Node aggregateResult(Node aggregate, Node nextResult) throws UnsupportedOperationException {
-        if (nextResult == null) {
-            throw new UnsupportedOperationException("Not yet implemented");
+    private static Operation getOperation(Token op, Token modifier) {
+        if (modifier == null) {
+            return getOperation(op);
         }
-        if (aggregate == null) {
-            return nextResult;
+        if (modifier.getType() == BQLBaseLexer.ANY) {
+            switch (op.getType()) {
+                case BQLBaseLexer.EQ:
+                    return Operation.EQUALS_ANY;
+                case BQLBaseLexer.NEQ:
+                    return Operation.NOT_EQUALS_ANY;
+                case BQLBaseLexer.GT:
+                    return Operation.GREATER_THAN_ANY;
+                case BQLBaseLexer.LT:
+                    return Operation.LESS_THAN_ANY;
+                case BQLBaseLexer.GTE:
+                    return Operation.GREATER_THAN_OR_EQUALS_ANY;
+                case BQLBaseLexer.LTE:
+                    return Operation.LESS_THAN_OR_EQUALS_ANY;
+                case BQLBaseLexer.RLIKE:
+                    return Operation.REGEX_LIKE_ANY;
+            }
+        } else if (modifier.getType() == BQLBaseLexer.ALL) {
+            switch (op.getType()) {
+                case BQLBaseLexer.EQ:
+                    return Operation.EQUALS_ALL;
+                case BQLBaseLexer.NEQ:
+                    return Operation.NOT_EQUALS_ALL;
+                case BQLBaseLexer.GT:
+                    return Operation.GREATER_THAN_ALL;
+                case BQLBaseLexer.LT:
+                    return Operation.LESS_THAN_ALL;
+                case BQLBaseLexer.GTE:
+                    return Operation.GREATER_THAN_OR_EQUALS_ALL;
+                case BQLBaseLexer.LTE:
+                    return Operation.LESS_THAN_OR_EQUALS_ALL;
+            }
         }
-        throw new UnsupportedOperationException("Not yet implemented");
+        return getOperation(op);
     }
 
-    private static SortItem.Ordering getOrderingType(Token token) {
-        if (token.getType() == BQLBaseLexer.DESC) {
-            return SortItem.Ordering.DESCENDING;
+    private DistributionType getDistributionType(BQLBaseParser.DistributionContext context) {
+        switch (context.distributionType().type.getType()) {
+            case BQLBaseLexer.QUANTILE:
+                return QUANTILE;
+            case BQLBaseLexer.FREQ:
+                return PMF;
+            case BQLBaseLexer.CUMFREQ:
+                return CDF;
         }
-        return SortItem.Ordering.ASCENDING;
+        throw parseError("Unknown distribution type", context);
     }
 
-    private GroupOperationType getGroupOperationType(BQLBaseParser.FunctionCallContext context) {
-        String functionName = context.qualifiedName().getText().toUpperCase();
-        return GroupOperationType.valueOf(functionName);
-    }
-
-    private <T> Optional<T> visitIfPresent(ParserRuleContext context, Class<T> clazz) {
-        return Optional.ofNullable(context)
-                .map(this::visit)
-                .map(clazz::cast);
-    }
-
-    private <T> List<T> visit(List<? extends ParserRuleContext> contexts, Class<T> clazz) {
-        return contexts.stream()
-                .map(this::visit)
-                .map(clazz::cast)
-                .collect(toList());
-    }
-
-    private static String unquote(String value) {
-        return value.substring(1, value.length() - 1)
-                .replace("''", "'");
-    }
-
-    private QualifiedName getQualifiedName(BQLBaseParser.QualifiedNameContext context) {
-        List<String> parts = visit(asList(context.identifier()), Identifier.class).stream()
-                .map(Identifier::getValue) // TODO: preserve quotedness
-                .collect(Collectors.toList());
-
-        return QualifiedName.of(parts);
-    }
-
-    private static boolean isDistinct(BQLBaseParser.SetQuantifierContext setQuantifier) {
-        return setQuantifier != null;
-    }
-
-    private static Optional<String> getTextIfPresent(Token token) {
-        return Optional.ofNullable(token)
-                .map(Token::getText);
-    }
-
-    private Optional<IncludeType> getIncludeType(BQLBaseParser.IncludeContext context) {
-        return Optional.of(IncludeType.valueOf(context.includeType.getText().toUpperCase()));
-    }
-
-    private static Operation getComparisonOperator(Token symbol) throws IllegalArgumentException {
-        Operation op = null;
-        switch (symbol.getType()) {
-            case BQLBaseLexer.EQ:
-                op = Operation.EQUALS;
-                break;
-            case BQLBaseLexer.NEQ:
-                op = Operation.NOT_EQUALS;
-                break;
-            case BQLBaseLexer.LT:
-                op = Operation.LESS_THAN;
-                break;
-            case BQLBaseLexer.LTE:
-                op = Operation.LESS_EQUALS;
-                break;
-            case BQLBaseLexer.GT:
-                op = Operation.GREATER_THAN;
-                break;
-            case BQLBaseLexer.GTE:
-                op = Operation.GREATER_EQUALS;
-                break;
+    private Number getSignedNumber(BQLBaseParser.NumberContext context) {
+        boolean negative = context.MINUS() != null;
+        String value = context.value.getText();
+        switch (context.value.getType()) {
+            case BQLBaseLexer.INTEGER_VALUE:
+                return negative ? -Integer.valueOf(value) : Integer.valueOf(value);
+            case BQLBaseLexer.LONG_VALUE:
+                value = value.substring(0, value.length() - 1);
+                return negative ? -Long.valueOf(value) : Long.valueOf(value);
+            case BQLBaseLexer.FLOAT_VALUE:
+                return negative ? -Float.valueOf(value) : Float.valueOf(value);
+            case BQLBaseLexer.DOUBLE_VALUE:
+                return negative ? -Double.valueOf(value) : Double.valueOf(value);
         }
-        return op;
+        throw parseError("Not a number", context);
     }
 
-    private static Operation getContainsOperator(Token symbol) throws IllegalArgumentException {
-        Operation op = null;
-        switch (symbol.getType()) {
-            case BQLBaseLexer.CONTAINSKEY:
-                op = Operation.CONTAINS_KEY;
-                break;
-            case BQLBaseLexer.CONTAINSVALUE:
-                op = Operation.CONTAINS_VALUE;
-                break;
+    private Type getType(BQLBaseParser.FieldTypeContext context) {
+        if (context == null) {
+            return null;
         }
-        return op;
-    }
-
-    private static Operation getFunctionOperator(Token symbol) throws IllegalArgumentException {
-        Operation op = null;
-        switch (symbol.getType()) {
-            case BQLBaseLexer.SIZEOF:
-                op = Operation.SIZE_IS;
-                break;
+        Type primitiveType = Type.valueOf(context.primitiveType().getText().toUpperCase());
+        if (context.outerType != null) {
+            if (context.outerType.getType() == BQLBaseLexer.LIST_TYPE) {
+                return Type.PRIMITIVE_LISTS.stream().filter(type -> primitiveType.equals(type.getSubType())).findFirst().get();
+            } else {
+                return Type.PRIMITIVE_MAPS.stream().filter(type -> primitiveType.equals(type.getSubType())).findFirst().get();
+            }
         }
-        return op;
-    }
-
-    private Type getDistributionType(BQLBaseParser.DistributionOperationContext context) throws IllegalArgumentException {
-        String typeString = context.distributionType().getText().toUpperCase();
-        Type type = null;
-        switch (typeString) {
-            case "QUANTILE":
-                type = QUANTILE;
-                break;
-            case "FREQ":
-                type = PMF;
-                break;
-            case "CUMFREQ":
-                type = CDF;
-                break;
+        if (context.complexOuterType != null) {
+            Type subType = Type.PRIMITIVE_MAPS.stream().filter(type -> primitiveType.equals(type.getSubType())).findFirst().get();
+            if (context.complexOuterType.getType() == BQLBaseLexer.LIST_TYPE) {
+                return Type.COMPLEX_LISTS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
+            } else {
+                return Type.COMPLEX_MAPS.stream().filter(type -> subType.equals(type.getSubType())).findFirst().get();
+            }
         }
-        return type;
-    }
-
-    private static Operation getLogicalBinaryOperator(Token token) throws IllegalArgumentException {
-        Operation op = null;
-        switch (token.getType()) {
-            case BQLBaseLexer.AND:
-                op = Operation.AND;
-                break;
-            case BQLBaseLexer.OR:
-                op = Operation.OR;
-                break;
-        }
-        return op;
-    }
-
-    private static NodeLocation getLocation(TerminalNode terminalNode) {
-        requireNonNull(terminalNode, "TerminalNode is null");
-        return getLocation(terminalNode.getSymbol());
+        return primitiveType;
     }
 
     private static NodeLocation getLocation(ParserRuleContext parserRuleContext) {
-        requireNonNull(parserRuleContext, "ParserRuleContext is null");
+        Objects.requireNonNull(parserRuleContext, "ParserRuleContext is null");
         return getLocation(parserRuleContext.getStart());
     }
 
     private static NodeLocation getLocation(Token token) {
-        requireNonNull(token, "Token is null");
+        Objects.requireNonNull(token, "Token is null");
         return new NodeLocation(token.getLine(), token.getCharPositionInLine());
     }
 
     private static ParsingException parseError(String message, ParserRuleContext context) {
-        return new ParsingException(
-                message,
-                null,
-                context.getStart().getLine(),
-                context.getStart().getCharPositionInLine());
-    }
-
-    private double getSignedDouble(BQLBaseParser.SignedNumberContext context) {
-        double number = Double.parseDouble(context.number().getText());
-        if (context.operator != null && context.operator.getText().equals("-")) {
-            return -number;
-        } else {
-            return number;
-        }
+        return new ParsingException(message,
+                                    null,
+                                    context.getStart().getLine(),
+                                    context.getStart().getCharPositionInLine());
     }
 }

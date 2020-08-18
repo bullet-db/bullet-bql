@@ -5,104 +5,92 @@
  */
 package com.yahoo.bullet.bql;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.yahoo.bullet.bql.classifier.QueryClassifier;
-import com.yahoo.bullet.bql.classifier.QueryClassifier.QueryType;
+import com.yahoo.bullet.bql.parser.ParsingException;
+import com.yahoo.bullet.bql.query.ProcessedQuery;
+import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
-import com.yahoo.bullet.bql.parser.ParsingException;
-import com.yahoo.bullet.bql.parser.ParsingOptions;
-import com.yahoo.bullet.bql.parser.ParsingOptions.DecimalLiteralTreatment;
-import com.yahoo.bullet.bql.parser.StatementSplitter;
-import com.yahoo.bullet.bql.tree.Statement;
+import com.yahoo.bullet.bql.query.QueryValidator;
+import com.yahoo.bullet.bql.tree.QueryNode;
+import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
-import com.yahoo.bullet.parsing.Query;
+import com.yahoo.bullet.common.BulletError;
+import com.yahoo.bullet.common.BulletException;
+import com.yahoo.bullet.common.Utilities;
+import com.yahoo.bullet.query.Query;
+import com.yahoo.bullet.typesystem.Schema;
+import lombok.extern.slf4j.Slf4j;
 
-import static java.util.Collections.singleton;
-import static java.util.Objects.requireNonNull;
+import java.util.Collections;
+import java.util.List;
 
+@Slf4j
 public class BulletQueryBuilder {
-    private static final Gson GSON = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
-    private final QueryClassifier queryClassifier = new QueryClassifier();
-
-    private final BQLParser bqlParser;
-    private final String delimiter;
-    private final ParsingOptions parsingOptions;
-    private final QueryExtractor queryExtractor;
+    private final QueryProcessor queryProcessor = new QueryProcessor();
+    private final BQLParser bqlParser = new BQLParser();
+    private final BQLConfig config;
+    private final Schema schema;
+    private final int maxQueryLength;
 
     /**
      * Constructor that initializes a BulletQueryBuilder.
      *
-     * @param config A {@link BulletConfig} that will merge with {@link BQLConfig}.
+     * @param bulletConfig A {@link BulletConfig} that will merge with {@link BQLConfig}.
      */
-    public BulletQueryBuilder(BulletConfig config) {
-        bqlParser = new BQLParser();
-        BQLConfig bqlConfig = new BQLConfig(requireNonNull(config));
-        queryExtractor = new QueryExtractor(bqlConfig);
-
-        // Default is ";".
-        delimiter = bqlConfig.getAs(BQLConfig.BQL_DELIMITER, String.class);
-
-        // Default is treating decimal as double.
-        String decimalLiteralTreatment = bqlConfig.getAs(BQLConfig.BQL_DECIMAL_LITERAL_TREATMENT, String.class);
-        parsingOptions = new ParsingOptions(DecimalLiteralTreatment.valueOf(decimalLiteralTreatment));
+    public BulletQueryBuilder(BulletConfig bulletConfig) {
+        config = new BQLConfig(bulletConfig);
+        schema = config.getSchema();
+        maxQueryLength = config.getAs(BQLConfig.BQL_MAX_QUERY_LENGTH, Integer.class);
     }
 
     /**
      * Build a Bullet {@link Query} from BQL string.
      *
      * @param bql The BQL String that contains a query.
-     * @return A Bullet {@link Query}.
-     * @throws ParsingException              when no BQL or more than one BQL is provided.
-     * @throws NullPointerException          when bql is null.
-     * @throws IllegalArgumentException      when bql argument is not valid.
-     * @throws UnsupportedOperationException when bql operation is not valid.
-     * @throws AssertionError                when DecimalLiteralTreatment is not valid.
+     * @return A {@link BQLResult}.
      */
-    public Query buildQuery(String bql) throws ParsingException, NullPointerException, IllegalArgumentException, UnsupportedOperationException, AssertionError {
-        bql = normalizeBQL(requireNonNull(bql));
-
-        // Parse BQL to node tree.
-        Statement statement = bqlParser.createStatement(bql, parsingOptions);
-
-        // Get the QueryType of BQL from node tree.
-        QueryType type = queryClassifier.classifyQuery(statement);
-
-        // Parse node tree to Bullet Query.
-        return queryExtractor.validateAndExtract(statement, type);
-    }
-
-    /**
-     * Build a Bullet JSON from BQL string.
-     *
-     * @param bql The BQL String that contains query.
-     * @return A Bullet JSON String.
-     * @throws ParsingException              when no BQL or more than one BQL is provided.
-     * @throws NullPointerException          when bql is null.
-     * @throws IllegalArgumentException      when bql argument is not valid.
-     * @throws UnsupportedOperationException when bql operation is not valid.
-     * @throws AssertionError                when DecimalLiteralTreatment is not valid.
-     */
-    public String buildJson(String bql) throws ParsingException, NullPointerException, IllegalArgumentException, UnsupportedOperationException, AssertionError {
-        return toJson(buildQuery(bql));
-    }
-
-    private String normalizeBQL(String bql) throws ParsingException {
-        if (!bql.contains(delimiter)) {
-            return bql;
+    public BQLResult buildQuery(String bql) {
+        if (Utilities.isEmpty(bql)) {
+            return makeBQLResultError("The given BQL query is empty.", "Please specify a non-empty query.");
         }
+        if (bql.length() > maxQueryLength) {
+            return makeBQLResultError("The given BQL string is too long. (" + bql.length() + " characters)",
+                                      "Please reduce the length of the query to at most " + maxQueryLength + " characters.");
+        }
+        try {
+            // Parse BQL into node tree
+            QueryNode queryNode = bqlParser.createQueryNode(bql);
 
-        StatementSplitter splitter = new StatementSplitter(bql, singleton(delimiter));
-        // If there are 0 or more than 1 BQL statements in input string, throw exception.
-        if (splitter.getCompleteStatements().size() != 1) {
-            throw new ParsingException("Please provide only 1 valid BQL statement");
-        } else {
-            return splitter.getCompleteStatements().get(0).statement();
+            // Parse node tree into query components
+            ProcessedQuery processedQuery = queryProcessor.process(queryNode);
+            if (!processedQuery.getErrors().isEmpty()) {
+                return new BQLResult(processedQuery.getErrors());
+            }
+
+            // Build query from query components
+            Query query = QueryExtractor.extractQuery(processedQuery);
+            query.configure(config);
+
+            // Check query and type semantics
+            List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
+            if (!errors.isEmpty()) {
+                return new BQLResult(errors);
+            }
+            return new BQLResult(query, ExpressionFormatter.format(queryNode, true));
+        } catch (BulletException e) {
+            return makeBQLResultError(e.getError());
+        } catch (ParsingException e) {
+            return makeBQLResultError(e.getMessage(), "This is a parsing error.");
+        } catch (Exception e) {
+            return makeBQLResultError(e.getMessage(), "This is an application error and not a user error.");
         }
     }
 
-    private String toJson(Query query) {
-        return GSON.toJson(query);
+    private BQLResult makeBQLResultError(BulletError error) {
+        return new BQLResult(Collections.singletonList(error));
+    }
+
+    private BQLResult makeBQLResultError(String error, String resolution) {
+        return makeBQLResultError(new BulletError(error, resolution));
     }
 }

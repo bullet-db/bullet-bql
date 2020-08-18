@@ -10,37 +10,17 @@
  */
 package com.yahoo.bullet.bql.tree;
 
+import lombok.RequiredArgsConstructor;
+
+import static java.lang.String.format;
+
+@RequiredArgsConstructor
 public final class NodeLocation {
     private final int line;
     private final int charPositionInLine;
 
-    /**
-     * Constructor that requires a line number and a char position in line.
-     *
-     * @param line               An int.
-     * @param charPositionInLine An int.
-     */
-    public NodeLocation(int line, int charPositionInLine) {
-        this.line = line;
-        this.charPositionInLine = charPositionInLine;
-    }
-
-    /**
-     * Get the line number of this NodeLocation.
-     *
-     * @return An int.
-     */
-    public int getLineNumber() {
-        return line;
-    }
-
-
-    /**
-     * Get the column number of this NodeLocation.
-     *
-     * @return An int.
-     */
-    public int getColumnNumber() {
-        return charPositionInLine + 1;
+    @Override
+    public String toString() {
+        return format("%s:%s: ", line, charPositionInLine + 1);
     }
 }

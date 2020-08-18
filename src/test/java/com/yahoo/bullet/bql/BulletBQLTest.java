@@ -5,36 +5,47 @@
  */
 package com.yahoo.bullet.bql;
 
-import org.junit.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 
-import static org.testng.Assert.assertEquals;
 
 public class BulletBQLTest {
-    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    private final PrintStream originalOut = System.out;
-
-    @BeforeClass
-    public void setUpStreams() {
-        System.setOut(new PrintStream(outContent));
-    }
+    private final InputStream systemIn = System.in;
+    private final PrintStream systemOut = System.out;
 
     @AfterClass
     public void restoreStreams() {
-        System.setOut(originalOut);
+        System.setIn(systemIn);
+        System.setOut(systemOut);
     }
 
     @Test
-    public void testMain() throws Exception {
-        String[] args = new String[]{"SELECT ddd FROM STREAM(2000, TIME) WINDOWING(EVERY, 3000, TIME, FIRST, 3000, TIME) LIMIT 5"};
-        BulletBQL.main(args);
-        String printOut = outContent.toString();
-        assertEquals(printOut, "\n############################## Bullet Query ##############################\n"
-                               + "\n{\"projection\":{\"fields\":{\"ddd\":\"ddd\"}},\"aggregation\":{\"size\":5,\"type\":\"RAW\"},\"window\":{\"emit\":{\"type\":\"TIME\",\"every\":3000},\"include\":{\"type\":\"TIME\",\"first\":3000}},\"duration\":2000}\n"
-                               + "\n##########################################################################\n\n");
+    public void testMain() {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        System.setOut(new PrintStream(out));
+
+        String bql = "SELECT * FROM STREAM()\nSELECT * FROM STREAM() GROUP BY 1\n...\n\n";
+
+        System.setIn(new ByteArrayInputStream(bql.getBytes()));
+
+        BulletBQL.main(null);
+
+        String content = out.toString();
+
+        Assert.assertTrue(content.startsWith("{projection: {fields: null, type: PASS_THROUGH}, filter: null, aggregation: {size: 500, type: RAW}, postAggregations: null, window: {emitEvery: null, emitType: null, includeType: null, includeFirst: null}, duration: 9223372036854775807}\n"));
+        Assert.assertTrue(content.contains("error: Query does not match exactly one query type"));
+    }
+
+    @Test
+    public void testConstructor() {
+        // coverage
+        new BulletBQL();
     }
 }

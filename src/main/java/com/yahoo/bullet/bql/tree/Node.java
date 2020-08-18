@@ -10,63 +10,30 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import java.util.List;
-import java.util.Optional;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-import static java.util.Objects.requireNonNull;
-
+@RequiredArgsConstructor
 public abstract class Node {
-    private final Optional<NodeLocation> location;
+    @Getter
+    private final NodeLocation location;
 
     /**
-     * Constructor that requires an Optional of {@link NodeLocation}.
-     *
-     * @param location An Optional of {@link NodeLocation}.
-     */
-    protected Node(Optional<NodeLocation> location) {
-        this.location = requireNonNull(location, "location is null");
-    }
-
-    /*
-     * accessible for {@link ASTVisitor}, use {@link ASTVisitor#process(Node, Object)} instead.
-     */
-
-    /**
-     * Make Node accessible for {@link ASTVisitor}, use {@link ASTVisitor#process(Node, Object)}.
+     * Makes Node accessible for {@link ASTVisitor}; use {@link ASTVisitor#process(Node, Object)}.
      *
      * @param visitor An implementation of {@link ASTVisitor}.
      * @param context A {@link C} that passed in.
-     * @param <R>     The return type of {@link ASTVisitor#process(Node, Object)}.
-     * @param <C>     The context type of {@link ASTVisitor#process(Node, Object)}.
+     * @param <R> The return type of {@link ASTVisitor#process(Node, Object)}.
+     * @param <C> The context type of {@link ASTVisitor#process(Node, Object)}.
      * @return A {@link R}.
      */
     protected <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitNode(this, context);
     }
 
-    /**
-     * Get an Optional of the {@link NodeLocation} of this Node.
-     *
-     * @return An Optional of the {@link NodeLocation}.
-     */
-    public Optional<NodeLocation> getLocation() {
-        return location;
-    }
-
-    /**
-     * Get the children of this Node.
-     *
-     * @return A List of subclasses of {@link Node}.
-     */
-    public abstract List<? extends Node> getChildren();
-
-    // Force subclasses to have a proper equals and hashcode implementation
-    @Override
-    public abstract int hashCode();
-
     @Override
     public abstract boolean equals(Object obj);
 
     @Override
-    public abstract String toString();
+    public abstract int hashCode();
 }

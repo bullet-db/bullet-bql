@@ -5,179 +5,199 @@
  */
 package com.yahoo.bullet.bql.tree;
 
-import org.testng.annotations.BeforeClass;
+import com.yahoo.bullet.query.Window;
+import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.typesystem.Type;
+import org.mockito.Mockito;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.Optional;
-
-import static com.yahoo.bullet.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
-import static com.yahoo.bullet.bql.tree.ArithmeticUnaryExpression.Sign.PLUS;
-import static com.yahoo.bullet.bql.util.QueryUtil.equal;
-import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
-import static com.yahoo.bullet.bql.util.QueryUtil.selectList;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleFunctionCall;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleOrderBy;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleQuerySpecification;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleWindowInclude;
-import static com.yahoo.bullet.bql.util.QueryUtil.simpleWith;
-import static com.yahoo.bullet.parsing.Clause.Operation.AND;
-import static com.yahoo.bullet.parsing.Window.Unit.TIME;
-import static java.util.Collections.singletonList;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class DefaultTraversalVisitorTest {
-    private TraversalTestVisitor visitor;
+    private static class MockDefaultTraversalVisitor extends DefaultTraversalVisitor<Void, Void> {
+    }
 
-    private class TraversalTestVisitor extends DefaultTraversalVisitor<Void, Void> { }
+    private MockDefaultTraversalVisitor visitor;
 
-    @BeforeClass
-    public void setUp() {
-        visitor = new TraversalTestVisitor();
+    @BeforeMethod
+    public void setup() {
+        visitor = Mockito.spy(new MockDefaultTraversalVisitor());
     }
 
     @Test
     public void testVisitQuery() {
-        With with = simpleWith();
-        QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
-        OrderBy orderBy = simpleOrderBy();
-        Query query = new Query(Optional.of(with), querySpecification, Optional.of(orderBy), Optional.empty());
+        QueryNode query = new QueryNode(new SelectNode(false, Collections.emptyList(), null),
+                                        new StreamNode(null, null),
+                                        new LiteralNode(true, null),
+                                        new GroupByNode(Collections.emptyList(), null),
+                                        new LiteralNode(false, null),
+                                        new OrderByNode(Collections.emptyList(), null),
+                                        new WindowNode(null, null, null, null),
+                                        null,
+                                        null);
+        visitor.process(query);
+        Mockito.verify(visitor).visitQuery(query, null);
+        Mockito.verify(visitor).visitSelect(query.getSelect(), null);
+        Mockito.verify(visitor).visitStream(query.getStream(), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) query.getWhere(), null);
+        Mockito.verify(visitor).visitGroupBy(query.getGroupBy(), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) query.getWhere(), null);
+        Mockito.verify(visitor).visitOrderBy(query.getOrderBy(), null);
+        Mockito.verify(visitor).visitWindow(query.getWindow(), null);
 
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(query);
-        verify(spy).visitQuery(query, null);
-        verify(spy).visitWith(with, null);
-        verify(spy).visitQuerySpecification(querySpecification, null);
-        verify(spy).visitOrderBy(orderBy, null);
-        verify(spy).visitNode(with, null);
     }
 
     @Test
-    public void testVisitQueryNoWithNoOrderBy() {
-        QuerySpecification querySpecification = simpleQuerySpecification(selectList(identifier("aaa")));
-        Query query = new Query(Optional.empty(), querySpecification, Optional.empty(), Optional.empty());
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(query);
-        verify(spy).visitQuery(query, null);
-        verify(spy, never()).visitWith(any(With.class), any(Void.class));
-        verify(spy).visitQuerySpecification(querySpecification, null);
-        verify(spy, never()).visitOrderBy(any(OrderBy.class), any(Void.class));
+    public void testVisitSelect() {
+        SelectNode select = new SelectNode(false, Arrays.asList(new SelectItemNode(false, null, null, null),
+                                                                new SelectItemNode(true, null, null, null)), null);
+        visitor.process(select);
+        Mockito.verify(visitor).visitSelect(select, null);
+        Mockito.verify(visitor).visitSelectItem(select.getSelectItems().get(0), null);
+        Mockito.verify(visitor).visitSelectItem(select.getSelectItems().get(1), null);
     }
 
     @Test
-    public void testVisitFunctionCall() {
-        Expression filter = equal(identifier("aaa"), identifier("bbb"));
-        OrderBy orderBy = simpleOrderBy();
-        Expression argument = identifier("ccc");
-
-        FunctionCall functionCall = new FunctionCall(
-                COUNT,
-                Optional.of(filter),
-                Optional.of(orderBy),
-                true,
-                singletonList(argument));
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(functionCall);
-        verify(spy).visitFunctionCall(functionCall, null);
-        verify(spy).process(filter, null);
-        verify(spy).process(argument, null);
-        verify(spy).visitOrderBy(orderBy, null);
+    public void testVisitSelectItem() {
+        SelectItemNode selectItem = new SelectItemNode(false, new LiteralNode(5, null), null, null);
+        visitor.process(selectItem);
+        Mockito.verify(visitor).visitSelectItem(selectItem, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) selectItem.getExpression(), null);
     }
 
     @Test
-    public void testVisitFunctionCallNoFilterNoOrderBy() {
-        FunctionCall functionCall = simpleFunctionCall();
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(functionCall);
-        verify(spy, times(2)).process(any(Expression.class), any(Void.class));
-        verify(spy).visitFunctionCall(functionCall, null);
-        verify(spy, never()).visitOrderBy(any(OrderBy.class), any(Void.class));
+    public void testVisitGroupBy() {
+        GroupByNode groupBy = new GroupByNode(Arrays.asList(new LiteralNode(5, null),
+                                                            new LiteralNode(6, null)), null);
+        visitor.process(groupBy);
+        Mockito.verify(visitor).visitGroupBy(groupBy, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) groupBy.getExpressions().get(0), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) groupBy.getExpressions().get(1), null);
     }
 
     @Test
-    public void testVisitArithmeticUnary() {
-        DecimalLiteral value = new DecimalLiteral("10.5");
-        ArithmeticUnaryExpression arithmeticUnaryExpression = new ArithmeticUnaryExpression(PLUS, value);
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(arithmeticUnaryExpression);
-        verify(spy).visitArithmeticUnary(arithmeticUnaryExpression, null);
-        verify(spy).visitDecimalLiteral(value, null);
+    public void testVisitOrderBy() {
+        OrderByNode orderBy = new OrderByNode(Arrays.asList(new SortItemNode(null, SortItemNode.Ordering.ASCENDING, null),
+                                                            new SortItemNode(null, SortItemNode.Ordering.DESCENDING, null)), null);
+        visitor.process(orderBy);
+        Mockito.verify(visitor).visitOrderBy(orderBy, null);
+        Mockito.verify(visitor).visitSortItem(orderBy.getSortItems().get(0), null);
+        Mockito.verify(visitor).visitSortItem(orderBy.getSortItems().get(1), null);
     }
 
     @Test
-    public void testVisitNotExpression() {
-        Expression value = equal(identifier("aaa"), identifier("bbb"));
-        NotExpression notExpression = new NotExpression(value);
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(notExpression);
-        verify(spy).visitNotExpression(notExpression, null);
-        verify(spy).process(value, null);
+    public void testVisitSortItem() {
+        SortItemNode sortItem = new SortItemNode(new LiteralNode(5, null), null, null);
+        visitor.process(sortItem);
+        Mockito.verify(visitor).visitSortItem(sortItem, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) sortItem.getExpression(), null);
     }
 
     @Test
-    public void testVisitLikePredicateWithEscape() {
-        Expression value = identifier("aaa");
-        ValueListExpression patterns = new ValueListExpression(singletonList(identifier("bbb")));
-        Expression escape = identifier("``");
-        LikePredicate likePredicate = new LikePredicate(value, patterns, Optional.of(escape));
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(likePredicate);
-        verify(spy).visitLikePredicate(likePredicate, null);
-        verify(spy).process(escape, null);
+    public void testVisitWindow() {
+        WindowNode window = new WindowNode(null, null, new WindowIncludeNode(50, Window.Unit.TIME, null), null);
+        visitor.process(window);
+        Mockito.verify(visitor).visitWindow(window, null);
+        Mockito.verify(visitor).visitWindowInclude(window.getWindowInclude(), null);
     }
 
     @Test
-    public void testVisitLogicalBinaryExpression() {
-        Expression left = equal(identifier("aaa"), identifier("bbb"));
-        Expression right = equal(identifier("ccc"), identifier("ddd"));
-        LogicalBinaryExpression logicalBinaryExpression = new LogicalBinaryExpression(AND, left, right);
-
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(logicalBinaryExpression);
-        verify(spy).process(left, null);
-        verify(spy).process(right, null);
+    public void testVisitListExpression() {
+        ListExpressionNode listExpression = new ListExpressionNode(Arrays.asList(new LiteralNode(5, null),
+                                                                                 new LiteralNode(6, null)), null);
+        visitor.process(listExpression);
+        Mockito.verify(visitor).visitListExpression(listExpression, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) listExpression.getExpressions().get(0), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) listExpression.getExpressions().get(1), null);
     }
 
     @Test
-    public void testVisitQuerySpecification() {
-        Select select = selectList(identifier("aaa"));
-        Stream stream = new Stream(Optional.of("10"), Optional.of("20"));
-        Expression where = equal(identifier("bbb"), identifier("ccc"));
-        SimpleGroupBy simpleGroupBy = new SimpleGroupBy(singletonList(identifier("ddd")));
-        GroupBy groupBy = new GroupBy(true, singletonList(simpleGroupBy));
-        Expression having = equal(identifier("eee"), identifier("fff"));
-        OrderBy orderBy = simpleOrderBy();
-        WindowInclude include = simpleWindowInclude();
-        Windowing windowing = new Windowing((long) 100, TIME, include);
-        QuerySpecification querySpecification = new QuerySpecification(
-                select,
-                Optional.of(stream),
-                Optional.of(where),
-                Optional.of(groupBy),
-                Optional.of(having),
-                Optional.of(orderBy),
-                Optional.of("10"),
-                Optional.of(windowing));
+    public void testVisitNullPredicate() {
+        NullPredicateNode nullPredicate = new NullPredicateNode(new LiteralNode(5, null), false, null);
+        visitor.process(nullPredicate);
+        Mockito.verify(visitor).visitNullPredicate(nullPredicate, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) nullPredicate.getExpression(), null);
+    }
 
-        TraversalTestVisitor spy = spy(visitor);
-        spy.process(querySpecification);
-        verify(spy).visitQuerySpecification(querySpecification, null);
-        verify(spy).visitStream(stream, null);
-        verify(spy).process(where, null);
-        verify(spy).visitGroupBy(groupBy, null);
-        verify(spy).visitSimpleGroupBy(simpleGroupBy, null);
-        verify(spy).process(having, null);
-        verify(spy).visitOrderBy(orderBy, null);
-        verify(spy).visitWindowing(windowing, null);
-        verify(spy).visitWindowInclude(include, null);
+    @Test
+    public void testVisitUnaryExpression() {
+        UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, new LiteralNode(5, null), false, null);
+        visitor.process(unaryExpression);
+        Mockito.verify(visitor).visitUnaryExpression(unaryExpression, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) unaryExpression.getExpression(), null);
+    }
+
+    @Test
+    public void testVisitNAryExpression() {
+        NAryExpressionNode nAryExpression = new NAryExpressionNode(null, Arrays.asList(new LiteralNode(5, null),
+                                                                                       new LiteralNode(6, null)), null);
+        visitor.process(nAryExpression);
+        Mockito.verify(visitor).visitNAryExpression(nAryExpression, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) nAryExpression.getExpressions().get(0), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) nAryExpression.getExpressions().get(1), null);
+    }
+
+    @Test
+    public void testVisitGroupOperation() {
+        GroupOperationNode groupOperation = new GroupOperationNode(GroupOperation.GroupOperationType.AVG, new LiteralNode(5, null), null);
+        visitor.process(groupOperation);
+        Mockito.verify(visitor).visitGroupOperation(groupOperation, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) groupOperation.getExpression(), null);
+    }
+
+    @Test
+    public void testVisitCountDistinct() {
+        CountDistinctNode countDistinct = new CountDistinctNode(Arrays.asList(new LiteralNode(5, null),
+                                                                              new LiteralNode(6, null)), null);
+        visitor.process(countDistinct);
+        Mockito.verify(visitor).visitCountDistinct(countDistinct, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) countDistinct.getExpressions().get(0), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) countDistinct.getExpressions().get(1), null);
+    }
+
+    @Test
+    public void testVisitDistribution() {
+        LinearDistributionNode distribution = new LinearDistributionNode(null, new LiteralNode(5, null), 10, null);
+        visitor.process(distribution);
+        Mockito.verify(visitor).visitDistribution(distribution, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) distribution.getExpression(), null);
+    }
+
+    @Test
+    public void testVisitTopK() {
+        TopKNode topK = new TopKNode(50, 50L, Arrays.asList(new LiteralNode(5, null),
+                                                            new LiteralNode(6, null)), null);
+        visitor.process(topK);
+        Mockito.verify(visitor).visitTopK(topK, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) topK.getExpressions().get(0), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) topK.getExpressions().get(1), null);
+    }
+
+    @Test
+    public void testVisitCastExpression() {
+        CastExpressionNode castExpression = new CastExpressionNode(new LiteralNode(5, null), Type.LONG, null);
+        visitor.process(castExpression);
+        Mockito.verify(visitor).visitCastExpression(castExpression, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) castExpression.getExpression(), null);
+    }
+
+    @Test
+    public void testVisitBinaryExpression() {
+        BinaryExpressionNode binaryExpression = new BinaryExpressionNode(new LiteralNode(5, null), new LiteralNode(6, null), Operation.ADD, null);
+        visitor.process(binaryExpression);
+        Mockito.verify(visitor).visitBinaryExpression(binaryExpression, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) binaryExpression.getLeft(), null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) binaryExpression.getRight(), null);
+    }
+
+    @Test
+    public void testVisitParenthesesExpression() {
+        ParenthesesExpressionNode parenthesesExpression = new ParenthesesExpressionNode(new LiteralNode(5, null), null);
+        visitor.process(parenthesesExpression);
+        Mockito.verify(visitor).visitParenthesesExpression(parenthesesExpression, null);
+        Mockito.verify(visitor).visitLiteral((LiteralNode) parenthesesExpression.getExpression(), null);
     }
 }
