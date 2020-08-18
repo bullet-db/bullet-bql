@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.extractor;
 
+import com.yahoo.bullet.bql.query.ComputableProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.GroupOperationType.COUNT;
 
@@ -73,6 +75,7 @@ public class AggregationExtractor {
     */
     private static Aggregation extractDistinct(ProcessedQuery processedQuery) {
         addSimplePostAggregationMapping(processedQuery, processedQuery.getSelectNodes());
+        addComplexPostAggregationMapping(processedQuery, processedQuery.getSelectNodes());
         return new GroupBy(processedQuery.getLimit(), toAliasedFields(processedQuery, processedQuery.getSelectNodes()), Collections.emptySet());
     }
 
@@ -93,6 +96,7 @@ public class AggregationExtractor {
             aggregation = new GroupAll(operations);
         }
         addSimplePostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
+        addComplexPostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
         addPostAggregationMapping(processedQuery, processedQuery.getGroupOpNodes());
         return aggregation;
     }
@@ -116,6 +120,7 @@ public class AggregationExtractor {
         TopKNode topK = processedQuery.getTopK();
         Map<String, String> fields = toAliasedFields(processedQuery, topK.getExpressions());
         addSimplePostAggregationMapping(processedQuery, topK.getExpressions());
+        addComplexPostAggregationMapping(processedQuery, topK.getExpressions());
         return new TopK(fields, topK.getSize(), topK.getThreshold(), processedQuery.getAlias(topK));
     }
 
@@ -128,6 +133,7 @@ public class AggregationExtractor {
             threshold = ((Number) ((LiteralNode) ((BinaryExpressionNode) processedQuery.getHavingNode()).getRight()).getValue()).longValue();
         }
         addSimplePostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
+        addComplexPostAggregationMapping(processedQuery, processedQuery.getGroupByNodes());
         addPostAggregationMapping(processedQuery, countNode);
         return new TopK(fields, processedQuery.getLimit(), threshold, processedQuery.getAliasOrName(countNode));
     }
@@ -142,13 +148,13 @@ public class AggregationExtractor {
         };
     }
 
-    // Aggregates must be mapped to a field expression after postaggregation so that it is possible to actually to their values in the record.
+    // Aggregates must be mapped to a field expression after postaggregation so that it is possible to actually access their values in the record.
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {
         Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
         expressions.forEach(node -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
     }
 
-    // Aggregates must be mapped to a field expression after postaggregation so that it is possible to actually to their values in the record.
+    // Aggregates must be mapped to a field expression after postaggregation so that it is possible to actually access their values in the record.
     private static void addPostAggregationMapping(ProcessedQuery processedQuery, ExpressionNode expression) {
         processedQuery.getPostAggregationMapping().put(expression, new FieldExpression(processedQuery.getAliasOrName(expression)));
     }
@@ -159,12 +165,21 @@ public class AggregationExtractor {
     For example, for "abc AS def", usage of the field "abc" in postaggregations gets mapped to "def" as long as "abc"
     itself is not another alias like "abc + 5 AS abc".
     */
-    private static void addSimplePostAggregationMapping(ProcessedQuery processedQuery, Collection<? extends ExpressionNode> expressions) {
+    private static void addSimplePostAggregationMapping(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
         expressions.stream()
                    .filter(processedQuery::isSimpleFieldExpression)
                    .filter(processedQuery::hasAlias)
                    .filter(node -> !processedQuery.isAlias(node.getName()))
                    .forEach(node -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
+    }
+
+    // Add a mapping for any field that is not computable from the projected simple fields.
+    private static void addComplexPostAggregationMapping(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
+        Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
+        processedQuery.setSelectNames(Stream.concat(expressions.stream().filter(processedQuery::isSimpleFieldExpression).map(ExpressionNode::getName),
+                                                    processedQuery.getAliases().values().stream())
+                                            .collect(Collectors.toSet()));
+        ComputableProcessor.visit(expressions, processedQuery).forEach(node  -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
     }
 }

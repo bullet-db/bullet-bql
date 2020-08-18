@@ -25,13 +25,14 @@ public class TransientFieldExtractor {
             case COUNT_DISTINCT:
                 return extractAggregate(processedQuery);
             case SELECT_DISTINCT:
-                // No transient fields since all fields are included in SELECT DISTINCT
             case DISTRIBUTION:
-                // No transient fields since can't be used as value
             case TOP_K:
-                // No transient fields since can't be used as value
             case SPECIAL_K:
-                // No transient fields since all fields are fixed
+                /*
+                SELECT DISTINCT and SPECIAL K do not have transient fields since all fields are from the SELECT clause.
+                DISTRIBUTION and TOP K do not have transient fields since they cannot be used in a computation and
+                therefore must be directly in the SELECT clause.
+                */
                 return null;
         }
         throw new ParsingException("Unknown query type");

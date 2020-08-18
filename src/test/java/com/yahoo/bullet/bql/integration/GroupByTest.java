@@ -93,17 +93,50 @@ public class GroupByTest extends IntegrationTest {
     }
 
     @Test
-    public void testGroupByWithOrderByDoesNotReplaceField() {
-        // This ORDER BY clause is dependent on the field "abc" (which does not exist after the GROUP BY)
+    public void testGroupByWithOrderByComputationWithoutFieldInSchema() {
+        // This ORDER BY clause is originally dependent on the field "abc" (which does not exist after the GROUP BY)
         build("SELECT abc + 5 FROM STREAM() GROUP BY abc + 5 ORDER BY abc + 5");
-        Assert.assertEquals(errors.get(0).getError(), "1:56: The field abc does not exist in the schema.");
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", binary(field("abc", Type.INTEGER),
+                                                                                                                     value(5),
+                                                                                                                     Operation.ADD,
+                                                                                                                     Type.INTEGER))));
+
+        GroupBy aggregation = (GroupBy) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc + 5", "abc + 5"));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc + 5", Type.INTEGER));
     }
 
     @Test
-    public void testGroupByWithOrderByDoesNotSubstituteField() {
-        // This ORDER BY clause is dependent on the field "abc" (which does not exist after the GROUP BY)
+    public void testGroupByWithOrderBySubstitutesComputationWithoutFieldInSchema() {
+        // This ORDER BY clause is originally dependent on the field "abc" (which does not exist after the GROUP BY)
         build("SELECT abc + 5 FROM STREAM() GROUP BY abc + 5 ORDER BY (abc + 5) * 10");
-        Assert.assertEquals(errors.get(0).getError(), "1:57: The field abc does not exist in the schema.");
+        Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("abc + 5", binary(field("abc", Type.INTEGER),
+                                                                                                                     value(5),
+                                                                                                                     Operation.ADD,
+                                                                                                                     Type.INTEGER))));
+
+        GroupBy aggregation = (GroupBy) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc + 5", "abc + 5"));
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc + 5", Type.INTEGER),
+                                                                               value(10),
+                                                                               Operation.MUL,
+                                                                               Type.INTEGER));
     }
 
     @Test

@@ -6,6 +6,7 @@
 package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.query.ExpressionProcessor;
+import com.yahoo.bullet.bql.query.ComputableProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -13,11 +14,14 @@ import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.query.OrderByProcessor;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -48,22 +52,24 @@ public class ProjectionExtractor {
 
     // Projects all SELECT fields and any simple fields ORDER BY is dependent on.
     private static Projection extractSelect(ProcessedQuery processedQuery) {
-        // The set of fields that will be in the schema from SELECT.
+        // The set of fields that will be in the schema from SELECT
         processedQuery.setSelectNames(Stream.concat(processedQuery.getSelectNodes().stream().filter(processedQuery::isSimpleFieldExpression).map(ExpressionNode::getName),
                                                     processedQuery.getAliases().values().stream())
                                             .collect(Collectors.toSet()));
-        // Populates a set of fields that ORDER BY clauses depend on but are not in SELECT.
+
+        // Add incomputable fields to the postaggregation mapping
+        Map<ExpressionNode, Expression> mapping = processedQuery.getPostAggregationMapping();
+        ComputableProcessor.visit(processedQuery.getSelectNodes(), processedQuery)
+                           .forEach(node -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
+
+        // Populates a set of fields that ORDER BY clauses depend on but are not in SELECT and not in the postaggregation mapping
         OrderByProcessor.visit(processedQuery.getOrderByNodes(), processedQuery);
 
         List<ExpressionNode> expressions = Stream.concat(processedQuery.getSelectNodes().stream(),
                                                          processedQuery.getOrderByExtraSelectNodes().stream())
                                                  .collect(Collectors.toList());
-        ExpressionProcessor.visit(expressions, processedQuery.getPreAggregationMapping());
-        processedQuery.setProjection(expressions);
-        List<Field> fields = Stream.concat(processedQuery.getSelectNodes().stream().map(toAliasedField(processedQuery)),
-                                           processedQuery.getOrderByExtraSelectNodes().stream().map(toNonAliasedField(processedQuery)))
-                                   .collect(Collectors.toCollection(ArrayList::new));
-        return new Projection(fields, false);
+
+        return new Projection(getAliasedFields(processedQuery, expressions), false);
     }
 
     /*
@@ -130,7 +136,7 @@ public class ProjectionExtractor {
     /*
     If the expressions are all simple fields, there's nothing to project and any bullet record can be passed through
     as is.
-     \*/
+    */
     private static Projection getNonAliasedProjection(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
         if (areAllSimpleFields(processedQuery, expressions)) {
             return new Projection();

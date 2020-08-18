@@ -23,6 +23,14 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, ProcessedQue
         throw new RuntimeException("This method should not be called.");
     }
 
+    @Override
+    public Void process(Node node, ProcessedQuery context) {
+        if (context.getPostAggregationMapping().containsKey(node)) {
+            return null;
+        }
+        return super.process(node, context);
+    }
+
     public Void process(Collection<? extends Node> nodes, ProcessedQuery context) {
         nodes.forEach(node -> process(node, context));
         return null;
@@ -35,8 +43,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, ProcessedQue
 
     @Override
     protected Void visitFieldExpression(FieldExpressionNode node, ProcessedQuery context) {
-        String field = node.getField().getValue();
-        if (!context.getSelectNames().contains(field)) {
+        if (!context.getSelectNames().contains(node.getField().getValue())) {
             context.getOrderByExtraSelectNodes().add(node);
         }
         return null;
