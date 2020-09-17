@@ -279,6 +279,7 @@ public class TypeChecker {
                 }
                 return Optional.empty();
             case IN:
+            case NOT_IN:
                 if (!Type.isPrimitive(leftType)) {
                     errors.add(makeErrorOnly(node, "The type of the left operand in " + node + " must be primitive. Type given: " + leftType));
                 }
@@ -352,6 +353,7 @@ public class TypeChecker {
             case CONTAINS_KEY:
             case CONTAINS_VALUE:
             case IN:
+            case NOT_IN:
             case AND:
             case OR:
             case XOR:

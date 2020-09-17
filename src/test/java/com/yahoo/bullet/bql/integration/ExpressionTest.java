@@ -220,8 +220,8 @@ public class ExpressionTest extends IntegrationTest {
     @Test
     public void testBinaryOperationsMisc() {
         build("SELECT c RLIKE 'abc', c RLIKE ANY ['abc'], SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), " +
-              "'abc' IN aaa, FILTER(aaa, [true, false]), b AND true, b OR false, b XOR true FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 10);
+              "'abc' IN aaa, 'abc' NOT IN aaa, FILTER(aaa, [true, false]), b AND true, b OR false, b XOR true FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 11);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("c RLIKE 'abc'", binary(field("c", Type.STRING),
                                                                                                         value("abc"),
                                                                                                         Operation.REGEX_LIKE,
@@ -246,22 +246,26 @@ public class ExpressionTest extends IntegrationTest {
                                                                                                        field("aaa", Type.STRING_MAP_LIST),
                                                                                                        Operation.IN,
                                                                                                        Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("FILTER(aaa, [true, false])", binary(field("aaa", Type.STRING_MAP_LIST),
+        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("'abc' NOT IN aaa", binary(value("abc"),
+                                                                                                           field("aaa", Type.STRING_MAP_LIST),
+                                                                                                           Operation.NOT_IN,
+                                                                                                           Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("FILTER(aaa, [true, false])", binary(field("aaa", Type.STRING_MAP_LIST),
                                                                                                                      list(Type.BOOLEAN_LIST, value(true), value(false)),
                                                                                                                      Operation.FILTER,
                                                                                                                      Type.STRING_MAP_LIST)));
-        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("b AND true", binary(field("b", Type.BOOLEAN),
+        Assert.assertEquals(query.getProjection().getFields().get(8), new Field("b AND true", binary(field("b", Type.BOOLEAN),
                                                                                                      value(true),
                                                                                                      Operation.AND,
                                                                                                      Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(8), new Field("b OR false", binary(field("b", Type.BOOLEAN),
+        Assert.assertEquals(query.getProjection().getFields().get(9), new Field("b OR false", binary(field("b", Type.BOOLEAN),
                                                                                                      value(false),
                                                                                                      Operation.OR,
                                                                                                      Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(9), new Field("b XOR true", binary(field("b", Type.BOOLEAN),
-                                                                                                     value(true),
-                                                                                                     Operation.XOR,
-                                                                                                     Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(10), new Field("b XOR true", binary(field("b", Type.BOOLEAN),
+                                                                                                      value(true),
+                                                                                                      Operation.XOR,
+                                                                                                      Type.BOOLEAN)));
     }
 
     @Test

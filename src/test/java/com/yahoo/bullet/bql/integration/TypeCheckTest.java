@@ -85,12 +85,16 @@ public class TypeCheckTest extends IntegrationTest {
 
     @Test
     public void testTypeCheckIn() {
-        build("SELECT aaa IN 'foo', 5 IN aaa, 5 IN ddd, c IN ddd FROM STREAM()");
+        build("SELECT aaa IN 'foo', 5 IN aaa, 5 IN ddd, c IN ddd, aaa NOT IN 'foo', 5 NOT IN aaa, 5 NOT IN ddd, c NOT IN ddd FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the left operand in aaa IN 'foo' must be primitive. Type given: STRING_MAP_LIST");
         Assert.assertEquals(errors.get(1).getError(), "1:8: The type of the right operand in aaa IN 'foo' must be some LIST or MAP. Type given: STRING");
         Assert.assertEquals(errors.get(2).getError(), "1:22: The type of the left operand and the primitive type of the right operand in 5 IN aaa must match. Types given: INTEGER, STRING_MAP_LIST");
         Assert.assertEquals(errors.get(3).getError(), "1:32: The type of the left operand and the primitive type of the right operand in 5 IN ddd must match. Types given: INTEGER, STRING_MAP");
-        Assert.assertEquals(errors.size(), 4);
+        Assert.assertEquals(errors.get(4).getError(), "1:52: The type of the left operand in aaa NOT IN 'foo' must be primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(5).getError(), "1:52: The type of the right operand in aaa NOT IN 'foo' must be some LIST or MAP. Type given: STRING");
+        Assert.assertEquals(errors.get(6).getError(), "1:70: The type of the left operand and the primitive type of the right operand in 5 NOT IN aaa must match. Types given: INTEGER, STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(7).getError(), "1:84: The type of the left operand and the primitive type of the right operand in 5 NOT IN ddd must match. Types given: INTEGER, STRING_MAP");
+        Assert.assertEquals(errors.size(), 8);
     }
 
     @Test

@@ -65,7 +65,7 @@ expression
     | expression IS NOT NULL                                                                                            #nullPredicate
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
-    | left=expression op=IN right=expression                                                                            #infix
+    | left=expression modifier=NOT? op=IN right=expression                                                              #infix
     | left=expression op=RLIKE modifier=ANY? right=expression                                                           #infix
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
