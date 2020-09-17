@@ -48,8 +48,8 @@ public class PostAggregationExtractor {
             return;
         }
         List<OrderBy.SortItem> fields = processedQuery.getSortItemNodes().stream().map(
-                node -> new OrderBy.SortItem(ExpressionProcessor.visit(node.getExpression(), processedQuery.getPostAggregationMapping()),
-                                             node.getOrdering().getDirection())
+            node -> new OrderBy.SortItem(ExpressionProcessor.visit(node.getExpression(), processedQuery.getPostAggregationMapping()),
+                                         node.getOrdering().getDirection())
         ).collect(Collectors.toCollection(ArrayList::new));
         postAggregations.add(new OrderBy(fields));
     }

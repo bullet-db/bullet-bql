@@ -15,7 +15,6 @@ import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.binary;
