@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.integration;
 
-import com.yahoo.bullet.bql.extractor.AggregationExtractor;
 import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;

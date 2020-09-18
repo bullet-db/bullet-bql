@@ -109,6 +109,10 @@ public class ComputableProcessor extends DefaultTraversalVisitor<Boolean, Proces
 
     /**
      * Returns the expressions that are not computable.
+     *
+     * @param nodes The expression nodes to visit.
+     * @param processedQuery The processed query to use as context.
+     * @return The expression nodes that are not computable.
      */
     public static List<ExpressionNode> visit(Collection<ExpressionNode> nodes, ProcessedQuery processedQuery) {
         return nodes.stream().filter(node -> !INSTANCE.process(node, processedQuery)).collect(Collectors.toList());

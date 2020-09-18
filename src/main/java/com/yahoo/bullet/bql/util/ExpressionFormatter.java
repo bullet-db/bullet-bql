@@ -242,6 +242,7 @@ public final class ExpressionFormatter {
                 case REGEX_LIKE:
                 case REGEX_LIKE_ANY:
                 case IN:
+                case NOT_IN:
                 case AND:
                 case OR:
                 case XOR:

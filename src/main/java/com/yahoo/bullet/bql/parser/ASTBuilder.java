@@ -396,6 +396,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ALL;
             }
+        } else if (modifier.getType() == BQLBaseLexer.NOT) {
+            if (op.getType() == BQLBaseLexer.IN) {
+                return Operation.NOT_IN;
+            }
         }
         return getOperation(op);
     }
