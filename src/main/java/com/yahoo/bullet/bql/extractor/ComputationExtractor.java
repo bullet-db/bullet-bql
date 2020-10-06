@@ -31,8 +31,9 @@ public class ComputationExtractor {
             case GROUP:
             case COUNT_DISTINCT:
             case DISTRIBUTION:
-            case TOP_K:
                 return extractAggregate(processedQuery);
+            case TOP_K:
+                return extractTopK(processedQuery);
             case SPECIAL_K:
                 return extractSpecialK(processedQuery);
         }
@@ -50,6 +51,17 @@ public class ComputationExtractor {
                                                                           .filter(processedQuery::isNotAggregate)
                                                                           .distinct()
                                                                           .collect(Collectors.toList());
+        return getAliasedComputation(processedQuery, expressions);
+    }
+
+    // Remove Top K fields from computations.
+    private static Computation extractTopK(ProcessedQuery processedQuery) {
+        List<ExpressionNode> expressions = processedQuery.getSelectNodes().stream()
+                                                                          .filter(processedQuery::isNotSimpleFieldExpression)
+                                                                          .filter(processedQuery::isNotAggregate)
+                                                                          .distinct()
+                                                                          .collect(Collectors.toList());
+        expressions.removeAll(processedQuery.getTopK().getExpressions());
         return getAliasedComputation(processedQuery, expressions);
     }
 

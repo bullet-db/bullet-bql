@@ -180,6 +180,6 @@ public class AggregationExtractor {
         processedQuery.setSelectNames(Stream.concat(expressions.stream().filter(processedQuery::isSimpleFieldExpression).map(ExpressionNode::getName),
                                                     processedQuery.getAliases().values().stream())
                                             .collect(Collectors.toSet()));
-        ComputableProcessor.visit(expressions, processedQuery).forEach(node  -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
+        ComputableProcessor.visit(expressions, processedQuery).forEach(node -> mapping.put(node, new FieldExpression(processedQuery.getAliasOrName(node))));
     }
 }

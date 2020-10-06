@@ -22,6 +22,7 @@ import java.util.Set;
 
 import static com.yahoo.bullet.bql.util.QueryUtil.binary;
 import static com.yahoo.bullet.bql.util.QueryUtil.field;
+import static com.yahoo.bullet.bql.util.QueryUtil.unary;
 import static com.yahoo.bullet.bql.util.QueryUtil.value;
 
 public class TopKTest extends IntegrationTest {
@@ -215,5 +216,96 @@ public class TopKTest extends IntegrationTest {
 
         Assert.assertEquals(computation.getFields().size(), 1);
         Assert.assertEquals(computation.getFields().get(0), new Field("abc + def", binary(field("one", Type.INTEGER), field("two", Type.FLOAT), Operation.ADD, Type.FLOAT)));
+    }
+
+    @Test
+    public void testTopKWithSubFieldAndAlias() {
+        build("SELECT TOP(10, ddd.abc), ddd.abc AS one FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("ddd.abc", field("ddd", "abc", Type.STRING)));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+
+        TopK aggregation = (TopK) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.TOP_K);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("ddd.abc"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("ddd.abc", "one"));
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
+        Assert.assertNull(aggregation.getThreshold());
+        Assert.assertEquals(aggregation.getSize(), (Integer) 10);
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testTopKWithProjectedFieldAndAlias() {
+        build("SELECT TOP(10, abc + 5), abc + 5 AS abc FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
+                                                                                                  value(5),
+                                                                                                  Operation.ADD,
+                                                                                                  Type.INTEGER)));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+
+        TopK aggregation = (TopK) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.TOP_K);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc + 5", "abc"));
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
+        Assert.assertNull(aggregation.getThreshold());
+        Assert.assertEquals(aggregation.getSize(), (Integer) 10);
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testTopKWithComputationOnSubField() {
+        build("SELECT TOP(10, ddd.abc), SIZEOF(ddd.abc) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("ddd.abc", field("ddd", "abc", Type.STRING)));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+
+        TopK aggregation = (TopK) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.TOP_K);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("ddd.abc"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("ddd.abc", "ddd.abc"));
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
+        Assert.assertNull(aggregation.getThreshold());
+        Assert.assertEquals(aggregation.getSize(), (Integer) 10);
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("SIZEOF(ddd.abc)", unary(field("ddd.abc", Type.STRING), Operation.SIZE_OF, Type.INTEGER)));
+    }
+
+    @Test
+    public void testTopKWithComputationOnProjectedField() {
+        build("SELECT TOP(10, abc + 5), (abc + 5) * 10 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
+                                                                                                  value(5),
+                                                                                                  Operation.ADD,
+                                                                                                  Type.INTEGER)));
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+
+        TopK aggregation = (TopK) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.TOP_K);
+        Assert.assertEquals(aggregation.getFields(), Collections.singletonList("abc + 5"));
+        Assert.assertEquals(aggregation.getFieldsToNames(), Collections.singletonMap("abc + 5", "abc + 5"));
+        Assert.assertEquals(aggregation.getName(), QueryProcessor.DEFAULT_TOP_K_ALIAS);
+        Assert.assertNull(aggregation.getThreshold());
+        Assert.assertEquals(aggregation.getSize(), (Integer) 10);
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields().size(), 1);
+        Assert.assertEquals(computation.getFields().get(0), new Field("(abc + 5) * 10", binary(field("abc + 5", Type.INTEGER),
+                                                                                               value(10),
+                                                                                               Operation.MUL,
+                                                                                               Type.INTEGER)));
     }
 }
