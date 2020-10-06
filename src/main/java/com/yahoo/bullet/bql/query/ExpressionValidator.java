@@ -77,15 +77,18 @@ public class ExpressionValidator extends DefaultTraversalVisitor<Type, Map<Expre
             if (expression.getType() != null) {
                 return expression.getType();
             }
-            // Aggregate (i.e. not a FieldExpressionNode) to field expression mapping; guaranteed to be a simple field that exists in the schema
-            if (expression instanceof FieldExpression && !(node instanceof FieldExpressionNode)) {
-                String field = ((FieldExpression) expression).getField();
-                Type type = schema.getType(field);
-                if (!Type.isNull(type)) {
+            // Aggregate (i.e. not a simple FieldExpressionNode) to simple field expression mapping; guaranteed to be a simple field that exists in the schema
+            if (expression instanceof FieldExpression && !(node instanceof FieldExpressionNode && !((FieldExpressionNode) node).hasIndexOrKey())) {
+                FieldExpression fieldExpression = (FieldExpression) expression;
+                if (fieldExpression.getIndex() == null && fieldExpression.getKey() == null) {
+                    String field = fieldExpression.getField();
+                    Type type = schema.getType(field);
+                    Optional<List<BulletError>> errors = TypeChecker.validateFieldType((ExpressionNode) node, field, type);
+                    if (errors.isPresent()) {
+                        processedQuery.getErrors().addAll(errors.get());
+                        return setType((ExpressionNode) node, Type.UNKNOWN, mapping);
+                    }
                     return setType((ExpressionNode) node, type, mapping);
-                } else {
-                    processedQuery.getErrors().add(new BulletError(node.getLocation() + "The field " + field + " does not exist in the schema.", (List<String>) null));
-                    return setType((ExpressionNode) node, Type.UNKNOWN, mapping);
                 }
             }
         }

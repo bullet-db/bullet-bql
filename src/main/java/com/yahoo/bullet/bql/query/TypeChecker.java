@@ -25,6 +25,13 @@ import java.util.Optional;
 import java.util.Set;
 
 public class TypeChecker {
+    public static Optional<List<BulletError>> validateFieldType(ExpressionNode node, String field, Type type) {
+        if (Type.isNull(type)) {
+            return makeError(node, "The field " + field + " does not exist in the schema.");
+        }
+        return Optional.empty();
+    }
+
     public static Optional<List<BulletError>> validateFieldType(FieldExpressionNode node, Type type, boolean hasIndexOrKey, boolean hasSubKey) {
         if (Type.isUnknown(type)) {
             return unknownError();
