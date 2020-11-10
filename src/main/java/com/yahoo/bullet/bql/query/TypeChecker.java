@@ -12,10 +12,17 @@ import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
+import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.SubSubFieldExpressionNode;
 import com.yahoo.bullet.common.BulletError;
+import com.yahoo.bullet.query.expressions.BinaryExpression;
+import com.yahoo.bullet.query.expressions.CastExpression;
+import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
+import com.yahoo.bullet.query.expressions.ListExpression;
+import com.yahoo.bullet.query.expressions.NAryExpression;
 import com.yahoo.bullet.query.expressions.Operation;
-import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
@@ -23,71 +30,60 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TypeChecker {
-    public static Optional<List<BulletError>> validateFieldType(ExpressionNode node, String field, Type type) {
-        if (Type.isNull(type)) {
-            return makeError(node, "The field " + field + " does not exist in the schema.");
-        }
-        return Optional.empty();
-    }
-
-    public static Optional<List<BulletError>> validateFieldType(FieldExpressionNode node, Type type, boolean hasIndexOrKey, boolean hasSubKey) {
+    public static Optional<List<BulletError>> validateFieldType(FieldExpressionNode node, FieldExpression fieldExpression, Type type) {
         if (Type.isUnknown(type)) {
             return unknownError();
         } else if (Type.isNull(type)) {
-            return makeError(node, "The field " + node.getField().getValue() + " does not exist in the schema.");
-        } else if ((hasIndexOrKey && !hasSubKey && !isCollection(type)) || (hasSubKey && !isComplex(type))) {
-            return makeError(node, "The subfield " + node + " is invalid since the field " + node.getField().getValue() + " has type: " + type);
+            return makeError(node, "The field " + fieldExpression.getField() + " does not exist in the schema.");
         }
         return Optional.empty();
     }
 
-    public static Type getFieldType(Type type, boolean hasIndexOrKey, boolean hasSubKey) {
-        if (hasSubKey) {
-            return type.getSubType().getSubType();
-        } else if (hasIndexOrKey) {
-            return type.getSubType();
+    public static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression fieldExpression) {
+        Type type = fieldExpression.getType();
+        if (Type.isUnknown(type)) {
+            return unknownError();
+        } else if (!isCollection(type)) {
+            return makeError(node, "The subfield " + node + " is invalid since the field " + node.getField() + " has type: " + type);
         }
-        return type;
+        return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validateListTypes(ListExpressionNode node, Set<Type> types) {
-        if (types.isEmpty()) {
+    public static Optional<List<BulletError>> validateListSubTypes(ListExpressionNode node, ListExpression listExpression) {
+        Set<Type> listSubTypes = listExpression.getValues().stream().map(Expression::getType).collect(Collectors.toSet());
+        if (listSubTypes.isEmpty()) {
             return makeError(node, "Empty lists are currently not supported.");
         }
-        if (types.contains(Type.UNKNOWN)) {
+        if (listSubTypes.contains(Type.UNKNOWN)) {
             return unknownError();
         }
-        if (types.size() > 1) {
-            return makeError(node, "The list " + node + " consists of objects of multiple types: " + types);
+        if (listSubTypes.size() > 1) {
+            return makeError(node, "The list " + node + " consists of objects of multiple types: " + listSubTypes);
         }
-        Type subType = types.iterator().next();
+        Type subType = listSubTypes.iterator().next();
         if (!Type.isPrimitive(subType) && !Type.isPrimitiveMap(subType)) {
             return makeError(node, "The list " + node + " must consist of objects of a single primitive or primitive map type. Subtype given: " + subType);
         }
         return Optional.empty();
     }
 
-    public static Type getListType(Set<Type> types) {
-        // Assume non-empty list
-        Type subType = types.iterator().next();
-        return Type.LISTS.stream().filter(type -> type.getSubType().equals(subType)).findFirst().orElse(Type.UNKNOWN);
-    }
-
-    public static Optional<List<BulletError>> validateUnaryType(UnaryExpressionNode node, Type type, Operation op) {
-        if (Type.isUnknown(type)) {
+    public static Optional<List<BulletError>> validateUnaryType(ExpressionNode node, UnaryExpression unaryExpression) {
+        Type operandType = unaryExpression.getOperand().getType();
+        if (Type.isUnknown(operandType)) {
             return unknownError();
         }
-        switch (op) {
+        switch (unaryExpression.getOp()) {
             case NOT:
-                if (!Type.isNumeric(type) && type != Type.BOOLEAN) {
-                    return makeError(node, "The type of the argument in " + node + " must be numeric or BOOLEAN. Type given: " + type);
+                if (!Type.isNumeric(operandType) && operandType != Type.BOOLEAN) {
+                    return makeError(node, "The type of the argument in " + node + " must be numeric or BOOLEAN. Type given: " + operandType);
                 }
                 return Optional.empty();
             case SIZE_OF:
-                if (!isCollection(type) && type != Type.STRING) {
-                    return makeError(node, "The type of the argument in " + node + " must be some LIST, MAP, or STRING. Type given: " + type);
+                if (!isCollection(operandType) && operandType != Type.STRING) {
+                    return makeError(node, "The type of the argument in " + node + " must be some LIST, MAP, or STRING. Type given: " + operandType);
                 }
                 return Optional.empty();
             case IS_NULL:
@@ -95,53 +91,31 @@ public class TypeChecker {
                 return Optional.empty();
         }
         // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported unary operation: " + op);
+        throw new IllegalArgumentException("This is not a supported unary operation: " + unaryExpression.getOp());
     }
 
-    public static Type getUnaryType(Operation op) {
-        switch (op) {
-            case NOT:
-            case IS_NULL:
-            case IS_NOT_NULL:
-                return Type.BOOLEAN;
-            case SIZE_OF:
-                return Type.INTEGER;
-        }
-        // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported unary operation: " + op);
-    }
-
-    public static Optional<List<BulletError>> validateNAryType(NAryExpressionNode node, List<Type> types, Operation op) {
-        if (types.contains(Type.UNKNOWN)) {
+    public static Optional<List<BulletError>> validateNAryType(NAryExpressionNode node, NAryExpression nAryExpression) {
+        List<Type> argTypes = nAryExpression.getOperands().stream().map(Expression::getType).collect(Collectors.toList());
+        if (argTypes.contains(Type.UNKNOWN)) {
             return unknownError();
         }
         // only IF is supported at the moment
-        switch (op) {
-            case IF:
-                List<BulletError> errors = new ArrayList<>();
-                if (types.get(0) != Type.BOOLEAN) {
-                    errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be BOOLEAN. Type given: " + types.get(0)));
-                }
-                if (types.get(1) != types.get(2)) {
-                    errors.add(makeErrorOnly(node, "The types of the second and third arguments in " + node + " must match. Types given: " + types.get(1) + ", " + types.get(2)));
-                }
-                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+        if (nAryExpression.getOp() == Operation.IF) {
+            List<BulletError> errors = new ArrayList<>();
+            if (argTypes.get(0) != Type.BOOLEAN) {
+                errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be BOOLEAN. Type given: " + argTypes.get(0)));
+            }
+            if (argTypes.get(1) != argTypes.get(2)) {
+                errors.add(makeErrorOnly(node, "The types of the second and third arguments in " + node + " must match. Types given: " + argTypes.get(1) + ", " + argTypes.get(2)));
+            }
+            return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
         // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported n-ary operation: " + op);
+        throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
     }
 
-    public static Type getNAryType(List<Type> types, Operation op) {
-        // only IF is supported at the moment
-        switch (op) {
-            case IF:
-                return types.get(1);
-        }
-        // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported n-ary operation: " + op);
-    }
-
-    public static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Type type) {
+    public static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Expression expression) {
+        Type type = expression.getType();
         if (Type.isUnknown(type)) {
             return unknownError();
         }
@@ -151,7 +125,8 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validatePrimitiveTypes(ExpressionNode node, List<Type> types) {
+    public static Optional<List<BulletError>> validatePrimitiveTypes(ExpressionNode node, List<Expression> expressions) {
+        List<Type> types = expressions.stream().map(Expression::getType).collect(Collectors.toList());
         if (types.contains(Type.UNKNOWN)) {
             return unknownError();
         }
@@ -161,35 +136,26 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Type getAggregateType(Type type, GroupOperation.GroupOperationType op) {
-        switch (op) {
-            case SUM:
-            case MIN:
-            case MAX:
-                return type;
-            case AVG:
-                return Type.DOUBLE;
-        }
-        // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported group operation: " + op);
-    }
-
-    public static Optional<List<BulletError>> validateCastType(CastExpressionNode node, Type type, Type castType) {
-        if (Type.isUnknown(type)) {
+    public static Optional<List<BulletError>> validateCastType(CastExpressionNode node, CastExpression castExpression) {
+        Type argType = castExpression.getValue().getType();
+        Type castType = castExpression.getCastType();
+        if (Type.isUnknown(argType)) {
             return unknownError();
-        } else if (!Type.canForceCast(castType, type)) {
-            return makeError(node, "Cannot cast " + node.getExpression() + " from " + type + " to " + castType + ".");
+        } else if (!Type.canForceCast(castType, argType)) {
+            return makeError(node, "Cannot cast " + node.getExpression() + " from " + argType + " to " + castType + ".");
         }
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validateBinaryType(BinaryExpressionNode node, Type leftType, Type rightType, Operation op) {
+    public static Optional<List<BulletError>> validateBinaryType(BinaryExpressionNode node, BinaryExpression binaryExpression) {
+        Type leftType = binaryExpression.getLeft().getType();
+        Type rightType = binaryExpression.getRight().getType();
         if (Type.isUnknown(leftType) || Type.isUnknown(rightType)) {
             return unknownError();
         }
         List<BulletError> errors = new ArrayList<>();
         Type subType;
-        switch (op) {
+        switch (binaryExpression.getOp()) {
             case ADD:
             case SUB:
             case MUL:
@@ -318,58 +284,7 @@ public class TypeChecker {
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
         // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported binary operation: " + op);
-    }
-
-    public static Type getBinaryType(Type leftType, Type rightType, Operation op) {
-        switch (op) {
-            case ADD:
-            case SUB:
-            case MUL:
-            case DIV:
-                if (leftType == Type.DOUBLE || rightType == Type.DOUBLE) {
-                    return Type.DOUBLE;
-                } else if (leftType == Type.FLOAT || rightType == Type.FLOAT) {
-                    return Type.FLOAT;
-                } else if (leftType == Type.LONG || rightType == Type.LONG) {
-                    return Type.LONG;
-                } else {
-                    return Type.INTEGER;
-                }
-            case EQUALS:
-            case EQUALS_ANY:
-            case EQUALS_ALL:
-            case NOT_EQUALS:
-            case NOT_EQUALS_ANY:
-            case NOT_EQUALS_ALL:
-            case GREATER_THAN:
-            case GREATER_THAN_ANY:
-            case GREATER_THAN_ALL:
-            case GREATER_THAN_OR_EQUALS:
-            case GREATER_THAN_OR_EQUALS_ANY:
-            case GREATER_THAN_OR_EQUALS_ALL:
-            case LESS_THAN:
-            case LESS_THAN_ANY:
-            case LESS_THAN_ALL:
-            case LESS_THAN_OR_EQUALS:
-            case LESS_THAN_OR_EQUALS_ANY:
-            case LESS_THAN_OR_EQUALS_ALL:
-            case REGEX_LIKE:
-            case REGEX_LIKE_ANY:
-            case SIZE_IS:
-            case CONTAINS_KEY:
-            case CONTAINS_VALUE:
-            case IN:
-            case NOT_IN:
-            case AND:
-            case OR:
-            case XOR:
-                return Type.BOOLEAN;
-            case FILTER:
-                return leftType;
-        }
-        // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported binary operation: " + op);
+        throw new IllegalArgumentException("This is not a supported binary operation: " + binaryExpression.getOp());
     }
 
     // This is a static method and not a constant because a static final Optional is semantically inappropriate
@@ -383,10 +298,6 @@ public class TypeChecker {
 
     private static Optional<List<BulletError>> makeError(Node node, String message) {
         return Optional.of(Collections.singletonList(makeErrorOnly(node, message)));
-    }
-
-    private static boolean isComplex(Type type) {
-        return Type.isComplexList(type) || Type.isComplexMap(type);
     }
 
     private static boolean isCollection(Type type) {

@@ -11,7 +11,7 @@ import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.query.Window;
 
 public class WindowExtractor {
-    static Window extractWindow(ProcessedQuery processedQuery) {
+    public static Window extractWindow(ProcessedQuery processedQuery) {
         WindowNode window = processedQuery.getWindow();
         if (window == null) {
             return new Window();
@@ -21,5 +21,16 @@ public class WindowExtractor {
             return new Window(window.getEmitEvery(), window.getEmitType());
         }
         return new Window(window.getEmitEvery(), window.getEmitType(), windowInclude.getIncludeUnit(), windowInclude.getFirst());
+    }
+
+    public static Window extractWindow(WindowNode windowNode) {
+        if (windowNode == null) {
+            return new Window();
+        }
+        WindowIncludeNode windowInclude = windowNode.getWindowInclude();
+        if (windowInclude == null) {
+            return new Window(windowNode.getEmitEvery(), windowNode.getEmitType());
+        }
+        return new Window(windowNode.getEmitEvery(), windowNode.getEmitType(), windowInclude.getIncludeUnit(), windowInclude.getFirst());
     }
 }

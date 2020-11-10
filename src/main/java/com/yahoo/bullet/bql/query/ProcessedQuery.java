@@ -12,12 +12,14 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
+import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.Expression;
 import com.yahoo.bullet.query.expressions.Operation;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -50,20 +52,51 @@ public class ProcessedQuery {
         INVALID
     }
 
+    // Enum hashset of bullet errors
+
+
+    @Getter
+    @AllArgsConstructor
+    public enum QueryError {
+        MULTIPLE_QUERY_TYPES(new BulletError("Query does not match exactly one query type.", "Please specify a valid query.")),
+        EMPTY_ALIAS(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string instead.")),
+        MULTIPLE_ALIAS(),
+        NESTED_AGGREGATE(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates.")),
+        WHERE_WITH_AGGREGATE(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause.")),
+        GROUP_BY_WITH_AGGREGATE(new BulletError("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause.")),
+        MULTIPLE_COUNT_DISTINCT(new BulletError("Cannot have multiple COUNT DISTINCT.", "Please specify only one COUNT DISTINCT.")),
+        COUNT_DISTINCT_WITH_ORDER_BY(new BulletError("ORDER BY clause is not supported for queries with COUNT DISTINCT.", "Please remove the ORDER BY clause.")),
+        COUNT_DISTINCT_WITH_LIMIT(new BulletError("LIMIT clause is not supported for queries with COUNT DISTINCT.", "Please remove the LIMIT clause.")),
+        MULTIPLE_DISTRIBUTION(new BulletError("Cannot have multiple distribution functions.", "Please specify only one distribution function.")),
+        DISTRIBUTION_AS_VALUE(new BulletError("Distribution functions cannot be treated as values.", Arrays.asList("Please consider using the distribution's output fields instead.",
+                                                                                                                   "For QUANTILE distributions, the output fields are: [\"Value\", \"Quantile\"].",
+                                                                                                                   "For FREQ and CUMFREQ distributions, the output fields are: [\"Probability\", \"Count\", \"Quantile\"]."))),
+        MULTIPLE_TOP_K(new BulletError("Cannot have multiple TOP functions.", "Please specify only one TOP function.")),
+        TOP_K_AS_VALUE(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
+                                                                                                   "The output field can also be renamed by selecting TOP with an alias."))),
+        TOP_K_WITH_ORDER_BY(new BulletError("ORDER BY clause is not supported for queries with a TOP function.", "Please remove the ORDER BY clause.")),
+        TOP_K_WITH_LIMIT(new BulletError("LIMIT clause is not supported for queries with a TOP function.", "Please remove the LIMIT clause.")),
+        HAVING_WITHOUT_GROUP_BY(new BulletError("HAVING clause is only supported with GROUP BY clause.", "Please remove the HAVING clause, and consider using a WHERE clause instead.")),
+        NON_POSITIVE_LIMIT(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));
+
+        private BulletError error;
+    }
+
+
     private static final String DELIMITER = ", ";
 
     private Set<QueryType> queryTypeSet = EnumSet.noneOf(QueryType.class);
 
-    @Setter
-    private Long timeDuration;
-    @Setter
-    private Integer limit;
-    @Setter
-    private WindowNode window;
-    @Setter
-    private ExpressionNode whereNode;
-    @Setter
-    private ExpressionNode havingNode;
+    //@Setter
+    //private Long timeDuration;
+    //@Setter
+    //private Integer limit;
+    //@Setter
+    //private WindowNode window;
+    //@Setter
+    //private ExpressionNode whereNode;
+    //@Setter
+    //private ExpressionNode havingNode;
 
     private Map<ExpressionNode, Expression> preAggregationMapping = new HashMap<>();
     private Map<ExpressionNode, Expression> postAggregationMapping = new HashMap<>();
@@ -76,8 +109,12 @@ public class ProcessedQuery {
     private Set<ExpressionNode> orderByNodes = new LinkedHashSet<>();
     private Set<SortItemNode> sortItemNodes = new LinkedHashSet<>();
     private Set<ExpressionNode> orderByExtraSelectNodes = new LinkedHashSet<>();
-    @Setter
-    private Set<String> selectNames;
+    //@Setter
+    //private Set<String> selectNames;
+
+
+    private Set<SelectItemNode> selectItemNodes = new LinkedHashSet<>();
+
 
     private Set<ExpressionNode> superAggregateNodes = new HashSet<>();
     private Set<ExpressionNode> aggregateNodes = new HashSet<>();

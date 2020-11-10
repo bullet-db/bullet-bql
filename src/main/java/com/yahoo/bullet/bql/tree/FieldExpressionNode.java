@@ -12,28 +12,14 @@ import java.util.Objects;
 
 @Getter
 public class FieldExpressionNode extends ExpressionNode {
-    private final IdentifierNode field;
-    private final Integer index;
-    private final IdentifierNode key;
-    private final IdentifierNode subKey;
+    protected final IdentifierNode key;
     // Types ignored for equals() and hashCode()
     private final Type type;
 
-    public FieldExpressionNode(IdentifierNode field, Integer index, IdentifierNode key, IdentifierNode subKey, Type type, NodeLocation nodeLocation) {
+    public FieldExpressionNode(IdentifierNode key, Type type, NodeLocation nodeLocation) {
         super(nodeLocation);
-        this.field = field;
-        this.index = index;
         this.key = key;
-        this.subKey = subKey;
         this.type = type;
-    }
-
-    public boolean hasIndexOrKey() {
-        return index != null || key != null;
-    }
-
-    public boolean hasSubKey() {
-        return subKey != null;
     }
 
     @Override
@@ -50,14 +36,11 @@ public class FieldExpressionNode extends ExpressionNode {
             return false;
         }
         FieldExpressionNode other = (FieldExpressionNode) obj;
-        return Objects.equals(field, other.field) &&
-               Objects.equals(index, other.index) &&
-               Objects.equals(key, other.key) &&
-               Objects.equals(subKey, other.subKey);
+        return Objects.equals(key, other.key);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, index, key, subKey);
+        return Objects.hash(key);
     }
 }

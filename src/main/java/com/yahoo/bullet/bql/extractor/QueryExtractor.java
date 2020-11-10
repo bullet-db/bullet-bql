@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql.extractor;
 
 import com.yahoo.bullet.bql.query.ExpressionProcessor;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
+import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.query.Projection;
 import com.yahoo.bullet.query.Query;
 import com.yahoo.bullet.query.Window;
@@ -56,5 +57,9 @@ public class QueryExtractor {
 
     private static Long extractDuration(ProcessedQuery processedQuery) {
         return processedQuery.getTimeDuration();
+    }
+
+    public static Integer extractLimit(QueryNode queryNode) {
+        return queryNode.getLimit() != null ? Integer.parseInt(queryNode.getLimit()) : null;
     }
 }

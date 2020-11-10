@@ -34,6 +34,8 @@ import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
+import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.SubSubFieldExpressionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -126,12 +128,21 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitFieldExpression(BQLBaseParser.FieldExpressionContext context) {
-        return new FieldExpressionNode((IdentifierNode) visit(context.field),
-                                       context.index != null ? Integer.valueOf(context.index.getText()) : null,
-                                       (IdentifierNode) visitIfPresent(context.key),
-                                       (IdentifierNode) visitIfPresent(context.subKey),
-                                       getType(context.fieldType()),
-                                       getLocation(context));
+        IdentifierNode field = (IdentifierNode) visit(context.field);
+        Integer index = context.index != null ? Integer.valueOf(context.index.getText()) : null;
+        IdentifierNode key = (IdentifierNode) visitIfPresent(context.key);
+        IdentifierNode subKey = (IdentifierNode) visitIfPresent(context.subKey);
+        Type type = getType(context.fieldType());
+        NodeLocation location = getLocation(context);
+        Type superType = type != null ? Type.UNKNOWN : null;
+        if (subKey != null) {
+            return new SubFieldExpressionNode(new SubFieldExpressionNode(new FieldExpressionNode(field, superType, location), index, key, superType, location), null, subKey, type, location);
+            //return new SubSubFieldExpressionNode(new SubFieldExpressionNode(new FieldExpressionNode(field, superType, location), index, key, superType, location), subKey, type, location);
+        } else if (index != null || key != null) {
+            return new SubFieldExpressionNode(new FieldExpressionNode(field, superType, location), index, key, type, location);
+        } else {
+            return new FieldExpressionNode(field, type, location);
+        }
     }
 
     @Override
