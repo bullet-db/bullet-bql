@@ -22,6 +22,7 @@ import com.yahoo.bullet.query.aggregations.Aggregation;
 import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.aggregations.Raw;
 import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.query.postaggregations.Culling;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.postaggregations.PostAggregation;
@@ -29,14 +30,19 @@ import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class QueryBuilder {
     private ProcessedQuery processedQuery;
@@ -54,6 +60,8 @@ public class QueryBuilder {
 
     private Long duration;
 
+    private Integer limit;
+
     //private Map<ExpressionNode, Expression> preAggregationMapping = new HashMap<>();
     //private Map<ExpressionNode, Expression> postAggregationMapping = new HashMap<>();
 
@@ -68,7 +76,7 @@ public class QueryBuilder {
 
     private Query query;
 
-    private List<PostAggregation> postAggregations;
+    private List<PostAggregation> postAggregations = new ArrayList<>();
 
 
 
@@ -116,6 +124,7 @@ public class QueryBuilder {
         // common
         window = WindowExtractor.extractWindow(queryNode.getWindow());
         duration = DurationExtractor.extractDuration(queryNode.getStream());
+        limit = QueryExtractor.extractLimit(queryNode);
 
         ExpressionNode whereNode = queryNode.getWhere();
         if (whereNode != null) {
@@ -137,119 +146,68 @@ public class QueryBuilder {
     public void doSelect() {
         // This is select only. not select all. we only have select fields and order by to worry about after
         // the select nodes
-/*
-        ExpressionVisitor.visit(processedQuery.getSelectNodes(), querySchema);
-
-        for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
-            String name = processedQuery.getAliasOrName(node);
-            querySchema.addProjectionField(name, node, expression.getType());
-        }
-
-        // add schema field can overwrite mapping but add projection field can't!!!!!!!!!!!!!!!! is how i should do it
-        // ezpz
-
-        for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            if (node instanceof FieldExpressionNode || processedQuery.hasAlias(node)) {
-                querySchema.addSchemaField(processedQuery.getAliasOrName(node), querySchema.get(node).getType());
-            }
-        }
-*/
-        //////////////////////////////
 
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
             Expression expression = ExpressionVisitor.visit(node, querySchema);
             String name = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
-            if (node instanceof FieldExpressionNode || processedQuery.hasAlias(node)) {
-                querySchema.addSchemaField(name, type);
+            if (processedQuery.hasAlias(node)) {
+                querySchema.addAliasMapping(name, type);
             }
             querySchema.addProjectionField(name, node, type);
         }
 
+        querySchema.nextLevel(true);
 
-        ///////////////////////
+        aggregation = new Raw(limit);
 
+        if (queryNode.getOrderBy() != null) {
+            List<OrderBy.SortItem> sortItems = new ArrayList<>();
 
+            OrderByProcessor orderByProcessor = new OrderByProcessor();
+            orderByProcessor.process(processedQuery.getOrderByNodes(), querySchema);
 
-        // need to check duplicate fields at some point
+            for (SortItemNode sortItemNode : processedQuery.getSortItemNodes()) {
+                ExpressionNode orderByNode = sortItemNode.getExpression();
+                Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
+                Type type = expression.getType();
+                // Validate prim type here.
+                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                    errors.add(new BulletError(orderByNode.getLocation() + "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
+                }
+                sortItems.add(new OrderBy.SortItem(expression, sortItemNode.getOrdering().getDirection()));
+            }
 
-        // original uses schema.fields, but currently we don't add everything to schema. could we look at the projection field names here?
+            postAggregations.add(new OrderBy(sortItems));
 
-        // should check this after order by since order by can modify these fields.
+            if (!orderByProcessor.getTransientFields().isEmpty()) {
+                postAggregations.add(new Culling(orderByProcessor.getTransientFields()));
+            }
+        }
 
+        // Check duplicate fields at the end because OrderBy can add fields to the projection.
         List<String> fields = querySchema.getFields().stream().map(Field::getName).collect(Collectors.toList());
         duplicates(fields).ifPresent(duplicates -> {
             errors.add(new BulletError("The following field names are shared: " + duplicates,
                                        "Please specify non-overlapping field names."));
         });
 
-
-        querySchema.incMappingLevel();
-
-
-        aggregation = new Raw(QueryExtractor.extractLimit(queryNode));
-
-        if (queryNode.getOrderBy() == null) {
-            return; // ?????????????????????????????????????? im dumb
-        }
-
-        List<OrderBy.SortItem> sortItems = new ArrayList<>();
-
-        OrderByProcessor.visit(processedQuery.getOrderByNodes(), querySchema);
-
-        for (SortItemNode sortItemNode : processedQuery.getSortItemNodes()) {
-            ExpressionNode orderByNode = sortItemNode.getExpression();
-
-            OrderByProcessor.visit(orderByNode, querySchema);
-
-            Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
-
-            Type type = expression.getType();
-
-            // Validate prim type here.
-            if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                errors.add(new BulletError(orderByNode.getLocation() + "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
-            }
-            sortItems.add(new OrderBy.SortItem(expression, sortItemNode.getOrdering().getDirection()));
-        }
-
-
-        OrderBy orderBy = new OrderBy(sortItems);
-
-
-        // Check 2nd layer of schema for transient fields
-        // ^ Check Schema level 1 for fields marked transient.
-        Culling culling = new Culling(querySchema.getTransientFields());
-        // ^ orderByVisitor.getTransientFields() may be better.
-
-
-        postAggregations = new ArrayList<>();
-        postAggregations.add(orderBy);
-        postAggregations.add(culling);
-
         projection = new Projection(querySchema.getFields(), false);
     }
 
     public void doSelectAll() {
-
-        // common
-
-        //aggregation = new Raw(processedQuery.getLimit());
+        aggregation = new Raw(limit);
 
         // QueryExtractor.extractSelect/Nodes() ?
 
-
         // select all
-
-        //boolean requiresCopyFlag = false;
 
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
             Expression expression = ExpressionVisitor.visit(node, querySchema);
             String name = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
-            if (node instanceof FieldExpressionNode || processedQuery.hasAlias(node)) {
-                querySchema.addSchemaField(name, type);
+            if (processedQuery.hasAlias(node)) {
+                querySchema.addAliasMapping(name, type);
             }
             querySchema.addProjectionField(name, node, type);
         }
@@ -260,83 +218,56 @@ public class QueryBuilder {
         // .. but even if it's passthrough, still need to check all fieldexpnodes. so.
         // if passthrough, dont need to add the nodes to a schema though
 
-        if (queryNode.getOrderBy() == null) {
-            return; // ???????????????
-        }
-
-        // copy needs the next level. passthrough doesn't add a layer
-
+        // Check duplicate fields
+        List<String> fields = querySchema.getFields().stream().map(Field::getName).collect(Collectors.toList());
+        duplicates(fields).ifPresent(duplicates -> {
+            errors.add(new BulletError("The following field names are shared: " + duplicates,
+                                       "Please specify non-overlapping field names."));
+        });
 
         if (requiresCopyFlag) {
-            querySchema.incMappingLevel();
-
-            querySchema.setMode(use schema layered 2 and then 1);
+            projection = new Projection(querySchema.getFields(), true);
+        } else {
+            projection = new Projection();
         }
 
+        querySchema.nextLevel(false);
 
 
-        List<OrderBy.SortItem> sortItems = new ArrayList<>();
-
-        for (SortItemNode sortItemNode : processedQuery.getSortItemNodes()) {
-            ExpressionNode orderByNode = sortItemNode.getExpression();
-
-            /*
-            What map level do we need to read/write:
-
-            passthrough. base schema and mapping.
-
-
-            copy. schema 2 over base schema. mapping 2 only.
-
-
-             */
-
-            Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
-
-            Type type = expression.getType();
-
-            // Validate prim type here.
-            if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
-                errors.add(new BulletError(orderByNode.getLocation() + "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
+        if (queryNode.getOrderBy() != null) {
+            List<OrderBy.SortItem> sortItems = new ArrayList<>();
+            for (SortItemNode sortItemNode : processedQuery.getSortItemNodes()) {
+                ExpressionNode orderByNode = sortItemNode.getExpression();
+                Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
+                Type type = expression.getType();
+                // Validate prim type here.
+                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                    errors.add(new BulletError(orderByNode.getLocation() + "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
+                }
+                // else?
+                sortItems.add(new OrderBy.SortItem(expression, sortItemNode.getOrdering().getDirection()));
             }
-            // else?
-            sortItems.add(new OrderBy.SortItem(expression, sortItemNode.getOrdering().getDirection()));
+            postAggregations.add(new OrderBy(sortItems));
         }
 
-
-        OrderBy orderBy = new OrderBy(sortItems);
 
         // no computation cuz that's taken care of by copy projection
 
 
         // there is a transient for fields that you rename...............................
-
-
-        // extra thing to do i guess
         if (requiresCopyFlag) {
-            // might need transient
-
-            Culling culling = new Culling();
-
-            /*
-            the fields. with. fieldexpressionnode. thath have an alias.
-
-            schema2 does not have the field.
-
-
-            fieldexpnode names in fieldMapping \ fieldexp names in aliasMapping and fieldMapping = transient
-
-            ^ this works for passthrough and copy actually. (always empty set for passthrough)
-
-             */
-
-
-
-
-
-
-
-
+            Set<String> remappedFieldNames = querySchema.getCurrentFieldMapping().keySet().stream()
+                                                                                          .filter(node -> node instanceof FieldExpressionNode)
+                                                                                          .map(node -> ((FieldExpressionNode) node).getKey().getValue())
+                                                                                          .collect(Collectors.toCollection(HashSet::new));
+            Set<String> mappedFieldNames = Stream.concat(querySchema.getCurrentAliasMapping().values().stream(),
+                                                         querySchema.getCurrentFieldMapping().values().stream())
+                                                 .map(FieldExpression::getField)
+                                                 .collect(Collectors.toSet());
+            remappedFieldNames.removeAll(mappedFieldNames);
+            if (!remappedFieldNames.isEmpty()) {
+                postAggregations.add(new Culling(remappedFieldNames));
+            }
         }
     }
 
@@ -355,6 +286,42 @@ public class QueryBuilder {
 
         */
 
+        Map<String, String> fields = new HashMap<>();
+
+        for (ExpressionNode node : processedQuery.getSelectNodes()) {
+            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            String aliasOrName = processedQuery.getAliasOrName(node);
+            String name = node.getName();
+            Type type = expression.getType();
+            if (processedQuery.hasAlias(node)) {
+                querySchema.addAliasMapping(aliasOrName, type);
+            }
+            //querySchema.addProjectionField(name, node, type);
+            // uhhhhhhh
+            querySchema.addFieldMapping(aliasOrName, node, type);
+            // hmmm
+            querySchema.addProjectionField(name, type);
+            // ^ goood for potential passthrough. i guess that's the reason
+
+            fields.put(name, aliasOrName);
+
+            // Check primitive type
+            if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                processedQuery.getErrors().add(new BulletError(node.getLocation() + "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type,
+                                                               "Please specify primitive fields only for SELECT DISTINCT."));
+            }
+        }
+
+        boolean requiresNoCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
+
+        if (requiresNoCopyFlag) {
+            projection = new Projection(querySchema.getFields(), false);
+        } else {
+            projection = new Projection();
+        }
+
+        querySchema.nextLevel(true);
+
         /*
         aggregation
 
@@ -364,7 +331,8 @@ public class QueryBuilder {
 
         */
 
-        aggregation = new GroupBy(processedQuery.getLimit(), toAliasedFields(processedQuery, processedQuery.getSelectNodes()), Collections.emptySet());
+        aggregation = new GroupBy(limit, fields, Collections.emptySet());
+
 
         // no having
 
@@ -372,11 +340,34 @@ public class QueryBuilder {
 
         /*
         order by
-
-        just check schema
         */
+        if (queryNode.getOrderBy() != null) {
+            List<OrderBy.SortItem> sortItems = new ArrayList<>();
+            for (SortItemNode sortItemNode : processedQuery.getSortItemNodes()) {
+                ExpressionNode orderByNode = sortItemNode.getExpression();
+                Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
+                Type type = expression.getType();
+                // Validate prim type here.
+                if (!Type.isUnknown(type) && !Type.isPrimitive(type)) {
+                    errors.add(new BulletError(orderByNode.getLocation() + "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field."));
+                }
+                // else?
+                sortItems.add(new OrderBy.SortItem(expression, sortItemNode.getOrdering().getDirection()));
+            }
+            postAggregations.add(new OrderBy(sortItems));
+        }
+    }
+/*
+    private static Map<String, String> toAliasedFields(ProcessedQuery processedQuery, Collection<ExpressionNode> expressions) {
+        return expressions.stream().collect(Collectors.toMap(ExpressionNode::getName, processedQuery::getAliasOrName, throwingMerger(), HashMap::new));
     }
 
+    private static <T> BinaryOperator<T> throwingMerger() {
+        return (u, v) -> {
+            throw new IllegalStateException(String.format("Duplicate key %s", u));
+        };
+    }
+*/
     public void doGroup() {
 
 

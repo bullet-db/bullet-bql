@@ -12,6 +12,7 @@ import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,13 +21,6 @@ import java.util.Set;
 
 @Getter
 public class QuerySchema {
-    public enum LayerType {
-
-    }
-
-    public static class Layer {
-
-    }
 
     //private Schema schema;
 
@@ -73,33 +67,52 @@ public class QuerySchema {
 
     private int mappingLevel = 1;
 
+    private Map<ExpressionNode, FieldExpression> aliasMapping = new HashMap<>();
+    private Map<ExpressionNode, FieldExpression> fieldMapping = new HashMap<>();
+    private Schema baseSchema;
 
 
+    private Map<ExpressionNode, FieldExpression> currentAliasMapping;
+    private Map<ExpressionNode, FieldExpression> currentFieldMapping;
+    private Schema currentSchema;
+    private Map<ExpressionNode, Expression> currentMapping = new HashMap<>();
 
 
     public QuerySchema(Schema schema) {
         schemas.add(schema);
         mappings.add(new HashMap<>());
+
+
+
+        baseSchema = schema;
+
+        currentAliasMapping = Collections.emptyMap();
+        currentFieldMapping = Collections.emptyMap();
+        currentSchema = schema;
+
     }
 
     public void put(ExpressionNode node, Expression expression) {
+        currentMapping.put(node, expression);
+        /*
         if (mappingLevel == 1) {
             mapping1.put(node, expression);
         } else if (mappingLevel == 2) {
             mapping2.put(node, expression);
         }
+        */
         //mappings.get(mappings.size() - 1).put(node, expression);
     }
 
     public Expression get(ExpressionNode node) {
-        if (mappingLevel == 1) {
-            return mapping1.get(node);
-        } else if (mappingLevel == 2) {
-            return mapping2.get(node);
-        } else {
-            return null;
+        Expression expression;
+        if ((expression = currentAliasMapping.get(node)) != null) {
+            return expression;
         }
-        //return mappings.get(mappingLevels[0]).get(node);
+        if ((expression = currentFieldMapping.get(node)) != null) {
+            return expression;
+        }
+        return currentMapping.get(node);
     }
 
     public void addAggregateMapping(String name, ExpressionNode node, Type type) {
@@ -112,19 +125,60 @@ public class QuerySchema {
 
     }
 
+
+
+    public void addAliasMapping(String name, Type type) {
+        FieldExpressionNode expressionNode = new FieldExpressionNode(new IdentifierNode(name, false, null), type, null);
+        FieldExpression expression = new FieldExpression(name);
+        expression.setType(type);
+        aliasMapping.put(expressionNode, expression);
+    }
+
+    public void addFieldMapping(String name, ExpressionNode node, Type type) {
+        FieldExpression expression = new FieldExpression(name);
+        expression.setType(type);
+        fieldMapping.put(node, expression);
+    }
+
+    public void addFieldMapping(ExpressionNode node, FieldExpression expression) {
+        fieldMapping.put(node, expression);
+    }
+
+
+
+
+
     public void addProjectionField(String name, ExpressionNode node, Type type) {
         FieldExpression expression = new FieldExpression(name);
         expression.setType(type);
-        mapping2.putIfAbsent(node, expression);
-
-
+        addFieldMapping(node, expression);
         fields.add(new Field(name, expression));
     }
 
-    public void addTransientProjectionField(String name, ExpressionNode node, Type type) {
-        addProjectionField(name, node, type);
-        transientFields.add(name);
+    public void addProjectionField(String name, Type type) {
+        FieldExpression expression = new FieldExpression(name);
+        expression.setType(type);
+        fields.add(new Field(name, expression));
     }
+
+
+    public void addCurrentProjectionField(String name, ExpressionNode node, Type type) {
+        FieldExpression expression = new FieldExpression(name);
+        expression.setType(type);
+        currentFieldMapping.put(node, expression);
+        fields.add(new Field(name, expression));
+    }
+
+    public void addNonAliasedProjectionField(String name, ExpressionNode node, Type type) {
+        FieldExpression expression = new FieldExpression(name);
+        expression.setType(type);
+        fields.add(new Field(name, expression));
+    }
+
+    //public void addTransientProjectionField(String name, ExpressionNode node, Type type) {
+    //    addProjectionField(name, node, type);
+    //    transientFields.add(name);
+    //}
 
     public void addSchemaField(String name, Type type) {
         schema2.addField(name, type);
@@ -135,16 +189,47 @@ public class QuerySchema {
 
 
 
+    public void nextLevel(boolean replaceCurrent) {
+        if (replaceCurrent) {
+            currentAliasMapping = aliasMapping;
+            currentFieldMapping = fieldMapping;
+            currentSchema = new Schema();
+            aliasMapping = new HashMap<>();
+            fieldMapping = new HashMap<>();
+        } else {
+            currentAliasMapping.putAll(aliasMapping);
+            currentFieldMapping.putAll(fieldMapping);
+            aliasMapping.clear();
+            fieldMapping.clear();
+        }
+        currentMapping.clear();
+    }
+
+
+
 
     public List<Field> getProjectionFields() {
         return new ArrayList<>();
     }
 
     public Type getType(String field) {
+        /*
         if (schema1 == null) {
             return Type.UNKNOWN;
         }
         return schema1.getType(field);
+        */
+        if (currentSchema == null) {
+            return Type.UNKNOWN;
+        }
+        return currentSchema.getType(field);
+    }
+
+    public Type getBaseSchemaType(String field) {
+        if (baseSchema == null) {
+            return Type.UNKNOWN;
+        }
+        return baseSchema.getType(field);
     }
 
     public void addTypeError(BulletError error) {

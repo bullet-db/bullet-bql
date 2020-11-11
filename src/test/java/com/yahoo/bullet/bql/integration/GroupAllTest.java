@@ -174,6 +174,13 @@ public class GroupAllTest extends IntegrationTest {
     }
 
     @Test
+    public void testGroupOpRenameComputationOvershadowsOpUsedInOrderBy() {
+        build("SELECT AVG(abc) + 5 AS \"AVG(abc)\" FROM STREAM() ORDER BY AVG(abc)");
+        Assert.assertNotNull(query);
+        Assert.assertNull(query);
+    }
+
+    @Test
     public void testGroupOpCannotBeUsedAsFieldInComputation() {
         build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:18: The field AVG(abc) does not exist in the schema.");

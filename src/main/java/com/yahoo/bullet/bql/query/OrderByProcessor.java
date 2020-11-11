@@ -11,15 +11,18 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.typesystem.Type;
-import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
-@AllArgsConstructor
+@Getter
 public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema> {
-    private static final OrderByProcessor INSTANCE = new OrderByProcessor();
+    //private static final OrderByProcessor INSTANCE = new OrderByProcessor();
+
+    private Set<String> transientFields = new HashSet<>();
 
     @Override
     public Void process(Node node) {
@@ -47,9 +50,10 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
     @Override
     protected Void visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
         String name = node.getKey().getValue();
-        Type type = querySchema.getType(name);
+        Type type = querySchema.getBaseSchemaType(name);
         if (type != Type.NULL) {
-            querySchema.addTransientProjectionField(name, node, type);
+            querySchema.addCurrentProjectionField(name, node, type);
+            transientFields.add(name);
         }
         return null;
     }
@@ -58,7 +62,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
     protected Void visitLiteral(LiteralNode node, QuerySchema querySchema) {
         return null;
     }
-
+/*
     public static void visit(Node node, QuerySchema querySchema) {
         INSTANCE.process(node, querySchema);
     }
@@ -66,4 +70,5 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
     public static void visit(Collection<ExpressionNode> nodes, QuerySchema querySchema) {
         INSTANCE.process(nodes, querySchema);
     }
+*/
 }

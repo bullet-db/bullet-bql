@@ -27,6 +27,7 @@ import com.yahoo.bullet.query.expressions.NAryExpression;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.query.expressions.ValueExpression;
+import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +48,10 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
     public Expression process(Node node, QuerySchema querySchema) {
         Expression expression = querySchema.get((ExpressionNode) node);
         if (expression != null) {
+            if (expression.getType() == null) {
+                querySchema.addTypeError((ExpressionNode) node, "The field " + node + " does not exist in the schema.");
+                expression.setType(Type.UNKNOWN);
+            }
             return expression;
         }
         return super.process(node, querySchema);
