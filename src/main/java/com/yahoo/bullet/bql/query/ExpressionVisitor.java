@@ -69,7 +69,7 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
 
     @Override
     protected Expression visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
-        FieldExpression expression = new FieldExpression(node.getKey().getValue());
+        FieldExpression expression = new FieldExpression(node.getField().getValue());
         if (node.getType() != null) {
             expression.setType(node.getType());
         } else {

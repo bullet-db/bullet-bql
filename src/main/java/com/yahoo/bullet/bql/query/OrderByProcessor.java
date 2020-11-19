@@ -49,7 +49,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
 
     @Override
     protected Void visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
-        String name = node.getKey().getValue();
+        String name = node.getField().getValue();
         Type type = querySchema.getBaseSchemaType(name);
         if (type != Type.NULL) {
             querySchema.addCurrentProjectionField(name, node, type);

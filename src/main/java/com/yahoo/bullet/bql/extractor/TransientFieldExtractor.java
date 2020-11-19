@@ -52,7 +52,7 @@ public class TransientFieldExtractor {
         if (processedQuery.getProjection() == null) {
             return null;
         }
-        // Cull the select fields that were aliased unless they themselves are an alias.
+        // Cull the select fields that were aliased unless they themselves are an field.
         return processedQuery.getSelectNodes().stream().filter(processedQuery::isSimpleFieldExpression)
                                                        .filter(processedQuery::hasAlias)
                                                        .map(ExpressionNode::getName)

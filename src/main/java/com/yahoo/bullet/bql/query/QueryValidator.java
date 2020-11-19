@@ -69,7 +69,7 @@ public class QueryValidator {
                                          new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
     }
-
+    /*
     public static List<BulletError> validate(ProcessedQuery processedQuery, Query query, Schema baseSchema) {
         LayeredSchema schema = new LayeredSchema(baseSchema);
         ExpressionValidator expressionValidator = new ExpressionValidator(processedQuery, schema);
@@ -322,4 +322,5 @@ public class QueryValidator {
     private static Function<ExpressionNode, Schema.Field> toSchemaField(ProcessedQuery processedQuery) {
         return node -> new Schema.PlainField(processedQuery.getAliasOrName(node), processedQuery.getPreAggregationMapping().get(node).getType());
     }
+    */
 }

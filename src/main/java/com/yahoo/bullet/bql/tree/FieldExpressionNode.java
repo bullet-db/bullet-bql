@@ -12,13 +12,13 @@ import java.util.Objects;
 
 @Getter
 public class FieldExpressionNode extends ExpressionNode {
-    protected final IdentifierNode key;
+    protected final IdentifierNode field;
     // Types ignored for equals() and hashCode()
     private final Type type;
 
-    public FieldExpressionNode(IdentifierNode key, Type type, NodeLocation nodeLocation) {
+    public FieldExpressionNode(IdentifierNode field, Type type, NodeLocation nodeLocation) {
         super(nodeLocation);
-        this.key = key;
+        this.field = field;
         this.type = type;
     }
 
@@ -36,11 +36,11 @@ public class FieldExpressionNode extends ExpressionNode {
             return false;
         }
         FieldExpressionNode other = (FieldExpressionNode) obj;
-        return Objects.equals(key, other.key);
+        return Objects.equals(field, other.field);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key);
+        return Objects.hash(field);
     }
 }

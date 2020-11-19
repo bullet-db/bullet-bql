@@ -6,19 +6,19 @@ import lombok.Getter;
 import java.util.Objects;
 
 @Getter
-public class SubFieldExpressionNode extends FieldExpressionNode {
-    private final FieldExpressionNode field;
+public class SubFieldExpressionNode extends ExpressionNode {
+    private final ExpressionNode field;
     private final Integer index;
-    //private final IdentifierNode key;
+    private final IdentifierNode key;
     // Types ignored for equals() and hashCode()
-    //private final Type type;
+    private final Type type;
 
-    public SubFieldExpressionNode(FieldExpressionNode field, Integer index, IdentifierNode key, Type type, NodeLocation nodeLocation) {
-        super(key, type, nodeLocation);
+    public SubFieldExpressionNode(ExpressionNode field, Integer index, IdentifierNode key, Type type, NodeLocation nodeLocation) {
+        super(nodeLocation);
         this.field = field;
         this.index = index;
-        //this.key = key;
-        //this.type = type;
+        this.key = key;
+        this.type = type;
     }
 
     @Override

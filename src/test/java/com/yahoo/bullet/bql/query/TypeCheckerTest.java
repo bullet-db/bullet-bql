@@ -14,6 +14,7 @@ import org.testng.annotations.Test;
 import java.util.Collections;
 
 public class TypeCheckerTest {
+    /*
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported unary operation: \\+")
     public void testValidateUnaryTypeNotUnary() {
         // coverage
@@ -70,4 +71,5 @@ public class TypeCheckerTest {
         // coverage
         TypeChecker.getBinaryType(null, null, Operation.NOT);
     }
+    */
 }

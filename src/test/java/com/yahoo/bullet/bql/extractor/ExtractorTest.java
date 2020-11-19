@@ -13,10 +13,6 @@ public class ExtractorTest {
     @Test
     public void testConstructors() {
         // coverage
-        new AggregationExtractor();
-        new ComputationExtractor();
-        new PostAggregationExtractor();
-        new ProjectionExtractor();
         new TransientFieldExtractor();
         new WindowExtractor();
         new QueryValidator();

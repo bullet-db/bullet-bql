@@ -39,7 +39,7 @@ public class TypeSetter {
     }
 
     public static void setType(SubFieldExpressionNode node, FieldExpression subFieldExpression, FieldExpression fieldExpression, QuerySchema querySchema) {
-        Optional<List<BulletError>> errors = TypeChecker.validateSubFieldType(node, subFieldExpression);
+        Optional<List<BulletError>> errors = TypeChecker.validateSubFieldType(node, fieldExpression);
         if (errors.isPresent()) {
             querySchema.addTypeErrors(errors.get());
             subFieldExpression.setType(Type.UNKNOWN);
@@ -82,7 +82,6 @@ public class TypeSetter {
             return;
         }
         Optional<List<BulletError>> errors = TypeChecker.validateNumericType(node, operand);
-        errors.ifPresent(querySchema::addTypeErrors);
         if (errors.isPresent()) {
             querySchema.addTypeErrors(errors.get());
             expression.setType(Type.DOUBLE);
@@ -106,12 +105,8 @@ public class TypeSetter {
 
     public static void setType(BinaryExpressionNode node, BinaryExpression binaryExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateBinaryType(node, binaryExpression);
-        if (errors.isPresent()) {
-            querySchema.addTypeErrors(errors.get());
-            setBestBinaryType(binaryExpression);
-        } else {
-            setBinaryType(binaryExpression);
-        }
+        errors.ifPresent(querySchema::addTypeErrors);
+        setBinaryType(binaryExpression, errors.isPresent());
     }
 
     private static void setListType(ListExpression listExpression) {
@@ -141,6 +136,7 @@ public class TypeSetter {
         // only IF is supported at the moment
         if (nAryExpression.getOp() == Operation.IF) {
             nAryExpression.setType(nAryExpression.getOperands().get(1).getType());
+            return;
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
@@ -162,7 +158,7 @@ public class TypeSetter {
         }
     }
 
-    private static void setBinaryType(BinaryExpression binaryExpression) {
+    private static void setBinaryType(BinaryExpression binaryExpression, boolean hasErrors) {
         Type leftType = binaryExpression.getLeft().getType();
         Type rightType = binaryExpression.getRight().getType();
         switch (binaryExpression.getOp()) {
@@ -170,7 +166,7 @@ public class TypeSetter {
             case SUB:
             case MUL:
             case DIV:
-                if (leftType == Type.DOUBLE || rightType == Type.DOUBLE) {
+                if (hasErrors || leftType == Type.DOUBLE || rightType == Type.DOUBLE) {
                     binaryExpression.setType(Type.DOUBLE);
                 } else if (leftType == Type.FLOAT || rightType == Type.FLOAT) {
                     binaryExpression.setType(Type.FLOAT);
@@ -211,54 +207,7 @@ public class TypeSetter {
                 binaryExpression.setType(Type.BOOLEAN);
                 break;
             case FILTER:
-                binaryExpression.setType(leftType);
-                break;
-            default:
-                // Unreachable normally
-                throw new IllegalArgumentException("This is not a supported binary operation: " + binaryExpression.getOp());
-        }
-    }
-
-    private static void setBestBinaryType(BinaryExpression binaryExpression) {
-        switch (binaryExpression.getOp()) {
-            case ADD:
-            case SUB:
-            case MUL:
-            case DIV:
-                binaryExpression.setType(Type.DOUBLE);
-                break;
-            case EQUALS:
-            case EQUALS_ANY:
-            case EQUALS_ALL:
-            case NOT_EQUALS:
-            case NOT_EQUALS_ANY:
-            case NOT_EQUALS_ALL:
-            case GREATER_THAN:
-            case GREATER_THAN_ANY:
-            case GREATER_THAN_ALL:
-            case GREATER_THAN_OR_EQUALS:
-            case GREATER_THAN_OR_EQUALS_ANY:
-            case GREATER_THAN_OR_EQUALS_ALL:
-            case LESS_THAN:
-            case LESS_THAN_ANY:
-            case LESS_THAN_ALL:
-            case LESS_THAN_OR_EQUALS:
-            case LESS_THAN_OR_EQUALS_ANY:
-            case LESS_THAN_OR_EQUALS_ALL:
-            case REGEX_LIKE:
-            case REGEX_LIKE_ANY:
-            case SIZE_IS:
-            case CONTAINS_KEY:
-            case CONTAINS_VALUE:
-            case IN:
-            case NOT_IN:
-            case AND:
-            case OR:
-            case XOR:
-                binaryExpression.setType(Type.BOOLEAN);
-                break;
-            case FILTER:
-                binaryExpression.setType(Type.UNKNOWN);
+                binaryExpression.setType(hasErrors ? Type.UNKNOWN : leftType);
                 break;
             default:
                 // Unreachable normally

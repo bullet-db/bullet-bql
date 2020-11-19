@@ -148,7 +148,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitFieldExpression(FieldExpressionNode node, Void context) {
-            return process(node.getKey());
+            return process(node.getField());
         }
 
         @Override

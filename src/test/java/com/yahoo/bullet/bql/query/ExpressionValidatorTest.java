@@ -9,8 +9,10 @@ import com.yahoo.bullet.bql.parser.ParsingException;
 import org.testng.annotations.Test;
 
 public class ExpressionValidatorTest {
+    /*
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Literal missing its type\\.")
     public void testLiteral() {
         new ExpressionValidator(null, null).visitLiteral(null, null);
     }
+    */
 }

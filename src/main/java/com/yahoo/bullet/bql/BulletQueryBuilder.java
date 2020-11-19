@@ -11,6 +11,7 @@ import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.query.QueryValidator;
+import com.yahoo.bullet.bql.temp.QueryBuilder;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
@@ -68,14 +69,21 @@ public class BulletQueryBuilder {
             }
 
             // Build query from query components
-            Query query = QueryExtractor.extractQuery(processedQuery);
-            query.configure(config);
+            //Query query = QueryExtractor.extractQuery(processedQuery);
+            //query.configure(config);
 
             // Check query and type semantics
-            List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
-            if (!errors.isEmpty()) {
-                return new BQLResult(errors);
+            //List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
+            //if (!errors.isEmpty()) {
+            //    return new BQLResult(errors);
+            //}
+
+            QueryBuilder builder = new QueryBuilder(queryNode, processedQuery, schema);
+            Query query = builder.buildQuery();
+            if (query == null) {
+                return new BQLResult(builder.getErrors());
             }
+            query.configure(config);
             return new BQLResult(query, ExpressionFormatter.format(queryNode, true));
         } catch (BulletException e) {
             return makeBQLResultError(e.getError());

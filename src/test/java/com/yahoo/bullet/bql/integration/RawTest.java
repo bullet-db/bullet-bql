@@ -45,8 +45,8 @@ public class RawTest extends IntegrationTest {
         Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield abc[0] is invalid since the field abc has type: INTEGER");
         Assert.assertEquals(errors.size(), 1);
 
-        build("SELECT abc[0].def FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield abc[0].def is invalid since the field abc has type: INTEGER");
+        build("SELECT ccc[0].def FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield ccc[0].def is invalid since the field ccc[0] has type: INTEGER");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -80,7 +80,7 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testEmptyRawAliasNotAllowed() {
         build("SELECT abc AS \"\" FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an alias.");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an field.");
         Assert.assertEquals(errors.size(), 1);
     }
 

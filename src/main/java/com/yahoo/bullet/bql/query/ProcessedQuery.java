@@ -59,8 +59,8 @@ public class ProcessedQuery {
     @AllArgsConstructor
     public enum QueryError {
         MULTIPLE_QUERY_TYPES(new BulletError("Query does not match exactly one query type.", "Please specify a valid query.")),
-        EMPTY_ALIAS(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string instead.")),
-        MULTIPLE_ALIAS(),
+        EMPTY_ALIAS(new BulletError("Cannot have an empty string as an field.", "Please specify a non-empty string instead.")),
+        MULTIPLE_ALIAS(new BulletError("Cannot have the same alias used for multiple fields.", "Please specify unique aliases.")),
         NESTED_AGGREGATE(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates.")),
         WHERE_WITH_AGGREGATE(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause.")),
         GROUP_BY_WITH_AGGREGATE(new BulletError("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause.")),
@@ -73,7 +73,7 @@ public class ProcessedQuery {
                                                                                                                    "For FREQ and CUMFREQ distributions, the output fields are: [\"Probability\", \"Count\", \"Quantile\"]."))),
         MULTIPLE_TOP_K(new BulletError("Cannot have multiple TOP functions.", "Please specify only one TOP function.")),
         TOP_K_AS_VALUE(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
-                                                                                                   "The output field can also be renamed by selecting TOP with an alias."))),
+                                                                                                   "The output field can also be renamed by selecting TOP with an field."))),
         TOP_K_WITH_ORDER_BY(new BulletError("ORDER BY clause is not supported for queries with a TOP function.", "Please remove the ORDER BY clause.")),
         TOP_K_WITH_LIMIT(new BulletError("LIMIT clause is not supported for queries with a TOP function.", "Please remove the LIMIT clause.")),
         HAVING_WITHOUT_GROUP_BY(new BulletError("HAVING clause is only supported with GROUP BY clause.", "Please remove the HAVING clause, and consider using a WHERE clause instead.")),
@@ -87,16 +87,16 @@ public class ProcessedQuery {
 
     private Set<QueryType> queryTypeSet = EnumSet.noneOf(QueryType.class);
 
-    //@Setter
-    //private Long timeDuration;
-    //@Setter
-    //private Integer limit;
-    //@Setter
-    //private WindowNode window;
-    //@Setter
-    //private ExpressionNode whereNode;
-    //@Setter
-    //private ExpressionNode havingNode;
+    @Setter
+    private Long timeDuration;
+    @Setter
+    private Integer limit;
+    @Setter
+    private WindowNode window;
+    @Setter
+    private ExpressionNode whereNode;
+    @Setter
+    private ExpressionNode havingNode;
 
     private Map<ExpressionNode, Expression> preAggregationMapping = new HashMap<>();
     private Map<ExpressionNode, Expression> postAggregationMapping = new HashMap<>();
@@ -140,7 +140,7 @@ public class ProcessedQuery {
                                        "Please specify a valid query."));
         }
         if (aliases.values().contains("")) {
-            errors.add(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."));
+            errors.add(new BulletError("Cannot have an empty string as an field.", "Please specify a non-empty string instead."));
         }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
             errors.add(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates."));
@@ -178,7 +178,7 @@ public class ProcessedQuery {
             }
             if (topKNodes.stream().anyMatch(subExpressionNodes::contains)) {
                 errors.add(new BulletError("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
-                                                                                                       "The output field can also be renamed by selecting TOP with an alias.")));
+                                                                                                       "The output field can also be renamed by selecting TOP with an field.")));
             }
             if (!orderByNodes.isEmpty()) {
                 errors.add(new BulletError("ORDER BY clause is not supported for queries with a TOP function.", "Please remove the ORDER BY clause."));
@@ -210,7 +210,7 @@ public class ProcessedQuery {
         if (!selectNodes.contains(groupOperationNode) || !selectNodes.containsAll(groupByNodes)) {
             return false;
         }
-        // Compare by expression node or alias name
+        // Compare by expression node or field name
         String alias = aliases.get(groupOperationNode);
         SortItemNode sortItemNode = sortItemNodes.iterator().next();
         ExpressionNode orderByNode = sortItemNode.getExpression();
@@ -283,40 +283,40 @@ public class ProcessedQuery {
     }
 
     /**
-     * Returns whether or not the given {@link ExpressionNode} has an alias.
+     * Returns whether or not the given {@link ExpressionNode} has an field.
      *
      * @param node An {@link ExpressionNode}.
-     * @return True if the node has an alias and false otherwise.
+     * @return True if the node has an field and false otherwise.
      */
     public boolean hasAlias(ExpressionNode node) {
         return aliases.containsKey(node);
     }
 
     /**
-     * Returns whether or not the given string is an alias.
+     * Returns whether or not the given string is an field.
      *
      * @param name A string.
-     * @return True if the given string is an alias and false otherwise.
+     * @return True if the given string is an field and false otherwise.
      */
     public boolean isAlias(String name) {
         return aliases.values().contains(name);
     }
 
     /**
-     * Returns the alias of the given {@link ExpressionNode}.
+     * Returns the field of the given {@link ExpressionNode}.
      *
      * @param node An {@link ExpressionNode}.
-     * @return The alias of the given node if it exists and null otherwise.
+     * @return The field of the given node if it exists and null otherwise.
      */
     public String getAlias(ExpressionNode node) {
         return aliases.get(node);
     }
 
     /**
-     * Returns the alias or name of the given {@link ExpressionNode}.
+     * Returns the field or name of the given {@link ExpressionNode}.
      *
      * @param node An {@link ExpressionNode}.
-     * @return The alias of the given node if it exists and its name otherwise.
+     * @return The field of the given node if it exists and its name otherwise.
      */
     public String getAliasOrName(ExpressionNode node) {
         String alias = aliases.get(node);
@@ -374,11 +374,7 @@ public class ProcessedQuery {
      * @return True if the given node is a simple field expression and false otherwise.
      */
     public boolean isSimpleFieldExpression(ExpressionNode node) {
-        if (!(node instanceof FieldExpressionNode)) {
-            return false;
-        }
-        FieldExpressionNode fieldExpressionNode = (FieldExpressionNode) node;
-        return fieldExpressionNode.getIndex() == null && fieldExpressionNode.getKey() == null;
+        return node instanceof FieldExpressionNode;
     }
 
     /**
@@ -392,10 +388,10 @@ public class ProcessedQuery {
     }
 
     /**
-     * Returns whether or not the given node is a simple field expression that references an alias.
+     * Returns whether or not the given node is a simple field expression that references an field.
      *
      * @param node An {@link ExpressionNode}.
-     * @return True if the given node is a simple field expression that references an alias and false otherwise.
+     * @return True if the given node is a simple field expression that references an field and false otherwise.
      */
     public boolean isSimpleAliasFieldExpression(ExpressionNode node) {
         return isSimpleFieldExpression(node) && isAlias(((FieldExpressionNode) node).getField().getValue());

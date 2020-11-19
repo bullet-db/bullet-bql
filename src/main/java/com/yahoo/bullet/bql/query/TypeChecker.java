@@ -13,7 +13,6 @@ import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
-import com.yahoo.bullet.bql.tree.SubSubFieldExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
