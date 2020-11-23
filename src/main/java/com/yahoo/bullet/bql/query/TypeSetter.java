@@ -28,8 +28,16 @@ import java.util.Optional;
 
 public class TypeSetter {
     public static void setType(FieldExpressionNode node, FieldExpression fieldExpression, QuerySchema querySchema) {
+        if (node.getType() != null) {
+            fieldExpression.setType(node.getType());
+            return;
+        }
         Type type = querySchema.getType(fieldExpression.getField());
         Optional<List<BulletError>> errors = TypeChecker.validateFieldType(node, fieldExpression, type);
+
+        // Will always error out uhm but ignore for now
+
+
         if (errors.isPresent()) {
             querySchema.addTypeErrors(errors.get());
             fieldExpression.setType(Type.UNKNOWN);
@@ -39,6 +47,10 @@ public class TypeSetter {
     }
 
     public static void setType(SubFieldExpressionNode node, FieldExpression subFieldExpression, FieldExpression fieldExpression, QuerySchema querySchema) {
+        if (node.getType() != null) {
+            subFieldExpression.setType(node.getType());
+            return;
+        }
         Optional<List<BulletError>> errors = TypeChecker.validateSubFieldType(node, fieldExpression);
         if (errors.isPresent()) {
             querySchema.addTypeErrors(errors.get());

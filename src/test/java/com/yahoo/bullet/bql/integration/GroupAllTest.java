@@ -173,12 +173,18 @@ public class GroupAllTest extends IntegrationTest {
                                                                                                             Operation.ADD,
                                                                                                             Type.DOUBLE))));
     }
-
+/*
     @Test
-    public void testGroupOpRenameComputationShadowsOpUsedInOrderBy() {
+    public void testGroupOpRenameComputationShadowsOpUsedInOrderByInvalid() {
+        // Node QuerySchema errors out because "AVG(abc)" gets shadowed so it's impossible to order by AVG(abc)
         build("SELECT AVG(abc) > 5 AS \"AVG(abc)\" FROM STREAM() ORDER BY AVG(abc)");
         Assert.assertEquals(errors.get(0).getError(), "1:58: The field AVG(abc) does not exist in the schema.");
-/*
+    }
+*/
+    @Test
+    public void testGroupOpRenameComputationShadowsOpUsedInOrderByValid() {
+        // String QuerySchema doesn't error out since the name of AVG(abc) is "AVG(abc)" which is in the schema
+        build("SELECT AVG(abc) > 5 AS \"AVG(abc)\" FROM STREAM() ORDER BY AVG(abc)");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
 
         GroupAll aggregation = (GroupAll) query.getAggregation();
@@ -195,22 +201,43 @@ public class GroupAllTest extends IntegrationTest {
 
         Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc)", binary(field("AVG(abc)", Type.DOUBLE),
                                                                                                             value(5),
-                                                                                                            Operation.ADD,
-                                                                                                            Type.DOUBLE))));
+                                                                                                            Operation.GREATER_THAN,
+                                                                                                            Type.BOOLEAN))));
 
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
         Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("AVG(abc)", Type.BOOLEAN));
         // Note: Type BOOLEAN and not DOUBLE since AVG(abc) was shadowed.
-*/
-        // 1) Node QuerySchema should error out because "AVG(abc)" gets shadowed so it's impossible to order by AVG(abc)
-        // 2) String QuerySchema doesn't error out since the name of AVG(abc) is "AVG(abc)" which is in the schema
     }
 
+/*
     @Test
     public void testGroupOpCannotBeUsedAsFieldInComputation() {
         build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:18: The field AVG(abc) does not exist in the schema.");
+    }
+*/
+    @Test
+    public void testGroupOpCanBeUsedAsFieldInComputation() {
+        build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupAll aggregation = (GroupAll) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
+        Assert.assertEquals(aggregation.getOperations(), Collections.singleton(new GroupOperation(GroupOperation.GroupOperationType.AVG,
+                                                                                                  "abc",
+                                                                                                  "AVG(abc)")));
+
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc) + 5", binary(field("AVG(abc)", Type.DOUBLE),
+                                                                                                                value(5),
+                                                                                                                Operation.ADD,
+                                                                                                                Type.DOUBLE))));
     }
 }

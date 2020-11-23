@@ -31,7 +31,12 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
 
     @Override
     public Void process(Node node, QuerySchema querySchema) {
+        /*
         if (querySchema.get((ExpressionNode) node) != null) {
+            return null;
+        }
+        */
+        if (querySchema.hasAliasOrField((ExpressionNode) node)) {
             return null;
         }
         return super.process(node, querySchema);

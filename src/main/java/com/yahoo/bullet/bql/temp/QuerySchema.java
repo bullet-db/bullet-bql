@@ -3,6 +3,7 @@ package com.yahoo.bullet.bql.temp;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
+import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.aggregations.DistributionType;
@@ -14,8 +15,9 @@ import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,161 +25,121 @@ import java.util.Set;
 
 @Getter
 public class QuerySchema {
-    private static final Map<DistributionType, Map<ExpressionNode, FieldExpression>> DISTRIBUTION_FIELDS = new HashMap<>();
+    private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
 
     static {
-        Map<ExpressionNode, FieldExpression> quantileFields = new HashMap<>();
-        quantileFields.put(fieldNode(QuantileSketch.VALUE_FIELD, Type.DOUBLE), field(QuantileSketch.VALUE_FIELD, Type.DOUBLE));
-        quantileFields.put(fieldNode(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE), field(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE));
-
-        Map<ExpressionNode, FieldExpression> pmfFields = new HashMap<>();
-        pmfFields.put(fieldNode(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE), field(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE));
-        pmfFields.put(fieldNode(QuantileSketch.COUNT_FIELD, Type.DOUBLE), field(QuantileSketch.COUNT_FIELD, Type.DOUBLE));
-        pmfFields.put(fieldNode(QuantileSketch.RANGE_FIELD, Type.STRING), field(QuantileSketch.RANGE_FIELD, Type.STRING));
-
-        DISTRIBUTION_FIELDS.put(DistributionType.QUANTILE, quantileFields);
-        DISTRIBUTION_FIELDS.put(DistributionType.PMF, pmfFields);
-        DISTRIBUTION_FIELDS.put(DistributionType.CDF, pmfFields);
+        DISTRIBUTION_SCHEMAS.put(DistributionType.QUANTILE,
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.VALUE_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE))));
+        DISTRIBUTION_SCHEMAS.put(DistributionType.PMF,
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
+        DISTRIBUTION_SCHEMAS.put(DistributionType.CDF,
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
     }
 
-    private Set<Field> fields = new LinkedHashSet<>();
+    private Set<Field> projectionFields = new LinkedHashSet<>();
     private Set<Field> computationFields = new LinkedHashSet<>();
-
 
     private List<BulletError> typeErrors = new ArrayList<>();
 
-    private Set<String> transientFields = new HashSet<>();
+    private Map<String, Type> schema = new HashMap<>();
+    private Map<String, String> aliasMapping = new HashMap<>();
 
-
-    // 1) base layer schema
-    // 2) projection layer schema (contains fields?)
-    // 3) aggregation layer schema
-    // 4) computation layer schema
-
-
-    private Map<ExpressionNode, FieldExpression> aliasMapping = new HashMap<>();
-    private Map<ExpressionNode, FieldExpression> fieldMapping = new HashMap<>();
     private Schema baseSchema;
 
-
-    private Map<ExpressionNode, FieldExpression> currentAliasMapping;
-    private Map<ExpressionNode, FieldExpression> currentFieldMapping;
-    private Schema currentSchema;
+    private Map<String, Type> currentSchema;
+    private Map<String, String> currentAliasMapping = new HashMap<>();
     private Map<ExpressionNode, Expression> currentMapping = new HashMap<>();
 
     public QuerySchema(Schema schema) {
         baseSchema = schema;
-        currentAliasMapping = new HashMap<>();
-        currentFieldMapping = new HashMap<>();
-        currentSchema = schema;
+        if (schema != null) {
+            currentSchema = new HashMap<>();
+            schema.getFields().forEach(field -> currentSchema.put(field.getName(), field.getType()));
+        }
     }
 
     public void put(ExpressionNode node, Expression expression) {
         currentMapping.put(node, expression);
     }
 
+    // Messy
     public Expression get(ExpressionNode node) {
-        Expression expression;
-        if ((expression = currentAliasMapping.get(node)) != null) {
-            return expression;
+        if (node == null) {
+            return null;
+        } else if (node instanceof FieldExpressionNode) {
+            Type type = ((FieldExpressionNode) node).getType();
+            if (type != null) {
+                return field(node.getName(), type);
+            }
+        } else if (node instanceof SubFieldExpressionNode) {
+            Type type = ((SubFieldExpressionNode) node).getType();
+            if (type != null) {
+                return field(node.getName(), type);
+            }
         }
-        if ((expression = currentFieldMapping.get(node)) != null) {
-            return expression;
+        if (currentSchema == null) {
+            return null;
+        }
+        String name = node.getName();
+        Type type = currentSchema.get(name);
+        if (type != null) {
+            return field(name, type);
+        }
+        String alias = currentAliasMapping.get(name);
+        if (alias != null) {
+            return field(alias, currentSchema.get(alias));
         }
         return currentMapping.get(node);
     }
 
-    public Expression getAliasOrField(ExpressionNode node) {
-        Expression expression;
-        if ((expression = currentAliasMapping.get(node)) != null) {
-            return expression;
+    public boolean hasAliasOrField(ExpressionNode node) {
+        if (currentSchema == null) {
+            return false;
         }
-        return currentFieldMapping.get(node);
-    }
-
-    public void addAggregateMapping(String name, ExpressionNode node, Type type) {
-        FieldExpression expression = new FieldExpression(name);
-        expression.setType(type);
-    }
-
-    public void addAliasMapping(String name, Type type) {
-        FieldExpressionNode expressionNode = new FieldExpressionNode(new IdentifierNode(name, false, null), type, null);
-        FieldExpression expression = new FieldExpression(name);
-        expression.setType(type);
-        aliasMapping.put(expressionNode, expression);
-    }
-
-    public void addFieldMapping(String name, ExpressionNode node, Type type) {
-        FieldExpression expression = new FieldExpression(name);
-        expression.setType(type);
-        fieldMapping.put(node, expression);
-    }
-
-    public void addFieldMapping(ExpressionNode node, FieldExpression expression) {
-        fieldMapping.put(node, expression);
-    }
-
-    public void addProjectionField(String name, ExpressionNode node, Expression expression) {
-        FieldExpression fieldExpression = new FieldExpression(name);
-        fieldExpression.setType(expression.getType());
-        addFieldMapping(node, fieldExpression);
-        fields.add(new Field(name, expression));
+        String name = node.getName();
+        return currentSchema.containsKey(name) || currentAliasMapping.containsKey(name);
     }
 
     public void addProjectionField(String name, Expression expression) {
-        fields.add(new Field(name, expression));
+        projectionFields.add(new Field(name, expression));
     }
 
-    public void addComputationField(String name, ExpressionNode node, Expression expression) {
-        FieldExpression fieldExpression = new FieldExpression(name);
-        fieldExpression.setType(expression.getType());
-        addFieldMapping(node, fieldExpression);
+    public void addComputationField(String name, Expression expression) {
         computationFields.add(new Field(name, expression));
     }
-
 
     public void addCurrentProjectionField(String name, ExpressionNode node, Type type) {
         FieldExpression expression = new FieldExpression(name);
         expression.setType(type);
-        currentFieldMapping.put(node, expression);
-        fields.add(new Field(name, expression));
-    }
-
-    public void addNonAliasedProjectionField(String name, ExpressionNode node, Type type) {
-        FieldExpression expression = new FieldExpression(name);
-        expression.setType(type);
-        fields.add(new Field(name, expression));
+        projectionFields.add(new Field(name, expression));
+        currentSchema.put(name, type);
     }
 
     public void nextLevel(boolean replaceCurrent) {
         if (replaceCurrent) {
+            currentSchema = schema;
             currentAliasMapping = aliasMapping;
-            currentFieldMapping = fieldMapping;
-            currentSchema = new Schema();
             aliasMapping = new HashMap<>();
-            fieldMapping = new HashMap<>();
         } else {
+            if (currentSchema != null) {
+                currentSchema.putAll(schema);
+            } else {
+                currentSchema = schema;
+            }
             currentAliasMapping.putAll(aliasMapping);
-            //currentFieldMapping.putAll(fieldMapping);
-            // extremely inefficient
-            fieldMapping.forEach((expressionNode, fieldExpression) -> {
-                currentFieldMapping.entrySet().stream()
-                                              .filter(entry -> fieldExpression.getField().equals(entry.getValue().getField()))
-                                              .forEach(entry -> entry.setValue(new FieldExpression(fieldExpression.getField())));
-                currentFieldMapping.put(expressionNode, fieldExpression);
-            });
-
-
-
-
             aliasMapping.clear();
-            fieldMapping.clear();
         }
+        schema = new HashMap<>();
         currentMapping.clear();
     }
 
     public List<Field> getProjectionFields() {
-        return new ArrayList<>(fields);
+        return new ArrayList<>(projectionFields);
     }
 
     public List<Field> getComputationFields() {
@@ -188,7 +150,7 @@ public class QuerySchema {
         if (currentSchema == null) {
             return Type.UNKNOWN;
         }
-        return currentSchema.getType(field);
+        return currentSchema.get(field);
     }
 
     public Type getBaseSchemaType(String field) {
@@ -196,10 +158,6 @@ public class QuerySchema {
             return Type.UNKNOWN;
         }
         return baseSchema.getType(field);
-    }
-
-    public void addTypeError(BulletError error) {
-        typeErrors.add(error);
     }
 
     public void addTypeError(ExpressionNode node, String message) {
@@ -220,7 +178,7 @@ public class QuerySchema {
         return expression;
     }
 
-    public void addDistributionFields(DistributionType type) {
-        aliasMapping.putAll(DISTRIBUTION_FIELDS.get(type));
+    public void setDistributionFields(DistributionType type) {
+        schema = DISTRIBUTION_SCHEMAS.get(type);
     }
 }

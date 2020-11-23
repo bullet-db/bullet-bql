@@ -48,10 +48,6 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
     public Expression process(Node node, QuerySchema querySchema) {
         Expression expression = querySchema.get((ExpressionNode) node);
         if (expression != null) {
-            if (expression.getType() == null) {
-                querySchema.addTypeError((ExpressionNode) node, "The field " + node + " does not exist in the schema.");
-                expression.setType(Type.UNKNOWN);
-            }
             return expression;
         }
         return super.process(node, querySchema);
@@ -70,11 +66,8 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
     @Override
     protected Expression visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
         FieldExpression expression = new FieldExpression(node.getField().getValue());
-        if (node.getType() != null) {
-            expression.setType(node.getType());
-        } else {
-            setType(node, expression, querySchema);
-        }
+        // TODO
+        setType(node, expression, querySchema);
         querySchema.put(node, expression);
         return expression;
     }
@@ -92,11 +85,8 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
         } else {
             expression = new FieldExpression(fieldExpression.getField(), node.getKey().getValue());
         }
-        if (node.getType() != null) {
-            expression.setType(node.getType());
-        } else {
-            setType(node, expression, fieldExpression, querySchema);
-        }
+        // TODO
+        setType(node, expression, fieldExpression, querySchema);
         querySchema.put(node, expression);
         return expression;
     }
