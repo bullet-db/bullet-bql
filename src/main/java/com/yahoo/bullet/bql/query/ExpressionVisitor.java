@@ -1,6 +1,5 @@
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.bql.temp.QuerySchema;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -27,7 +26,6 @@ import com.yahoo.bullet.query.expressions.NAryExpression;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.query.expressions.ValueExpression;
-import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,7 +64,6 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
     @Override
     protected Expression visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
         FieldExpression expression = new FieldExpression(node.getField().getValue());
-        // TODO
         setType(node, expression, querySchema);
         querySchema.put(node, expression);
         return expression;
@@ -170,14 +167,14 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
     @Override
     protected Expression visitDistribution(DistributionNode node, QuerySchema querySchema) {
         Expression expression = process(node.getExpression(), querySchema);
-        TypeChecker.validateNumericType(node, expression).ifPresent(querySchema::addTypeErrors);
+        TypeChecker.validateNumericType(node, expression).ifPresent(querySchema::addErrors);
         return null;
     }
 
     @Override
     protected Expression visitTopK(TopKNode node, QuerySchema querySchema) {
         List<Expression> expressions = node.getExpressions().stream().map(processFunc(querySchema)).collect(Collectors.toList());
-        TypeChecker.validatePrimitiveTypes(node, expressions).ifPresent(querySchema::addTypeErrors);
+        TypeChecker.validatePrimitiveTypes(node, expressions).ifPresent(querySchema::addErrors);
         return null;
     }
 

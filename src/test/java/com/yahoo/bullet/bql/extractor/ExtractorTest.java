@@ -13,8 +13,6 @@ public class ExtractorTest {
     @Test
     public void testConstructors() {
         // coverage
-        new TransientFieldExtractor();
-        new WindowExtractor();
         new QueryValidator();
         new TypeChecker();
     }

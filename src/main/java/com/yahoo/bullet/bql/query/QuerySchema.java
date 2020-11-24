@@ -1,4 +1,4 @@
-package com.yahoo.bullet.bql.temp;
+package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
@@ -15,16 +15,18 @@ import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 
-@Getter
+//@Getter
 public class QuerySchema {
+    /*
     private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
 
     static {
@@ -40,18 +42,38 @@ public class QuerySchema {
                                          new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
     }
+    */
+    private static final Map<DistributionType, Map<String, Type>> DISTRIBUTION_FIELDS = new HashMap<>();
+
+    static {
+        Map<String, Type> quantileFields = new HashMap<>();
+        quantileFields.put(QuantileSketch.VALUE_FIELD, Type.DOUBLE);
+        quantileFields.put(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE);
+
+        Map<String, Type> pmfFields = new HashMap<>();
+        pmfFields.put(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE);
+        pmfFields.put(QuantileSketch.COUNT_FIELD, Type.DOUBLE);
+        pmfFields.put(QuantileSketch.RANGE_FIELD, Type.STRING);
+
+        DISTRIBUTION_FIELDS.put(DistributionType.QUANTILE, quantileFields);
+        DISTRIBUTION_FIELDS.put(DistributionType.PMF, pmfFields);
+        DISTRIBUTION_FIELDS.put(DistributionType.CDF, pmfFields);
+    }
 
     private Set<Field> projectionFields = new LinkedHashSet<>();
     private Set<Field> computationFields = new LinkedHashSet<>();
 
-    private List<BulletError> typeErrors = new ArrayList<>();
+    @Getter
+    private List<BulletError> errors = new ArrayList<>();
 
     private Map<String, Type> schema = new HashMap<>();
     private Map<String, String> aliasMapping = new HashMap<>();
 
     private Schema baseSchema;
 
+    @Getter
     private Map<String, Type> currentSchema;
+    @Getter
     private Map<String, String> currentAliasMapping = new HashMap<>();
     private Map<ExpressionNode, Expression> currentMapping = new HashMap<>();
 
@@ -60,7 +82,14 @@ public class QuerySchema {
         if (schema != null) {
             currentSchema = new HashMap<>();
             schema.getFields().forEach(field -> currentSchema.put(field.getName(), field.getType()));
+
+
+            currentSchema = schema.getFields().stream().collect(Collectors.toMap(Schema.Field::getName, Schema.Field::getType, throwingMerger(), HashMap::new));
         }
+    }
+
+    private static <T> BinaryOperator<T> throwingMerger() {
+        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
     }
 
     public void put(ExpressionNode node, Expression expression) {
@@ -113,28 +142,39 @@ public class QuerySchema {
         computationFields.add(new Field(name, expression));
     }
 
-    public void addCurrentProjectionField(String name, ExpressionNode node, Type type) {
+    public void addSchemaField(String name, Type type) {
+        schema.put(name, type);
+    }
+
+    public void addCurrentProjectionField(String name, Type type) {
         FieldExpression expression = new FieldExpression(name);
         expression.setType(type);
         projectionFields.add(new Field(name, expression));
         currentSchema.put(name, type);
     }
 
-    public void nextLevel(boolean replaceCurrent) {
+
+    public void addAlias(String name, String alias) {
+        aliasMapping.put(name, alias);
+    }
+
+    public void nextLayer(boolean replaceCurrent) {
         if (replaceCurrent) {
             currentSchema = schema;
             currentAliasMapping = aliasMapping;
+            schema = new HashMap<>();
             aliasMapping = new HashMap<>();
-        } else {
-            if (currentSchema != null) {
-                currentSchema.putAll(schema);
-            } else {
-                currentSchema = schema;
-            }
+        } else if (currentSchema != null) {
+            currentSchema.putAll(schema);
             currentAliasMapping.putAll(aliasMapping);
+            schema.clear();
+            aliasMapping.clear();
+        } else {
+            currentSchema = schema;
+            currentAliasMapping.putAll(aliasMapping);
+            schema = new HashMap<>();
             aliasMapping.clear();
         }
-        schema = new HashMap<>();
         currentMapping.clear();
     }
 
@@ -161,15 +201,11 @@ public class QuerySchema {
     }
 
     public void addTypeError(ExpressionNode node, String message) {
-        typeErrors.add(new BulletError(node.getLocation() + message, (List<String>) null));
+        errors.add(new BulletError(node.getLocation() + message, (List<String>) null));
     }
 
-    public void addTypeErrors(List<BulletError> errors) {
-        typeErrors.addAll(errors);
-    }
-
-    public static FieldExpressionNode fieldNode(String name, Type type) {
-        return new FieldExpressionNode(new IdentifierNode(name, false, null), type, null);
+    public void addErrors(List<BulletError> errors) {
+        this.errors.addAll(errors);
     }
 
     public static FieldExpression field(String name, Type type) {
@@ -179,6 +215,6 @@ public class QuerySchema {
     }
 
     public void setDistributionFields(DistributionType type) {
-        schema = DISTRIBUTION_SCHEMAS.get(type);
+        schema = new HashMap<>(DISTRIBUTION_FIELDS.get(type));
     }
 }

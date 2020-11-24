@@ -8,10 +8,8 @@ package com.yahoo.bullet.bql;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.query.QueryProcessor;
-import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
-import com.yahoo.bullet.bql.query.QueryValidator;
-import com.yahoo.bullet.bql.temp.QueryBuilder;
+import com.yahoo.bullet.bql.query.QueryBuilder;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
@@ -23,7 +21,6 @@ import com.yahoo.bullet.typesystem.Schema;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class BulletQueryBuilder {
@@ -68,18 +65,8 @@ public class BulletQueryBuilder {
                 return new BQLResult(processedQuery.getErrors());
             }
 
-            // Build query from query components
-            //Query query = QueryExtractor.extractQuery(processedQuery);
-            //query.configure(config);
-
-            // Check query and type semantics
-            //List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
-            //if (!errors.isEmpty()) {
-            //    return new BQLResult(errors);
-            //}
-
             QueryBuilder builder = new QueryBuilder(queryNode, processedQuery, schema);
-            Query query = builder.buildQuery();
+            Query query = builder.getQuery();
             if (query == null) {
                 return new BQLResult(builder.getErrors());
             }

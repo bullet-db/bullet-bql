@@ -80,7 +80,7 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testEmptyRawAliasNotAllowed() {
         build("SELECT abc AS \"\" FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an field.");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an alias.");
         Assert.assertEquals(errors.size(), 1);
     }
 

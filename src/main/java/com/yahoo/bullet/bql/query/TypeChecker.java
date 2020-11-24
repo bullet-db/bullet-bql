@@ -35,7 +35,7 @@ public class TypeChecker {
     public static Optional<List<BulletError>> validateFieldType(FieldExpressionNode node, FieldExpression fieldExpression, Type type) {
         if (Type.isUnknown(type)) {
             return unknownError();
-        } else if (Type.isNull(type)) {
+        } else if (type == null) {
             return makeError(node, "The field " + fieldExpression.getField() + " does not exist in the schema.");
         }
         return Optional.empty();

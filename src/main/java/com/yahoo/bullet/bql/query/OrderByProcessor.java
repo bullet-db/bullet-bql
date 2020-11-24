@@ -5,7 +5,6 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.bql.temp.QuerySchema;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
@@ -31,11 +30,6 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
 
     @Override
     public Void process(Node node, QuerySchema querySchema) {
-        /*
-        if (querySchema.get((ExpressionNode) node) != null) {
-            return null;
-        }
-        */
         if (querySchema.hasAliasOrField((ExpressionNode) node)) {
             return null;
         }
@@ -57,7 +51,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
         String name = node.getField().getValue();
         Type type = querySchema.getBaseSchemaType(name);
         if (type != Type.NULL) {
-            querySchema.addCurrentProjectionField(name, node, type);
+            querySchema.addCurrentProjectionField(name, type);
             transientFields.add(name);
         }
         return null;

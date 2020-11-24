@@ -1,6 +1,5 @@
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.bql.temp.QuerySchema;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -10,7 +9,6 @@ import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
-import com.yahoo.bullet.bql.tree.SubSubFieldExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
@@ -33,17 +31,10 @@ public class TypeSetter {
             return;
         }
         Type type = querySchema.getType(fieldExpression.getField());
-        Optional<List<BulletError>> errors = TypeChecker.validateFieldType(node, fieldExpression, type);
-
-        // Will always error out uhm but ignore for now
-
-
-        if (errors.isPresent()) {
-            querySchema.addTypeErrors(errors.get());
-            fieldExpression.setType(Type.UNKNOWN);
-        } else {
-            fieldExpression.setType(type);
+        if (type == null) {
+            querySchema.addTypeError(node, "The field " + fieldExpression.getField() + " does not exist in the schema.");
         }
+        fieldExpression.setType(Type.UNKNOWN);
     }
 
     public static void setType(SubFieldExpressionNode node, FieldExpression subFieldExpression, FieldExpression fieldExpression, QuerySchema querySchema) {
@@ -53,7 +44,7 @@ public class TypeSetter {
         }
         Optional<List<BulletError>> errors = TypeChecker.validateSubFieldType(node, fieldExpression);
         if (errors.isPresent()) {
-            querySchema.addTypeErrors(errors.get());
+            querySchema.addErrors(errors.get());
             subFieldExpression.setType(Type.UNKNOWN);
         } else {
             subFieldExpression.setType(fieldExpression.getType().getSubType());
@@ -63,7 +54,7 @@ public class TypeSetter {
     public static void setType(ListExpressionNode node, ListExpression listExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateListSubTypes(node, listExpression);
         if (errors.isPresent()) {
-            querySchema.addTypeErrors(errors.get());
+            querySchema.addErrors(errors.get());
             listExpression.setType(Type.UNKNOWN);
         } else {
             setListType(listExpression);
@@ -73,14 +64,14 @@ public class TypeSetter {
     // First argument is either UnaryExpressionNode or NullPredicateNode
     public static void setType(ExpressionNode node, UnaryExpression unaryExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateUnaryType(node, unaryExpression);
-        errors.ifPresent(querySchema::addTypeErrors);
+        errors.ifPresent(querySchema::addErrors);
         setUnaryType(unaryExpression);
     }
 
     public static void setType(NAryExpressionNode node, NAryExpression nAryExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateNAryType(node, nAryExpression);
         if (errors.isPresent()) {
-            querySchema.addTypeErrors(errors.get());
+            querySchema.addErrors(errors.get());
             nAryExpression.setType(Type.UNKNOWN);
         } else {
             setNAryType(nAryExpression);
@@ -95,7 +86,7 @@ public class TypeSetter {
         }
         Optional<List<BulletError>> errors = TypeChecker.validateNumericType(node, operand);
         if (errors.isPresent()) {
-            querySchema.addTypeErrors(errors.get());
+            querySchema.addErrors(errors.get());
             expression.setType(Type.DOUBLE);
         } else {
             setAggregateType(expression, op, operand);
@@ -104,20 +95,20 @@ public class TypeSetter {
 
     public static void setType(CountDistinctNode node, Expression expression, List<Expression> expressions, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validatePrimitiveTypes(node, expressions);
-        errors.ifPresent(querySchema::addTypeErrors);
+        errors.ifPresent(querySchema::addErrors);
         expression.setType(Type.LONG);
     }
 
 
     public static void setType(CastExpressionNode node, CastExpression castExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateCastType(node, castExpression);
-        errors.ifPresent(querySchema::addTypeErrors);
+        errors.ifPresent(querySchema::addErrors);
         castExpression.setType(castExpression.getCastType());
     }
 
     public static void setType(BinaryExpressionNode node, BinaryExpression binaryExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateBinaryType(node, binaryExpression);
-        errors.ifPresent(querySchema::addTypeErrors);
+        errors.ifPresent(querySchema::addErrors);
         setBinaryType(binaryExpression, errors.isPresent());
     }
 

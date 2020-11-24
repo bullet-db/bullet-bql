@@ -17,7 +17,6 @@ import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.query.expressions.Expression;
 import com.yahoo.bullet.query.expressions.Operation;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,7 +25,6 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,9 +45,7 @@ public class ProcessedQuery {
         GROUP,
         COUNT_DISTINCT,
         DISTRIBUTION,
-        TOP_K,
-        SPECIAL_K,
-        INVALID
+        TOP_K
     }
 
     // Enum hashset of bullet errors
@@ -82,9 +78,6 @@ public class ProcessedQuery {
         private BulletError error;
     }
 
-
-    private static final String DELIMITER = ", ";
-
     private Set<QueryType> queryTypeSet = EnumSet.noneOf(QueryType.class);
 
     @Setter
@@ -98,23 +91,15 @@ public class ProcessedQuery {
     @Setter
     private ExpressionNode havingNode;
 
-    private Map<ExpressionNode, Expression> preAggregationMapping = new HashMap<>();
-    private Map<ExpressionNode, Expression> postAggregationMapping = new HashMap<>();
-
     private Map<ExpressionNode, String> aliases = new HashMap<>();
     private Set<ExpressionNode> subExpressionNodes = new HashSet<>();
 
     private Set<ExpressionNode> selectNodes = new LinkedHashSet<>();
     private Set<ExpressionNode> groupByNodes = new LinkedHashSet<>();
     private Set<ExpressionNode> orderByNodes = new LinkedHashSet<>();
+
     private Set<SortItemNode> sortItemNodes = new LinkedHashSet<>();
-    private Set<ExpressionNode> orderByExtraSelectNodes = new LinkedHashSet<>();
-    //@Setter
-    //private Set<String> selectNames;
-
-
     private Set<SelectItemNode> selectItemNodes = new LinkedHashSet<>();
-
 
     private Set<ExpressionNode> superAggregateNodes = new HashSet<>();
     private Set<ExpressionNode> aggregateNodes = new HashSet<>();
@@ -124,10 +109,8 @@ public class ProcessedQuery {
     private Set<TopKNode> topKNodes = new HashSet<>();
 
     private List<BulletError> errors = new ArrayList<>();
-    @Setter
-    private Collection<ExpressionNode> projection;
-    @Setter
-    private Collection<ExpressionNode> computation;
+
+    private EnumSet<QueryError> queryErrors = EnumSet.noneOf(QueryError.class);
 
     /**
      * Validates the query components.
@@ -140,15 +123,24 @@ public class ProcessedQuery {
                                        "Please specify a valid query."));
         }
         if (aliases.values().contains("")) {
-            errors.add(new BulletError("Cannot have an empty string as an field.", "Please specify a non-empty string instead."));
+            queryErrors.add(QueryError.EMPTY_ALIAS);
+
+            errors.add(new BulletError("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."));
         }
         if (aggregateNodes.stream().anyMatch(this::isSuperAggregate)) {
+            queryErrors.add(QueryError.NESTED_AGGREGATE);
+
             errors.add(new BulletError("Aggregates cannot be nested.", "Please remove any nested aggregates."));
         }
         if (whereNode != null && isAggregateOrSuperAggregate(whereNode)) {
+            queryErrors.add(QueryError.WHERE_WITH_AGGREGATE);
+
+
             errors.add(new BulletError("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."));
         }
         if (groupByNodes.stream().anyMatch(this::isAggregateOrSuperAggregate)) {
+            queryErrors.add(QueryError.GROUP_BY_WITH_AGGREGATE);
+
             errors.add(new BulletError("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause."));
         }
         if (!countDistinctNodes.isEmpty()) {
@@ -193,13 +185,10 @@ public class ProcessedQuery {
         if (limit != null && limit <= 0) {
             errors.add(new BulletError("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."));
         }
-        if (isSpecialK()) {
-            queryTypeSet = Collections.singleton(QueryType.SPECIAL_K);
-        }
         return this;
     }
 
-    private boolean isSpecialK() {
+    public boolean isSpecialK() {
         if (getQueryType() != QueryType.GROUP || groupByNodes.isEmpty() || groupOpNodes.size() != 1 || sortItemNodes.size() != 1 || limit == null) {
             return false;
         }
@@ -252,7 +241,7 @@ public class ProcessedQuery {
      * @return A {@link QueryType}.
      */
     public QueryType getQueryType() {
-        return errors.isEmpty() ? queryTypeSet.iterator().next() : QueryType.INVALID;
+        return errors.isEmpty() ? queryTypeSet.iterator().next() : null;
     }
 
     /**
@@ -332,21 +321,7 @@ public class ProcessedQuery {
     public boolean isAggregateOrSuperAggregate(ExpressionNode node) {
         return aggregateNodes.contains(node) || superAggregateNodes.contains(node);
     }
-
-    /**
-     * Returns whether or not the given node is an aggregate.
-     *
-     * @param node An {@link ExpressionNode}.
-     * @return True if the given node is an aggregate and false otherwise.
-     */
-    public boolean isAggregate(ExpressionNode node) {
-        return aggregateNodes.contains(node);
-    }
-
-    public boolean isNotAggregate(ExpressionNode node) {
-        return !isAggregate(node);
-    }
-
+    
     /**
      * Returns whether or not the given node contains aggregates.
      *
@@ -358,16 +333,6 @@ public class ProcessedQuery {
     }
 
     /**
-     * Returns whether or not the given node is not a group by node.
-     *
-     * @param node An {@link ExpressionNode}.
-     * @return True if the given node is not a group by node and false otherwise.
-     */
-    public boolean isNotGroupByNode(ExpressionNode node) {
-        return !groupByNodes.contains(node);
-    }
-
-    /**
      * Returns whether or not the given node is a simple field expression.
      *
      * @param node An {@link ExpressionNode}.
@@ -375,16 +340,6 @@ public class ProcessedQuery {
      */
     public boolean isSimpleFieldExpression(ExpressionNode node) {
         return node instanceof FieldExpressionNode;
-    }
-
-    /**
-     * Returns whether or not the given node is not a simple field expression.
-     *
-     * @param node An {@link ExpressionNode}.
-     * @return True if the given node is not a simple field expression and false otherwise.
-     */
-    public boolean isNotSimpleFieldExpression(ExpressionNode node) {
-        return !isSimpleFieldExpression(node);
     }
 
     /**

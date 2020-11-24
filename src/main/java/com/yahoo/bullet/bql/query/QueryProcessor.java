@@ -78,7 +78,9 @@ public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, Proc
         super.visitSelectItem(node, context);
         ExpressionNode expression = node.getExpression();
         if (expression != null) {
-            context.getSelectNodes().add(expression);
+            if (!(expression instanceof DistributionNode) && !(expression instanceof TopKNode)) {
+                context.getSelectNodes().add(expression);
+            }
             if (node.getAlias() != null) {
                 context.getAliases().put(expression, node.getAlias().getValue());
             } else if (expression instanceof TopKNode) {
