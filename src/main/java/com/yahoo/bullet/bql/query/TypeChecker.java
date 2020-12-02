@@ -8,7 +8,6 @@ package com.yahoo.bullet.bql.query;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
@@ -32,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TypeChecker {
+    /*
     public static Optional<List<BulletError>> validateFieldType(FieldExpressionNode node, FieldExpression fieldExpression, Type type) {
         if (Type.isUnknown(type)) {
             return unknownError();
@@ -40,7 +40,7 @@ public class TypeChecker {
         }
         return Optional.empty();
     }
-
+    */
     public static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression fieldExpression) {
         Type type = fieldExpression.getType();
         if (Type.isUnknown(type)) {

@@ -12,6 +12,9 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 
+import java.util.Collections;
+import java.util.List;
+
 public abstract class ExpressionNode extends Node {
     protected ExpressionNode(NodeLocation location) {
         super(location);
@@ -29,6 +32,10 @@ public abstract class ExpressionNode extends Node {
      */
     public String getName() {
         return ExpressionFormatter.format(this, false);
+    }
+
+    public List<ExpressionNode> getChildren() {
+        return Collections.emptyList();
     }
 
     @Override

@@ -32,7 +32,7 @@ public class TypeSetter {
         }
         Type type = querySchema.getType(fieldExpression.getField());
         if (type == null) {
-            querySchema.addTypeError(node, "The field " + fieldExpression.getField() + " does not exist in the schema.");
+            querySchema.addError(node, "The field " + fieldExpression.getField() + " does not exist in the schema.");
         }
         fieldExpression.setType(Type.UNKNOWN);
     }
@@ -98,7 +98,6 @@ public class TypeSetter {
         errors.ifPresent(querySchema::addErrors);
         expression.setType(Type.LONG);
     }
-
 
     public static void setType(CastExpressionNode node, CastExpression castExpression, QuerySchema querySchema) {
         Optional<List<BulletError>> errors = TypeChecker.validateCastType(node, castExpression);
@@ -169,7 +168,9 @@ public class TypeSetter {
             case SUB:
             case MUL:
             case DIV:
-                if (hasErrors || leftType == Type.DOUBLE || rightType == Type.DOUBLE) {
+                if (hasErrors) {
+                    binaryExpression.setType(Type.DOUBLE);
+                } else if (leftType == Type.DOUBLE || rightType == Type.DOUBLE) {
                     binaryExpression.setType(Type.DOUBLE);
                 } else if (leftType == Type.FLOAT || rightType == Type.FLOAT) {
                     binaryExpression.setType(Type.FLOAT);
@@ -210,7 +211,11 @@ public class TypeSetter {
                 binaryExpression.setType(Type.BOOLEAN);
                 break;
             case FILTER:
-                binaryExpression.setType(hasErrors ? Type.UNKNOWN : leftType);
+                if (hasErrors) {
+                    binaryExpression.setType(Type.UNKNOWN);
+                } else {
+                    binaryExpression.setType(leftType);
+                }
                 break;
             default:
                 // Unreachable normally

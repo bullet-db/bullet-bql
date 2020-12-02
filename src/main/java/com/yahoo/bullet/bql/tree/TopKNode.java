@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,6 +27,11 @@ public class TopKNode extends ExpressionNode {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitTopK(this, context);
+    }
+
+    @Override
+    public List<ExpressionNode> getChildren() {
+        return expressions;
     }
 
     @Override

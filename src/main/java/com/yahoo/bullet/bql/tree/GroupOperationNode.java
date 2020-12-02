@@ -7,6 +7,8 @@ package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import static com.yahoo.bullet.querying.aggregations.grouping.GroupOperation.GroupOperationType;
@@ -25,6 +27,11 @@ public class GroupOperationNode extends ExpressionNode {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitGroupOperation(this, context);
+    }
+
+    @Override
+    public List<ExpressionNode> getChildren() {
+        return Collections.singletonList(expression);
     }
 
     @Override

@@ -82,33 +82,11 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
         } else {
             expression = new FieldExpression(fieldExpression.getField(), node.getKey().getValue());
         }
-        // TODO
         setType(node, expression, fieldExpression, querySchema);
         querySchema.put(node, expression);
         return expression;
     }
-/*
-    @Override
-    protected Expression visitSubSubFieldExpression(SubSubFieldExpressionNode node, QuerySchema querySchema) {
-        FieldExpression subFieldExpression = (FieldExpression) process(node.getSubField(), querySchema);
-        FieldExpression expression;
-        if (subFieldExpression.getIndex() != null) {
-            expression = new FieldExpression(subFieldExpression.getField(), subFieldExpression.getIndex(), node.getSubKey().getValue());
-        } else if (subFieldExpression.getKey() != null) {
-            expression = new FieldExpression(subFieldExpression.getField(), subFieldExpression.getKey(), node.getSubKey().getValue());
-        } else {
-            // Special case where the subFieldExpression is replaced with a FieldExpression
-            expression = new FieldExpression(subFieldExpression.getField(), node.getSubKey().getValue());
-        }
-        if (node.getType() != null) {
-            expression.setType(node.getType());
-        } else {
-            setType(node, );
-        }
-        querySchema.put(node, expression);
-        return expression;
-    }
-*/
+
     @Override
     protected Expression visitListExpression(ListExpressionNode node, QuerySchema querySchema) {
         List<Expression> expressions = node.getExpressions().stream().map(processFunc(querySchema)).collect(Collectors.toCollection(ArrayList::new));

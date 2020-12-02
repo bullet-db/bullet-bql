@@ -176,17 +176,6 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
-     * Visit an {@link SubSubFieldExpressionNode} with passed in context.
-     *
-     * @param node A {@link SubSubFieldExpressionNode}.
-     * @param context A {@link C}.
-     * @return A {@link R}.
-     */
-    protected R visitSubSubFieldExpression(SubSubFieldExpressionNode node, C context) {
-        return visitExpression(node, context);
-    }
-
-    /**
      * Visit a {@link ListExpressionNode} with passed in context.
      *
      * @param node A {@link ListExpressionNode}.

@@ -19,8 +19,6 @@ import java.util.Set;
 
 @Getter
 public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema> {
-    //private static final OrderByProcessor INSTANCE = new OrderByProcessor();
-
     private Set<String> transientFields = new HashSet<>();
 
     @Override
@@ -30,7 +28,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
 
     @Override
     public Void process(Node node, QuerySchema querySchema) {
-        if (querySchema.hasAliasOrField((ExpressionNode) node)) {
+        if (querySchema.contains((ExpressionNode) node)) {
             return null;
         }
         return super.process(node, querySchema);
@@ -61,13 +59,4 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
     protected Void visitLiteral(LiteralNode node, QuerySchema querySchema) {
         return null;
     }
-/*
-    public static void visit(Node node, QuerySchema querySchema) {
-        INSTANCE.process(node, querySchema);
-    }
-
-    public static void visit(Collection<ExpressionNode> nodes, QuerySchema querySchema) {
-        INSTANCE.process(nodes, querySchema);
-    }
-*/
 }

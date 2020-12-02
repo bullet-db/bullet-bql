@@ -5,225 +5,140 @@
  */
 package com.yahoo.bullet.bql.query;
 
-import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
-import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
-import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
-import com.yahoo.bullet.bql.tree.ListExpressionNode;
-import com.yahoo.bullet.bql.tree.LiteralNode;
-import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.bql.tree.NullPredicateNode;
-import com.yahoo.bullet.bql.tree.OrderByNode;
-import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
-import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 
-import java.util.Arrays;
-
-public class QueryProcessor extends DefaultTraversalVisitor<ProcessedQuery, ProcessedQuery> {
+public class QueryProcessor extends DefaultTraversalVisitor<Void, ProcessedQuery> {
+    private static final QueryProcessor INSTANCE = new QueryProcessor();
     private static final String MAX = "MAX";
     public static final String DEFAULT_TOP_K_ALIAS = "Count";
 
     @Override
-    public ProcessedQuery process(Node node) {
-        return process(node, new ProcessedQuery());
+    public Void process(Node node, ProcessedQuery processedQuery) {
+        super.process(node, processedQuery);
+        if (node instanceof ExpressionNode) {
+            processedQuery.addExpression((ExpressionNode) node);
+        }
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitNode(Node node, ProcessedQuery context) {
-        throw new RuntimeException("This method should not be called.");
-    }
-
-    @Override
-    protected ProcessedQuery visitExpression(ExpressionNode node, ProcessedQuery context) {
-        throw new RuntimeException("This method should not be called.");
-    }
-
-    @Override
-    protected ProcessedQuery visitQuery(QueryNode node, ProcessedQuery context) {
-        super.visitQuery(node, context);
-        context.setWhereNode(node.getWhere());
-        context.setHavingNode(node.getHaving());
+    protected Void visitQuery(QueryNode node, ProcessedQuery processedQuery) {
+        super.visitQuery(node, processedQuery);
+        processedQuery.setWhere(node.getWhere());
+        processedQuery.setHaving(node.getHaving());
         if (node.getLimit() != null) {
-            context.setLimit(Integer.parseInt(node.getLimit()));
+            processedQuery.setLimit(Integer.parseInt(node.getLimit()));
         }
-        if (context.getQueryTypeSet().isEmpty()) {
-            context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT);
-        }
-        return context.validate();
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitSelect(SelectNode node, ProcessedQuery context) {
+    protected Void visitSelect(SelectNode node, ProcessedQuery processedQuery) {
         if (node.isDistinct()) {
-            context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT_DISTINCT);
+            processedQuery.addQueryType(ProcessedQuery.QueryType.SELECT_DISTINCT);
         }
-        return super.visitSelect(node, context);
+        return super.visitSelect(node, processedQuery);
     }
 
     @Override
-    protected ProcessedQuery visitSelectItem(SelectItemNode node, ProcessedQuery context) {
-        super.visitSelectItem(node, context);
+    protected Void visitSelectItem(SelectItemNode node, ProcessedQuery processedQuery) {
+        super.visitSelectItem(node, processedQuery);
         ExpressionNode expression = node.getExpression();
         if (expression != null) {
-            if (!(expression instanceof DistributionNode) && !(expression instanceof TopKNode)) {
-                context.getSelectNodes().add(expression);
-            }
+            processedQuery.addSelectNode(expression);
             if (node.getAlias() != null) {
-                context.getAliases().put(expression, node.getAlias().getValue());
+                processedQuery.addAlias(expression, node.getAlias().getValue());
             } else if (expression instanceof TopKNode) {
-                context.getAliases().put(expression, DEFAULT_TOP_K_ALIAS);
+                processedQuery.addAlias(expression, DEFAULT_TOP_K_ALIAS);
             }
         } else {
-            context.getQueryTypeSet().add(ProcessedQuery.QueryType.SELECT_ALL);
+            processedQuery.addQueryType(ProcessedQuery.QueryType.SELECT_ALL);
         }
-        return context;
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitStream(StreamNode node, ProcessedQuery context) {
+    protected Void visitStream(StreamNode node, ProcessedQuery processedQuery) {
         String timeDuration = node.getTimeDuration();
         if (timeDuration != null) {
-            context.setTimeDuration(timeDuration.equalsIgnoreCase(MAX) ? Long.MAX_VALUE : Long.parseLong(timeDuration));
+            processedQuery.setDuration(timeDuration.equalsIgnoreCase(MAX) ? Long.MAX_VALUE : Long.parseLong(timeDuration));
         }
-        return context;
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitGroupBy(GroupByNode node, ProcessedQuery context) {
-        super.visitGroupBy(node, context);
-        context.getGroupByNodes().addAll(node.getExpressions());
-        context.getQueryTypeSet().add(ProcessedQuery.QueryType.GROUP);
-        return context;
+    protected Void visitGroupBy(GroupByNode node, ProcessedQuery processedQuery) {
+        super.visitGroupBy(node, processedQuery);
+        processedQuery.addGroupByNodes(node.getExpressions());
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitOrderBy(OrderByNode node, ProcessedQuery context) {
-        return super.visitOrderBy(node, context);
+    protected Void visitSortItem(SortItemNode node, ProcessedQuery processedQuery) {
+        super.visitSortItem(node, processedQuery);
+        processedQuery.addSortItemNode(node);
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitSortItem(SortItemNode node, ProcessedQuery context) {
-        super.visitSortItem(node, context);
-        context.getOrderByNodes().add(node.getExpression());
-        context.getSortItemNodes().add(node);
-        return context;
+    protected Void visitWindow(WindowNode node, ProcessedQuery processedQuery) {
+        processedQuery.setWindow(node);
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitWindow(WindowNode node, ProcessedQuery context) {
-        context.setWindow(node);
-        return context;
+    protected Void visitExpression(ExpressionNode node, ProcessedQuery processedQuery) {
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitFieldExpression(FieldExpressionNode node, ProcessedQuery context) {
-        return context;
+    protected Void visitGroupOperation(GroupOperationNode node, ProcessedQuery processedQuery) {
+        super.visitGroupOperation(node, processedQuery);
+        processedQuery.addGroupOpNode(node);
+        processedQuery.addAggregate(node);
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitListExpression(ListExpressionNode node, ProcessedQuery context) {
-        super.visitListExpression(node, context);
-        context.addExpression(node, node.getExpressions());
-        return context;
+    protected Void visitCountDistinct(CountDistinctNode node, ProcessedQuery processedQuery) {
+        super.visitCountDistinct(node, processedQuery);
+        processedQuery.setCountDistinct(node);
+        processedQuery.addAggregate(node);
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitNullPredicate(NullPredicateNode node, ProcessedQuery context) {
-        super.visitNullPredicate(node, context);
-        context.addExpression(node, node.getExpression());
-        return context;
+    protected Void visitDistribution(DistributionNode node, ProcessedQuery processedQuery) {
+        super.visitDistribution(node, processedQuery);
+        processedQuery.setDistribution(node);
+        processedQuery.addAggregate(node);
+        return null;
     }
 
     @Override
-    protected ProcessedQuery visitUnaryExpression(UnaryExpressionNode node, ProcessedQuery context) {
-        super.visitUnaryExpression(node, context);
-        context.addExpression(node, node.getExpression());
-        return context;
+    protected Void visitTopK(TopKNode node, ProcessedQuery processedQuery) {
+        super.visitTopK(node, processedQuery);
+        processedQuery.setTopK(node);
+        processedQuery.addAggregate(node);
+        return null;
     }
 
-    @Override
-    protected ProcessedQuery visitNAryExpression(NAryExpressionNode node, ProcessedQuery context) {
-        super.visitNAryExpression(node, context);
-        context.addExpression(node, node.getExpressions());
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitGroupOperation(GroupOperationNode node, ProcessedQuery context) {
-        super.visitGroupOperation(node, context);
-        context.addExpression(node, node.getExpression());
-        context.getAggregateNodes().add(node);
-        context.getGroupOpNodes().add(node);
-        context.getQueryTypeSet().add(ProcessedQuery.QueryType.GROUP);
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitCountDistinct(CountDistinctNode node, ProcessedQuery context) {
-        super.visitCountDistinct(node, context);
-        context.addExpression(node, node.getExpressions());
-        context.getAggregateNodes().add(node);
-        context.getCountDistinctNodes().add(node);
-        context.getQueryTypeSet().add(ProcessedQuery.QueryType.COUNT_DISTINCT);
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitDistribution(DistributionNode node, ProcessedQuery context) {
-        super.visitDistribution(node, context);
-        context.addExpression(node, node.getExpression());
-        context.getAggregateNodes().add(node);
-        context.getDistributionNodes().add(node);
-        context.getQueryTypeSet().add(ProcessedQuery.QueryType.DISTRIBUTION);
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitTopK(TopKNode node, ProcessedQuery context) {
-        super.visitTopK(node, context);
-        context.addExpression(node, node.getExpressions());
-        context.getAggregateNodes().add(node);
-        context.getTopKNodes().add(node);
-        context.getQueryTypeSet().add(ProcessedQuery.QueryType.TOP_K);
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitCastExpression(CastExpressionNode node, ProcessedQuery context) {
-        super.visitCastExpression(node, context);
-        context.addExpression(node, node.getExpression());
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitBinaryExpression(BinaryExpressionNode node, ProcessedQuery context) {
-        super.visitBinaryExpression(node, context);
-        context.addExpression(node, Arrays.asList(node.getLeft(), node.getRight()));
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitParenthesesExpression(ParenthesesExpressionNode node, ProcessedQuery context) {
-        super.visitParenthesesExpression(node, context);
-        context.addExpression(node, node.getExpression());
-        return context;
-    }
-
-    @Override
-    protected ProcessedQuery visitLiteral(LiteralNode node, ProcessedQuery context) {
-        return context;
+    public static ProcessedQuery visit(Node node) {
+        ProcessedQuery processedQuery = new ProcessedQuery();
+        INSTANCE.process(node, processedQuery);
+        return processedQuery;
     }
 }

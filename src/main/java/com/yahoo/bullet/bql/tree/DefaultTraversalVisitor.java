@@ -69,12 +69,6 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     }
 
     @Override
-    protected R visitSubSubFieldExpression(SubSubFieldExpressionNode node, C context) {
-        process(node.getSubField(), context);
-        return null;
-    }
-
-    @Override
     protected R visitListExpression(ListExpressionNode node, C context) {
         node.getExpressions().forEach(process(context));
         return null;

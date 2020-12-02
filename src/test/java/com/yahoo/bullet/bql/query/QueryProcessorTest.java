@@ -8,6 +8,7 @@ package com.yahoo.bullet.bql.query;
 import org.testng.annotations.Test;
 
 public class QueryProcessorTest {
+    /*
     @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
     public void testVisitNode() {
         // coverage
@@ -19,4 +20,5 @@ public class QueryProcessorTest {
         // coverage
         new QueryProcessor().visitExpression(null, null);
     }
+    */
 }

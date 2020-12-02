@@ -2,7 +2,6 @@ package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
-import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.Field;
@@ -24,7 +23,6 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
-//@Getter
 public class QuerySchema {
     /*
     private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
@@ -126,7 +124,7 @@ public class QuerySchema {
         return currentMapping.get(node);
     }
 
-    public boolean hasAliasOrField(ExpressionNode node) {
+    public boolean contains(ExpressionNode node) {
         if (currentSchema == null) {
             return false;
         }
@@ -200,7 +198,7 @@ public class QuerySchema {
         return baseSchema.getType(field);
     }
 
-    public void addTypeError(ExpressionNode node, String message) {
+    public void addError(ExpressionNode node, String message) {
         errors.add(new BulletError(node.getLocation() + message, (List<String>) null));
     }
 

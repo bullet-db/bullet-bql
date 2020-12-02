@@ -34,7 +34,6 @@ import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,23 +45,16 @@ import java.util.stream.Collectors;
 
 public class QueryBuilder {
     private ProcessedQuery processedQuery;
-
     private QueryNode queryNode;
-
     private Projection projection;
     private Expression filter;
     private Aggregation aggregation;
-
     private Window window;
     private Long duration;
     private Integer limit;
 
     private QuerySchema querySchema;
-
-    private Set<ProcessedQuery.QueryError> queryErrors = EnumSet.noneOf(ProcessedQuery.QueryError.class);
-
     private List<BulletError> errors = new ArrayList<>();
-
     private List<PostAggregation> postAggregations = new ArrayList<>();
 
     @Getter
@@ -104,14 +96,12 @@ public class QueryBuilder {
             case TOP_K:
                 doTopK();
                 break;
-            //case SPECIAL_K:
-            //    doSpecialK();
-            //    break;
         }
 
-        if (!errors.isEmpty() || !queryErrors.isEmpty() || !querySchema.getErrors().isEmpty()) {
+        if (!errors.isEmpty() || !querySchema.getErrors().isEmpty()) {
             return;
-        } else if (postAggregations.isEmpty()) {
+        }
+        if (postAggregations.isEmpty()) {
             query = new Query(projection, filter, aggregation, null, window, duration);
         } else {
             query = new Query(projection, filter, aggregation, postAggregations, window, duration);
@@ -121,28 +111,20 @@ public class QueryBuilder {
     public void doCommon() {
         QueryExtractor queryExtractor = new QueryExtractor(queryNode);
 
-        // common
         window = queryExtractor.getWindow();
         duration = queryExtractor.getDuration();
         limit = queryExtractor.getLimit();
 
-        //filter = queryExtractor.extractFilter(); // getFilter()
-
-
-
         ExpressionNode whereNode = queryNode.getWhere();
         if (whereNode != null) {
             filter = ExpressionVisitor.visit(queryNode.getWhere(), querySchema);
-            //if (!Type.isUnknown(filter.getType()) && !Type.canForceCast(Type.BOOLEAN, filter.getType())) {
-            //    addError(whereNode, "WHERE clause cannot be casted to BOOLEAN: " + whereNode, "Please specify a valid WHERE clause.");
-            //}
-            if (cannotCastBoolean(filter.getType())) {
+            if (cannotCastToBoolean(filter.getType())) {
                 addError(whereNode, "WHERE clause cannot be casted to BOOLEAN: " + whereNode, "Please specify a valid WHERE clause.");
             }
         }
     }
 
-    private static boolean cannotCastBoolean(Type type) {
+    private static boolean cannotCastToBoolean(Type type) {
         return !Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type);
     }
 
@@ -153,7 +135,7 @@ public class QueryBuilder {
     public void doOrderBy() {
         if (queryNode.getOrderBy() != null) {
             List<OrderBy.SortItem> sortItems = new ArrayList<>();
-            for (SortItemNode sortItemNode : processedQuery.getSortItemNodes()) {
+            for (SortItemNode sortItemNode : processedQuery.getSortItems()) {
                 ExpressionNode orderByNode = sortItemNode.getExpression();
                 Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
                 if (isNonPrimitive(expression.getType())) {
@@ -230,12 +212,7 @@ public class QueryBuilder {
             addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.")
         );
 
-        // crap subfieldnode is a fieldnode
         boolean requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
-
-        // ^ actually we can check this part first to decide if we do the thing above it or not... heh
-        // .. but even if it's passthrough, still need to check all fieldexpnodes. so.
-        // if passthrough, dont need to add the nodes to a schema though
 
         if (requiresCopyFlag) {
             projection = new Projection(querySchema.getProjectionFields(), true);
@@ -264,7 +241,6 @@ public class QueryBuilder {
             String newName = processedQuery.getAliasOrName(node);
             String name = node.getName();
             Type type = expression.getType();
-
             if (processedQuery.hasAlias(node)) {
                 querySchema.addAlias(name, newName);
             }
@@ -277,7 +253,14 @@ public class QueryBuilder {
                 addError(node, "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for SELECT DISTINCT.");
             }
         }
-
+/*
+        for (ExpressionNode node : processedQuery.getSelectNodes()) {
+            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            if (isNonPrimitive(expression.getType())) {
+                addError(node, "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for SELECT DISTINCT.");
+            }
+        }
+*/
         // Check duplicate fields
         List<String> schemaFields = querySchema.getProjectionFields().stream().map(Field::getName).collect(Collectors.toList());
         duplicates(schemaFields).ifPresent(duplicates ->
@@ -300,9 +283,9 @@ public class QueryBuilder {
     }
 
 
-    public void doSimpleComputation() {
+    public void doComputation() {
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            if (querySchema.hasAliasOrField(node)) {
+            if (querySchema.contains(node)) {
                 continue;
             }
             Expression expression = ExpressionVisitor.visit(node, querySchema);
@@ -313,6 +296,14 @@ public class QueryBuilder {
             }
             querySchema.addComputationField(newName, expression);
             querySchema.addSchemaField(newName, type);
+        }
+        List<Field> fields = querySchema.getComputationFields();
+        List<String> names = fields.stream().map(Field::getName).collect(Collectors.toList());
+        duplicates(names).ifPresent(duplicates ->
+            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
+        );
+        if (!fields.isEmpty()) {
+            postAggregations.add(new Computation(fields));
         }
     }
 
@@ -374,8 +365,6 @@ public class QueryBuilder {
             }
         }
 
-        //boolean requiresNoCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
-
         if (requiresNoCopyFlag) {
             projection = new Projection(querySchema.getProjectionFields(), false);
         } else {
@@ -404,23 +393,13 @@ public class QueryBuilder {
         if (having != null) {
             Expression expression = ExpressionVisitor.visit(having, querySchema);
             Type type = expression.getType();
-            if (cannotCastBoolean(type)) {
+            if (cannotCastToBoolean(type)) {
                 addError(having, "HAVING clause cannot be casted to BOOLEAN: " + having, "Please specify a valid HAVING clause.");
             }
             postAggregations.add(new Having(expression));
         }
 
-        doSimpleComputation();
-
-        List<Field> computationFields = querySchema.getComputationFields();
-        List<String> computationNames = computationFields.stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(computationNames).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
-
-        if (!computationFields.isEmpty()) {
-            postAggregations.add(new Computation(computationFields));
-        }
+        doComputation();
 
         querySchema.nextLayer(false);
 
@@ -469,20 +448,7 @@ public class QueryBuilder {
 
         aggregation = new CountDistinct(fields, countDistinctName);
 
-        // computation
-        // everything that's not count distinct i guess
-        // !node.equals(count distinct node)
-        doSimpleComputation();
-
-        List<Field> computationFields = querySchema.getComputationFields();
-        List<String> computationNames = computationFields.stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(computationNames).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
-
-        if (!computationFields.isEmpty()) {
-            postAggregations.add(new Computation(computationFields));
-        }
+        doComputation();
 
         querySchema.nextLayer(false);
 
@@ -518,20 +484,7 @@ public class QueryBuilder {
 
         aggregation = distributionNode.getAggregation(limit);
 
-        // computation
-        // everything that's not the distribution node
-        // let's just not add distribution as a select node
-        doSimpleComputation();
-
-        List<Field> computationFields = querySchema.getComputationFields();
-        List<String> computationNames = computationFields.stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(computationNames).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
-
-        if (!computationFields.isEmpty()) {
-            postAggregations.add(new Computation(computationFields));
-        }
+        doComputation();
 
         querySchema.nextLayer(false);
 
@@ -572,20 +525,7 @@ public class QueryBuilder {
 
         aggregation = new TopK(fields, topKNode.getSize(), topKNode.getThreshold(), topKAlias);
 
-        // computation
-        // everything that's not the top k node or its expressions
-        // let's just not put top k in thte select nodes
-        doSimpleComputation();
-
-        List<Field> computationFields = querySchema.getComputationFields();
-        List<String> computationNames = computationFields.stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(computationNames).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
-
-        if (!computationFields.isEmpty()) {
-            postAggregations.add(new Computation(computationFields));
-        }
+        doComputation();
     }
 
     public void doSpecialK() {
@@ -632,25 +572,17 @@ public class QueryBuilder {
         }
         aggregation = new TopK(fields, limit, threshold, countAliasOrName);
 
-        // computation
-        doSimpleComputation();
-
-        List<Field> computationFields = querySchema.getComputationFields();
-        List<String> computationNames = computationFields.stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(computationNames).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
-
-        if (!computationFields.isEmpty()) {
-            postAggregations.add(new Computation(computationFields));
-        }
+        doComputation();
     }
 
     public List<BulletError> getErrors() {
         List<BulletError> bulletErrors = new ArrayList<>();
         bulletErrors.addAll(errors);
         bulletErrors.addAll(querySchema.getErrors());
-        queryErrors.stream().map(ProcessedQuery.QueryError::getError).forEach(bulletErrors::add);
         return bulletErrors;
+    }
+
+    public boolean hasErrors() {
+        return !errors.isEmpty() || !querySchema.getErrors().isEmpty();
     }
 }

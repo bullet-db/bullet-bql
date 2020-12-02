@@ -24,7 +24,6 @@ import java.util.Collections;
 
 @Slf4j
 public class BulletQueryBuilder {
-    private final QueryProcessor queryProcessor = new QueryProcessor();
     private final BQLParser bqlParser = new BQLParser();
     private final BQLConfig config;
     private final Schema schema;
@@ -60,17 +59,18 @@ public class BulletQueryBuilder {
             QueryNode queryNode = bqlParser.createQueryNode(bql);
 
             // Parse node tree into query components
-            ProcessedQuery processedQuery = queryProcessor.process(queryNode);
-            if (!processedQuery.getErrors().isEmpty()) {
+            ProcessedQuery processedQuery = QueryProcessor.visit(queryNode);
+            if (!processedQuery.validate()) {
                 return new BQLResult(processedQuery.getErrors());
             }
 
             QueryBuilder builder = new QueryBuilder(queryNode, processedQuery, schema);
-            Query query = builder.getQuery();
-            if (query == null) {
+            if (builder.hasErrors()) {
                 return new BQLResult(builder.getErrors());
             }
+            Query query = builder.getQuery();
             query.configure(config);
+
             return new BQLResult(query, ExpressionFormatter.format(queryNode, true));
         } catch (BulletException e) {
             return makeBQLResultError(e.getError());

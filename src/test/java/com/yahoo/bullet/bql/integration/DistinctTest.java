@@ -300,7 +300,8 @@ public class DistinctTest extends IntegrationTest {
     @Test
     public void testDistinctMultipleAggregates() {
         build("SELECT DISTINCT AVG(abc) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Query does not match exactly one query type: [SELECT_DISTINCT, GROUP]");
+        //Assert.assertEquals(errors.get(0).getError(), "Query does not match exactly one query type: [SELECT_DISTINCT, GROUP]");
+        Assert.assertEquals(errors.get(0).getError(), "Query consists of multiple aggregation types.");
         Assert.assertEquals(errors.size(), 1);
     }
 }
