@@ -64,7 +64,7 @@ public class BulletQueryBuilder {
                 return new BQLResult(processedQuery.getErrors());
             }
 
-            QueryBuilder builder = new QueryBuilder(queryNode, processedQuery, schema);
+            QueryBuilder builder = new QueryBuilder(processedQuery, schema);
             if (builder.hasErrors()) {
                 return new BQLResult(builder.getErrors());
             }

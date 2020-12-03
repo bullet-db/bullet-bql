@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -7,9 +12,10 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
-import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
+import com.yahoo.bullet.bql.tree.WindowIncludeNode;
+import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.Projection;
@@ -33,6 +39,7 @@ import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +52,6 @@ import java.util.stream.Collectors;
 
 public class QueryBuilder {
     private ProcessedQuery processedQuery;
-    private QueryNode queryNode;
     private Projection projection;
     private Expression filter;
     private Aggregation aggregation;
@@ -60,16 +66,14 @@ public class QueryBuilder {
     @Getter
     private Query query;
 
-    public QueryBuilder(QueryNode queryNode, ProcessedQuery processedQuery, Schema schema) {
-        this.queryNode = queryNode;
+    public QueryBuilder(ProcessedQuery processedQuery, Schema schema) {
         this.processedQuery = processedQuery;
         this.querySchema = new QuerySchema(schema);
         buildQuery();
     }
 
-    public void buildQuery() {
+    private void buildQuery() {
         doCommon();
-
         switch (processedQuery.getQueryType()) {
             case SELECT:
                 doSelect();
@@ -97,120 +101,49 @@ public class QueryBuilder {
                 doTopK();
                 break;
         }
-
-        if (!errors.isEmpty() || !querySchema.getErrors().isEmpty()) {
+        if (hasErrors()) {
             return;
         }
-        if (postAggregations.isEmpty()) {
-            query = new Query(projection, filter, aggregation, null, window, duration);
-        } else {
-            query = new Query(projection, filter, aggregation, postAggregations, window, duration);
-        }
+        query = new Query(projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, window, duration);
     }
 
     public void doCommon() {
-        QueryExtractor queryExtractor = new QueryExtractor(queryNode);
+        window = getWindow(processedQuery.getWindow());
+        duration = processedQuery.getDuration();
+        limit = processedQuery.getLimit();
 
-        window = queryExtractor.getWindow();
-        duration = queryExtractor.getDuration();
-        limit = queryExtractor.getLimit();
-
-        ExpressionNode whereNode = queryNode.getWhere();
+        ExpressionNode whereNode = processedQuery.getWhere();
         if (whereNode != null) {
-            filter = ExpressionVisitor.visit(queryNode.getWhere(), querySchema);
+            filter = ExpressionVisitor.visit(processedQuery.getWhere(), querySchema);
             if (cannotCastToBoolean(filter.getType())) {
                 addError(whereNode, "WHERE clause cannot be casted to BOOLEAN: " + whereNode, "Please specify a valid WHERE clause.");
             }
         }
     }
 
-    private static boolean cannotCastToBoolean(Type type) {
-        return !Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type);
-    }
-
-    private static boolean isNonPrimitive(Type type) {
-        return !Type.isUnknown(type) && !Type.isPrimitive(type);
-    }
-
-    public void doOrderBy() {
-        if (queryNode.getOrderBy() != null) {
-            List<OrderBy.SortItem> sortItems = new ArrayList<>();
-            for (SortItemNode sortItemNode : processedQuery.getSortItems()) {
-                ExpressionNode orderByNode = sortItemNode.getExpression();
-                Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
-                if (isNonPrimitive(expression.getType())) {
-                    addError(orderByNode, "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field.");
-                }
-                sortItems.add(new OrderBy.SortItem(expression, sortItemNode.getOrdering().getDirection()));
-            }
-            postAggregations.add(new OrderBy(sortItems));
-        }
-    }
-
-    private void addError(ExpressionNode node, String message, String resolution) {
-        errors.add(new BulletError(node.getLocation() + message, resolution));
-    }
-
-    private void addError(String message, String resolution) {
-        errors.add(new BulletError(message, resolution));
-    }
-
-    public void doSimpleProjection() {
-        for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
-            String newName = processedQuery.getAliasOrName(node);
-            Type type = expression.getType();
-            querySchema.addProjectionField(newName, expression);
-            querySchema.addSchemaField(newName, type);
-            if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(node.getName(), newName);
-            }
-        }
-    }
-
-    private static Optional<List<String>> duplicates(List<String> fields) {
-        Map<String, Long> fieldsToCount = fields.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        List<String> duplicates = fieldsToCount.keySet().stream().filter(s -> fieldsToCount.get(s) > 1).collect(Collectors.toList());
-        return !duplicates.isEmpty() ? Optional.of(duplicates) : Optional.empty();
-    }
-
     public void doSelect() {
-        doSimpleProjection();
+        doSelectProjection();
 
         querySchema.nextLayer(true);
 
         aggregation = new Raw(limit);
 
-        if (queryNode.getOrderBy() != null) {
-            OrderByProcessor orderByProcessor = new OrderByProcessor();
-            orderByProcessor.process(processedQuery.getOrderByNodes(), querySchema);
+        Set<String> transientFields = OrderByProcessor.visit(processedQuery.getOrderByNodes(), querySchema);
 
-            doOrderBy();
+        doOrderBy();
 
-            if (!orderByProcessor.getTransientFields().isEmpty()) {
-                postAggregations.add(new Culling(orderByProcessor.getTransientFields()));
-            }
+        if (!transientFields.isEmpty()) {
+            postAggregations.add(new Culling(transientFields));
         }
 
-        // Check duplicate fields at the end because OrderBy can add fields to the projection.
-        List<String> fields = querySchema.getProjectionFields().stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(fields).ifPresent(duplicates ->
-            addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.")
-        );
-
+        // Get projection fields at the end because ORDER BY can add fields to the projection.
         projection = new Projection(querySchema.getProjectionFields(), false);
     }
 
     public void doSelectAll() {
         aggregation = new Raw(limit);
 
-        doSimpleProjection();
-
-        // Check duplicate fields
-        List<String> fields = querySchema.getProjectionFields().stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(fields).ifPresent(duplicates ->
-            addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.")
-        );
+        doSelectProjection();
 
         boolean requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
 
@@ -224,7 +157,7 @@ public class QueryBuilder {
 
         doOrderBy();
 
-        // Renamed fields that are not in the schema are transient
+        // Renamed fields that are not in the final schema are removed
         if (requiresCopyFlag) {
             Set<String> transientFields = new HashSet<>(querySchema.getCurrentAliasMapping().keySet());
             transientFields.removeAll(querySchema.getCurrentSchema().keySet());
@@ -234,7 +167,7 @@ public class QueryBuilder {
         }
     }
 
-    public void doSelectDistinct() {
+    private void doSelectDistinct() {
         Map<String, String> fields = new HashMap<>();
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
             Expression expression = ExpressionVisitor.visit(node, querySchema);
@@ -253,19 +186,6 @@ public class QueryBuilder {
                 addError(node, "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for SELECT DISTINCT.");
             }
         }
-/*
-        for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
-            if (isNonPrimitive(expression.getType())) {
-                addError(node, "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for SELECT DISTINCT.");
-            }
-        }
-*/
-        // Check duplicate fields
-        List<String> schemaFields = querySchema.getProjectionFields().stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(schemaFields).ifPresent(duplicates ->
-            addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.")
-        );
 
         boolean requiresNoCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
 
@@ -277,38 +197,17 @@ public class QueryBuilder {
 
         querySchema.nextLayer(true);
 
+        // Check for duplicate aggregate names
+        duplicates(fields.values()).ifPresent(duplicates ->
+            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
+        );
+
         aggregation = new GroupBy(limit, fields, Collections.emptySet());
 
         doOrderBy();
     }
 
-
-    public void doComputation() {
-        for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            if (querySchema.contains(node)) {
-                continue;
-            }
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
-            String newName = processedQuery.getAliasOrName(node);
-            Type type = expression.getType();
-            if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(node.getName(), newName);
-            }
-            querySchema.addComputationField(newName, expression);
-            querySchema.addSchemaField(newName, type);
-        }
-        List<Field> fields = querySchema.getComputationFields();
-        List<String> names = fields.stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(names).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
-        if (!fields.isEmpty()) {
-            postAggregations.add(new Computation(fields));
-        }
-    }
-
-
-    public void doGroup() {
+    private void doGroup() {
         Map<String, String> fields = new HashMap<>();
 
         boolean requiresNoCopyFlag = false;
@@ -325,15 +224,11 @@ public class QueryBuilder {
             }
             querySchema.addProjectionField(name, expression);
             querySchema.addSchemaField(newName, type);
-
             fields.put(name, newName);
-
             schemaFields.add(newName);
-
             if (!(node instanceof FieldExpressionNode)) {
                 requiresNoCopyFlag = true;
             }
-
             if (isNonPrimitive(type)) {
                 addError(node, "The GROUP BY field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for GROUP BY.");
             }
@@ -343,25 +238,24 @@ public class QueryBuilder {
 
         for (GroupOperationNode node : processedQuery.getGroupOpNodes()) {
             Expression expression = ExpressionVisitor.visit(node, querySchema);
-            String name = processedQuery.getAliasOrName(node);
+            String newName = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
             // Mapping for the aggregate
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(node.getName(), name);
+                querySchema.addAlias(node.getName(), newName);
             }
-            querySchema.addSchemaField(name, type);
-
-            schemaFields.add(name);
+            querySchema.addSchemaField(newName, type);
+            schemaFields.add(newName);
 
             ExpressionNode expressionNode = node.getExpression();
             if (expressionNode != null) {
                 querySchema.addProjectionField(expressionNode.getName(), ExpressionVisitor.visit(expressionNode, querySchema));
-                operations.add(new GroupOperation(node.getOp(), expressionNode.getName(), name));
+                operations.add(new GroupOperation(node.getOp(), expressionNode.getName(), newName));
                 if (!(expressionNode instanceof FieldExpressionNode)) {
                     requiresNoCopyFlag = true;
                 }
             } else {
-                operations.add(new GroupOperation(node.getOp(), null, name));
+                operations.add(new GroupOperation(node.getOp(), null, newName));
             }
         }
 
@@ -371,12 +265,7 @@ public class QueryBuilder {
             projection = new Projection();
         }
 
-        // Check duplicate fields
-        List<String> projectionFields = querySchema.getProjectionFields().stream().map(Field::getName).collect(Collectors.toList());
-        duplicates(projectionFields).ifPresent(duplicates ->
-            addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.")
-        );
-
+        // Check for duplicate aggregate names
         duplicates(schemaFields).ifPresent(duplicates ->
             addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
         );
@@ -389,7 +278,7 @@ public class QueryBuilder {
 
         querySchema.nextLayer(true);
 
-        ExpressionNode having = queryNode.getHaving();
+        ExpressionNode having = processedQuery.getHaving();
         if (having != null) {
             Expression expression = ExpressionVisitor.visit(having, querySchema);
             Type type = expression.getType();
@@ -400,21 +289,11 @@ public class QueryBuilder {
         }
 
         doComputation();
-
-        querySchema.nextLayer(false);
-
         doOrderBy();
-
-        // transient
-        // every field that's not a select field
-        Set<String> transientFields = new HashSet<>(querySchema.getCurrentSchema().keySet());
-        processedQuery.getSelectNodes().stream().map(processedQuery::getAliasOrName).forEach(transientFields::remove);
-        if (!transientFields.isEmpty()) {
-            postAggregations.add(new Culling(transientFields));
-        }
+        doTransient();
     }
 
-    public void doCountDistinct() {
+    private void doCountDistinct() {
         CountDistinctNode countDistinctNode = processedQuery.getCountDistinct();
         List<ExpressionNode> countDistinctExpressions = countDistinctNode.getExpressions();
 
@@ -436,7 +315,6 @@ public class QueryBuilder {
             projection = new Projection();
         }
 
-
         Expression countDistinctExpression = ExpressionVisitor.visit(countDistinctNode, querySchema);
         String countDistinctName = processedQuery.getAliasOrName(countDistinctNode);
         if (processedQuery.hasAlias(countDistinctNode)) {
@@ -446,21 +324,16 @@ public class QueryBuilder {
 
         querySchema.nextLayer(true);
 
+
+        // No need to check for duplicates in aggregation because only one field (count distinct)
+
         aggregation = new CountDistinct(fields, countDistinctName);
 
         doComputation();
-
-        querySchema.nextLayer(false);
-
-        // possible transient if count(distinct .......) was never selected
-        Set<String> transientFields = new HashSet<>(querySchema.getCurrentSchema().keySet());
-        processedQuery.getSelectNodes().stream().map(processedQuery::getAliasOrName).forEach(transientFields::remove);
-        if (!transientFields.isEmpty()) {
-            postAggregations.add(new Culling(transientFields));
-        }
+        doTransient();
     }
 
-    public void doDistribution() {
+    private void doDistribution() {
         DistributionNode distributionNode = processedQuery.getDistribution();
 
         ExpressionNode distributionExpressionNode = distributionNode.getExpression();
@@ -478,20 +351,19 @@ public class QueryBuilder {
 
         ExpressionVisitor.visit(distributionNode, querySchema);
 
-        querySchema.setDistributionFields(distributionNode.getType());
+        querySchema.setDistributionFieldsSchema(distributionNode.getType());
 
         querySchema.nextLayer(true);
+
+        // No need to check for duplicates in aggregation because fixed fields
 
         aggregation = distributionNode.getAggregation(limit);
 
         doComputation();
-
-        querySchema.nextLayer(false);
-
         doOrderBy();
     }
 
-    public void doTopK() {
+    private void doTopK() {
         TopKNode topKNode = processedQuery.getTopK();
         List<ExpressionNode> topKExpressions = topKNode.getExpressions();
         Map<String, String> fields = new HashMap<>();
@@ -500,13 +372,13 @@ public class QueryBuilder {
             Expression expression = ExpressionVisitor.visit(node, querySchema);
             Type type = expression.getType();
             String name = node.getName();
-            String aliasOrName = processedQuery.getAliasOrName(node);
+            String newName = processedQuery.getAliasOrName(node);
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(name, aliasOrName);
+                querySchema.addAlias(name, newName);
             }
             querySchema.addProjectionField(name, expression);
-            querySchema.addSchemaField(aliasOrName, type);
-            fields.put(name, aliasOrName);
+            querySchema.addSchemaField(newName, type);
+            fields.put(name, newName);
         }
 
         boolean requiresNoCopyFlag = topKExpressions.stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
@@ -523,26 +395,30 @@ public class QueryBuilder {
 
         querySchema.nextLayer(true);
 
+        // Check for duplicate aggregate names
+        duplicates(fields.values()).ifPresent(duplicates ->
+            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
+        );
+
         aggregation = new TopK(fields, topKNode.getSize(), topKNode.getThreshold(), topKAlias);
 
         doComputation();
     }
 
-    public void doSpecialK() {
+    private void doSpecialK() {
         Map<String, String> fields = new HashMap<>();
 
         for (ExpressionNode node : processedQuery.getGroupByNodes()) {
             Expression expression = ExpressionVisitor.visit(node, querySchema);
             Type type = expression.getType();
             String name = node.getName();
-            String aliasOrName = processedQuery.getAliasOrName(node);
+            String newName = processedQuery.getAliasOrName(node);
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(name, aliasOrName);
+                querySchema.addAlias(name, newName);
             }
             querySchema.addProjectionField(name, expression);
-            querySchema.addSchemaField(aliasOrName, type);
-            fields.put(name, aliasOrName);
-
+            querySchema.addSchemaField(newName, type);
+            fields.put(name, newName);
             if (isNonPrimitive(type)) {
                 addError(node, "The GROUP BY field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for GROUP BY.");
             }
@@ -567,12 +443,109 @@ public class QueryBuilder {
         querySchema.nextLayer(true);
 
         Long threshold = null;
-        if (queryNode.getHaving() != null) {
-            threshold = ((Number) ((LiteralNode) ((BinaryExpressionNode) queryNode.getHaving()).getRight()).getValue()).longValue();
+        if (processedQuery.getHaving() != null) {
+            threshold = ((Number) ((LiteralNode) ((BinaryExpressionNode) processedQuery.getHaving()).getRight()).getValue()).longValue();
         }
+
+        // Check for duplicate aggregate names
+        duplicates(fields.values()).ifPresent(duplicates ->
+            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
+        );
+
         aggregation = new TopK(fields, limit, threshold, countAliasOrName);
 
         doComputation();
+    }
+
+    private void doSelectProjection() {
+        for (ExpressionNode node : processedQuery.getSelectNodes()) {
+            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            String newName = processedQuery.getAliasOrName(node);
+            Type type = expression.getType();
+            querySchema.addProjectionField(newName, expression);
+            querySchema.addSchemaField(newName, type);
+            if (processedQuery.hasAlias(node)) {
+                querySchema.addAlias(node.getName(), newName);
+            }
+        }
+    }
+
+    private void doComputation() {
+        for (ExpressionNode node : processedQuery.getSelectNodes()) {
+            if (querySchema.contains(node)) {
+                continue;
+            }
+            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            String newName = processedQuery.getAliasOrName(node);
+            Type type = expression.getType();
+            if (processedQuery.hasAlias(node)) {
+                querySchema.addAlias(node.getName(), newName);
+            }
+            querySchema.addComputationField(newName, expression);
+            querySchema.addSchemaField(newName, type);
+        }
+        List<Field> fields = querySchema.getComputationFields();
+        if (!fields.isEmpty()) {
+            postAggregations.add(new Computation(fields));
+        }
+        querySchema.nextLayer(false);
+    }
+
+    private void doOrderBy() {
+        if (processedQuery.getSortItems().isEmpty()) {
+            return;
+        }
+        List<OrderBy.SortItem> sortItems = new ArrayList<>();
+        for (SortItemNode sortItem : processedQuery.getSortItems()) {
+            ExpressionNode orderByNode = sortItem.getExpression();
+            Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
+            if (isNonPrimitive(expression.getType())) {
+                addError(orderByNode, "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field.");
+            }
+            sortItems.add(new OrderBy.SortItem(expression, sortItem.getOrdering().getDirection()));
+        }
+        postAggregations.add(new OrderBy(sortItems));
+    }
+
+    private void doTransient() {
+        Set<String> transientFields = new HashSet<>(querySchema.getCurrentSchema().keySet());
+        processedQuery.getSelectNodes().stream().map(processedQuery::getAliasOrName).forEach(transientFields::remove);
+        if (!transientFields.isEmpty()) {
+            postAggregations.add(new Culling(transientFields));
+        }
+    }
+
+    private static Window getWindow(WindowNode windowNode) {
+        if (windowNode == null) {
+            return new Window();
+        }
+        WindowIncludeNode windowInclude = windowNode.getWindowInclude();
+        if (windowInclude == null) {
+            return new Window(windowNode.getEmitEvery(), windowNode.getEmitType());
+        }
+        return new Window(windowNode.getEmitEvery(), windowNode.getEmitType(), windowInclude.getIncludeUnit(), windowInclude.getFirst());
+    }
+
+    private static Optional<List<String>> duplicates(Collection<String> fields) {
+        Map<String, Long> fieldsToCount = fields.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        List<String> duplicates = fieldsToCount.keySet().stream().filter(s -> fieldsToCount.get(s) > 1).collect(Collectors.toList());
+        return !duplicates.isEmpty() ? Optional.of(duplicates) : Optional.empty();
+    }
+
+    private static boolean cannotCastToBoolean(Type type) {
+        return !Type.isUnknown(type) && !Type.canForceCast(Type.BOOLEAN, type);
+    }
+
+    private static boolean isNonPrimitive(Type type) {
+        return !Type.isUnknown(type) && !Type.isPrimitive(type);
+    }
+
+    private void addError(ExpressionNode node, String message, String resolution) {
+        errors.add(new BulletError(node.getLocation() + message, resolution));
+    }
+
+    private void addError(String message, String resolution) {
+        errors.add(new BulletError(message, resolution));
     }
 
     public List<BulletError> getErrors() {

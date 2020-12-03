@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
@@ -44,6 +49,9 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
 
     @Override
     public Expression process(Node node, QuerySchema querySchema) {
+        if (node == null) {
+            return null;
+        }
         Expression expression = querySchema.get((ExpressionNode) node);
         if (expression != null) {
             return expression;

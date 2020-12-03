@@ -10,14 +10,13 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.Node;
+import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.typesystem.Type;
-import lombok.Getter;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-@Getter
 public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema> {
     private Set<String> transientFields = new HashSet<>();
 
@@ -34,9 +33,9 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
         return super.process(node, querySchema);
     }
 
-    public Void process(Collection<? extends Node> nodes, QuerySchema querySchema) {
+    public Set<String> process(Collection<? extends Node> nodes, QuerySchema querySchema) {
         nodes.forEach(node -> process(node, querySchema));
-        return null;
+        return transientFields;
     }
 
     @Override
@@ -49,7 +48,10 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
         String name = node.getField().getValue();
         Type type = querySchema.getBaseSchemaType(name);
         if (type != Type.NULL) {
-            querySchema.addCurrentProjectionField(name, type);
+            FieldExpression expression = new FieldExpression(name);
+            expression.setType(type);
+            querySchema.addProjectionField(name, expression);
+            querySchema.addCurrentSchemaField(name, type);
             transientFields.add(name);
         }
         return null;
@@ -58,5 +60,9 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
     @Override
     protected Void visitLiteral(LiteralNode node, QuerySchema querySchema) {
         return null;
+    }
+
+    public static Set<String> visit(Collection<? extends Node> nodes, QuerySchema querySchema) {
+        return new OrderByProcessor().process(nodes, querySchema);
     }
 }

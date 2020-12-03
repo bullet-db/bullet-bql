@@ -14,6 +14,11 @@ import org.testng.annotations.Test;
 import java.util.Collections;
 
 public class TypeCheckerTest {
+    public void testConstructor() {
+        // coverage
+        new TypeChecker();
+    }
+
     /*
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported unary operation: \\+")
     public void testValidateUnaryTypeNotUnary() {

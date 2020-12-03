@@ -1,3 +1,8 @@
+/*
+ *  Copyright 2020, Yahoo Inc.
+ *  Licensed under the terms of the Apache License, Version 2.0.
+ *  See the LICENSE file associated with the project for terms.
+ */
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -20,27 +25,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class QuerySchema {
-    /*
-    private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
-
-    static {
-        DISTRIBUTION_SCHEMAS.put(DistributionType.QUANTILE,
-                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.VALUE_FIELD, Type.DOUBLE),
-                                         new Schema.PlainField(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE))));
-        DISTRIBUTION_SCHEMAS.put(DistributionType.PMF,
-                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
-                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
-                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
-        DISTRIBUTION_SCHEMAS.put(DistributionType.CDF,
-                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
-                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
-                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
-    }
-    */
     private static final Map<DistributionType, Map<String, Type>> DISTRIBUTION_FIELDS = new HashMap<>();
 
     static {
@@ -58,47 +46,37 @@ public class QuerySchema {
         DISTRIBUTION_FIELDS.put(DistributionType.CDF, pmfFields);
     }
 
-    private Set<Field> projectionFields = new LinkedHashSet<>();
-    private Set<Field> computationFields = new LinkedHashSet<>();
-
-    @Getter
-    private List<BulletError> errors = new ArrayList<>();
-
-    private Map<String, Type> schema = new HashMap<>();
-    private Map<String, String> aliasMapping = new HashMap<>();
-
-    private Schema baseSchema;
-
     @Getter
     private Map<String, Type> currentSchema;
     @Getter
     private Map<String, String> currentAliasMapping = new HashMap<>();
     private Map<ExpressionNode, Expression> currentMapping = new HashMap<>();
 
+    private Map<String, Type> schema = new HashMap<>();
+    private Map<String, String> aliasMapping = new HashMap<>();
+
+    private Schema baseSchema;
+
+    private Set<Field> projectionFields = new LinkedHashSet<>();
+    private Set<Field> computationFields = new LinkedHashSet<>();
+
+    @Getter
+    private List<BulletError> errors = new ArrayList<>();
+
     public QuerySchema(Schema schema) {
         baseSchema = schema;
         if (schema != null) {
             currentSchema = new HashMap<>();
             schema.getFields().forEach(field -> currentSchema.put(field.getName(), field.getType()));
-
-
-            currentSchema = schema.getFields().stream().collect(Collectors.toMap(Schema.Field::getName, Schema.Field::getType, throwingMerger(), HashMap::new));
         }
-    }
-
-    private static <T> BinaryOperator<T> throwingMerger() {
-        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
     }
 
     public void put(ExpressionNode node, Expression expression) {
         currentMapping.put(node, expression);
     }
 
-    // Messy
     public Expression get(ExpressionNode node) {
-        if (node == null) {
-            return null;
-        } else if (node instanceof FieldExpressionNode) {
+        if (node instanceof FieldExpressionNode) {
             Type type = ((FieldExpressionNode) node).getType();
             if (type != null) {
                 return field(node.getName(), type);
@@ -144,16 +122,16 @@ public class QuerySchema {
         schema.put(name, type);
     }
 
-    public void addCurrentProjectionField(String name, Type type) {
-        FieldExpression expression = new FieldExpression(name);
-        expression.setType(type);
-        projectionFields.add(new Field(name, expression));
+    public void addCurrentSchemaField(String name, Type type) {
         currentSchema.put(name, type);
     }
 
-
     public void addAlias(String name, String alias) {
         aliasMapping.put(name, alias);
+    }
+
+    public void setDistributionFieldsSchema(DistributionType type) {
+        schema = new HashMap<>(DISTRIBUTION_FIELDS.get(type));
     }
 
     public void nextLayer(boolean replaceCurrent) {
@@ -176,11 +154,30 @@ public class QuerySchema {
         currentMapping.clear();
     }
 
+    /**
+     * Checks the list of projection fields for duplicates before returning them.
+     *
+     * @return
+     */
     public List<Field> getProjectionFields() {
+        Map<String, Long> fieldsToCount = projectionFields.stream().map(Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        List<String> duplicates = fieldsToCount.entrySet().stream().filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).collect(Collectors.toList());
+        if (!duplicates.isEmpty()) {
+            errors.add(new BulletError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names."));
+        }
         return new ArrayList<>(projectionFields);
     }
 
+    /**
+     *
+     * @return
+     */
     public List<Field> getComputationFields() {
+        Map<String, Long> fieldsToCount = computationFields.stream().map(Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        List<String> duplicates = fieldsToCount.entrySet().stream().filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).collect(Collectors.toList());
+        if (!duplicates.isEmpty()) {
+            errors.add(new BulletError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases."));
+        }
         return new ArrayList<>(computationFields);
     }
 
@@ -202,17 +199,13 @@ public class QuerySchema {
         errors.add(new BulletError(node.getLocation() + message, (List<String>) null));
     }
 
-    public void addErrors(List<BulletError> errors) {
-        this.errors.addAll(errors);
+    public void addErrors(List<BulletError> bulletErrors) {
+        errors.addAll(bulletErrors);
     }
 
-    public static FieldExpression field(String name, Type type) {
+    private static FieldExpression field(String name, Type type) {
         FieldExpression expression = new FieldExpression(name);
         expression.setType(type);
         return expression;
-    }
-
-    public void setDistributionFields(DistributionType type) {
-        schema = new HashMap<>(DISTRIBUTION_FIELDS.get(type));
     }
 }
