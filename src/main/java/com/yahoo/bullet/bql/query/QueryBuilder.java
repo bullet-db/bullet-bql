@@ -23,26 +23,31 @@ import com.yahoo.bullet.query.Query;
 import com.yahoo.bullet.query.Window;
 import com.yahoo.bullet.query.aggregations.Aggregation;
 import com.yahoo.bullet.query.aggregations.CountDistinct;
+import com.yahoo.bullet.query.aggregations.DistributionType;
 import com.yahoo.bullet.query.aggregations.GroupAll;
 import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.aggregations.Raw;
 import com.yahoo.bullet.query.aggregations.TopK;
 import com.yahoo.bullet.query.expressions.Expression;
+import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.query.postaggregations.Computation;
 import com.yahoo.bullet.query.postaggregations.Culling;
 import com.yahoo.bullet.query.postaggregations.Having;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.postaggregations.PostAggregation;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
+import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +56,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class QueryBuilder {
+    private static final Map<DistributionType, Schema> DISTRIBUTION_SCHEMAS = new HashMap<>();
+
+    static {
+        DISTRIBUTION_SCHEMAS.put(DistributionType.QUANTILE,
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.VALUE_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.QUANTILE_FIELD, Type.DOUBLE))));
+        DISTRIBUTION_SCHEMAS.put(DistributionType.PMF,
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
+        DISTRIBUTION_SCHEMAS.put(DistributionType.CDF,
+                new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
+                                         new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
+    }
+
     private ProcessedQuery processedQuery;
     private Projection projection;
     private Expression filter;
@@ -59,16 +80,31 @@ public class QueryBuilder {
     private Long duration;
     private Integer limit;
 
-    private QuerySchema querySchema;
+    private Set<Field> projectionFields = new LinkedHashSet<>();
+    private Set<Field> computationFields = new LinkedHashSet<>();
+
+    private boolean requiresCopyFlag;
+    private boolean requiresNoCopyFlag;
+
     private List<BulletError> errors = new ArrayList<>();
     private List<PostAggregation> postAggregations = new ArrayList<>();
 
     @Getter
     private Query query;
 
+    private Schema baseSchema;
+    private LayeredSchema layeredSchema;
+
+    // Used to build layers
+    private Schema schema = new Schema();
+    private Map<String, String> aliases = new HashMap<>();
+
+    private ExpressionVisitor expressionVisitor = new ExpressionVisitor(errors);
+
     public QueryBuilder(ProcessedQuery processedQuery, Schema schema) {
         this.processedQuery = processedQuery;
-        this.querySchema = new QuerySchema(schema);
+        this.baseSchema = schema;
+        this.layeredSchema = new LayeredSchema(schema);
         buildQuery();
     }
 
@@ -114,7 +150,7 @@ public class QueryBuilder {
 
         ExpressionNode whereNode = processedQuery.getWhere();
         if (whereNode != null) {
-            filter = ExpressionVisitor.visit(processedQuery.getWhere(), querySchema);
+            filter = visit(processedQuery.getWhere());
             if (cannotCastToBoolean(filter.getType())) {
                 addError(whereNode, "WHERE clause cannot be casted to BOOLEAN: " + whereNode, "Please specify a valid WHERE clause.");
             }
@@ -122,45 +158,52 @@ public class QueryBuilder {
     }
 
     public void doSelect() {
-        doSelectProjection();
+        doSelectFields();
 
-        querySchema.nextLayer(true);
+        requiresNoCopyFlag = true;
+
+        addSchemaLayer(true);
 
         aggregation = new Raw(limit);
 
-        Set<String> transientFields = OrderByProcessor.visit(processedQuery.getOrderByNodes(), querySchema);
+        // Missing fields
+        Set<String> additionalFields = OrderByProcessor.visit(processedQuery.getOrderByNodes(), layeredSchema, baseSchema);
+
+        for (String field : additionalFields) {
+            FieldExpression expression = new FieldExpression(field);
+            expression.setType(layeredSchema.getType(field));
+            addProjectionField(field, expression);
+        }
 
         doOrderBy();
 
-        if (!transientFields.isEmpty()) {
-            postAggregations.add(new Culling(transientFields));
+        if (!additionalFields.isEmpty()) {
+            postAggregations.add(new Culling(additionalFields));
         }
 
-        // Get projection fields at the end because ORDER BY can add fields to the projection.
-        projection = new Projection(querySchema.getProjectionFields(), false);
+        // Create projection at the end because ORDER BY can add additional fields
+        doProjection();
     }
 
     public void doSelectAll() {
+        doSelectFields();
+
+        requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
+
+        doProjection();
+
+        addSchemaLayer(requiresCopyFlag);
+
         aggregation = new Raw(limit);
-
-        doSelectProjection();
-
-        boolean requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
-
-        if (requiresCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), true);
-        } else {
-            projection = new Projection();
-        }
-
-        querySchema.nextLayer(requiresCopyFlag);
 
         doOrderBy();
 
         // Renamed fields that are not in the final schema are removed
         if (requiresCopyFlag) {
-            Set<String> transientFields = new HashSet<>(querySchema.getCurrentAliasMapping().keySet());
-            transientFields.removeAll(querySchema.getCurrentSchema().keySet());
+            Schema schema = layeredSchema.getSchema();
+            Set<String> transientFields = layeredSchema.getAliases().keySet().stream()
+                                                                             .filter(field -> !schema.hasField(field))
+                                                                             .collect(Collectors.toCollection(HashSet::new));
             if (!transientFields.isEmpty()) {
                 postAggregations.add(new Culling(transientFields));
             }
@@ -170,15 +213,15 @@ public class QueryBuilder {
     private void doSelectDistinct() {
         Map<String, String> fields = new HashMap<>();
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             String name = node.getName();
             Type type = expression.getType();
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(name, newName);
+                addAlias(name, newName);
             }
-            querySchema.addProjectionField(name, expression);
-            querySchema.addSchemaField(newName, type);
+            addProjectionField(name, expression);
+            addSchemaField(newName, type);
 
             fields.put(name, newName);
 
@@ -187,15 +230,11 @@ public class QueryBuilder {
             }
         }
 
-        boolean requiresNoCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
+        requiresNoCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
 
-        if (requiresNoCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), false);
-        } else {
-            projection = new Projection();
-        }
+        doProjection();
 
-        querySchema.nextLayer(true);
+        addSchemaLayer(true);
 
         // Check for duplicate aggregate names
         duplicates(fields.values()).ifPresent(duplicates ->
@@ -210,22 +249,22 @@ public class QueryBuilder {
     private void doGroup() {
         Map<String, String> fields = new HashMap<>();
 
-        boolean requiresNoCopyFlag = false;
-
         List<String> schemaFields = new ArrayList<>();
 
         for (ExpressionNode node : processedQuery.getGroupByNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             String name = node.getName();
             Type type = expression.getType();
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(name, newName);
+                addAlias(name, newName);
             }
-            querySchema.addProjectionField(name, expression);
-            querySchema.addSchemaField(newName, type);
+            addProjectionField(name, expression);
+            addSchemaField(newName, type);
+
             fields.put(name, newName);
             schemaFields.add(newName);
+
             if (!(node instanceof FieldExpressionNode)) {
                 requiresNoCopyFlag = true;
             }
@@ -237,19 +276,20 @@ public class QueryBuilder {
         Set<GroupOperation> operations = new HashSet<>();
 
         for (GroupOperationNode node : processedQuery.getGroupOpNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
             // Mapping for the aggregate
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(node.getName(), newName);
+                addAlias(node.getName(), newName);
             }
-            querySchema.addSchemaField(newName, type);
+            addSchemaField(newName, type);
             schemaFields.add(newName);
 
             ExpressionNode expressionNode = node.getExpression();
             if (expressionNode != null) {
-                querySchema.addProjectionField(expressionNode.getName(), ExpressionVisitor.visit(expressionNode, querySchema));
+                //addProjectionField(expressionNode.getName(), ExpressionVisitor.visit(expressionNode, querySchema));
+                addProjectionField(expressionNode.getName(), visit(expressionNode));
                 operations.add(new GroupOperation(node.getOp(), expressionNode.getName(), newName));
                 if (!(expressionNode instanceof FieldExpressionNode)) {
                     requiresNoCopyFlag = true;
@@ -259,11 +299,7 @@ public class QueryBuilder {
             }
         }
 
-        if (requiresNoCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), false);
-        } else {
-            projection = new Projection();
-        }
+        doProjection();
 
         // Check for duplicate aggregate names
         duplicates(schemaFields).ifPresent(duplicates ->
@@ -276,11 +312,11 @@ public class QueryBuilder {
             aggregation = new GroupAll(operations);
         }
 
-        querySchema.nextLayer(true);
+        addSchemaLayer(true);
 
         ExpressionNode having = processedQuery.getHaving();
         if (having != null) {
-            Expression expression = ExpressionVisitor.visit(having, querySchema);
+            Expression expression = visit(having);
             Type type = expression.getType();
             if (cannotCastToBoolean(type)) {
                 addError(having, "HAVING clause cannot be casted to BOOLEAN: " + having, "Please specify a valid HAVING clause.");
@@ -300,33 +336,26 @@ public class QueryBuilder {
         List<String> fields = new ArrayList<>();
 
         for (ExpressionNode node : countDistinctExpressions) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             String name = node.getName();
-            querySchema.addProjectionField(name, expression);
+            addProjectionField(name, expression);
             fields.add(name);
         }
 
-        //
-        boolean requiresNoCopyFlag = countDistinctExpressions.stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
+        requiresNoCopyFlag = countDistinctExpressions.stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
 
-        if (requiresNoCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), false);
-        } else {
-            projection = new Projection();
-        }
+        doProjection();
 
-        Expression countDistinctExpression = ExpressionVisitor.visit(countDistinctNode, querySchema);
+        Expression countDistinctExpression = visit(countDistinctNode);
         String countDistinctName = processedQuery.getAliasOrName(countDistinctNode);
         if (processedQuery.hasAlias(countDistinctNode)) {
-            querySchema.addAlias(countDistinctNode.getName(), countDistinctName);
+            addAlias(countDistinctNode.getName(), countDistinctName);
         }
-        querySchema.addSchemaField(countDistinctName, countDistinctExpression.getType());
+        addSchemaField(countDistinctName, countDistinctExpression.getType());
 
-        querySchema.nextLayer(true);
-
+        addSchemaLayer(true);
 
         // No need to check for duplicates in aggregation because only one field (count distinct)
-
         aggregation = new CountDistinct(fields, countDistinctName);
 
         doComputation();
@@ -337,23 +366,20 @@ public class QueryBuilder {
         DistributionNode distributionNode = processedQuery.getDistribution();
 
         ExpressionNode distributionExpressionNode = distributionNode.getExpression();
-        Expression distributionExpression = ExpressionVisitor.visit(distributionExpressionNode, querySchema);
+        Expression distributionExpression = visit(distributionExpressionNode);
         String distributionExpressionName = distributionExpressionNode.getName();
-        querySchema.addProjectionField(distributionExpressionName, distributionExpression);
 
-        boolean requiresNoCopyFlag = !(distributionExpressionNode instanceof FieldExpressionNode);
+        addProjectionField(distributionExpressionName, distributionExpression);
 
-        if (requiresNoCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), false);
-        } else {
-            projection = new Projection();
-        }
+        requiresNoCopyFlag = !(distributionExpressionNode instanceof FieldExpressionNode);
 
-        ExpressionVisitor.visit(distributionNode, querySchema);
+        doProjection();
 
-        querySchema.setDistributionFieldsSchema(distributionNode.getType());
+        visit(distributionNode);
 
-        querySchema.nextLayer(true);
+        schema = DISTRIBUTION_SCHEMAS.get(distributionNode.getType());
+
+        addSchemaLayer(true);
 
         // No need to check for duplicates in aggregation because fixed fields
 
@@ -369,31 +395,27 @@ public class QueryBuilder {
         Map<String, String> fields = new HashMap<>();
 
         for (ExpressionNode node : topKExpressions) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             Type type = expression.getType();
             String name = node.getName();
             String newName = processedQuery.getAliasOrName(node);
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(name, newName);
+                addAlias(name, newName);
             }
-            querySchema.addProjectionField(name, expression);
-            querySchema.addSchemaField(newName, type);
+            addProjectionField(name, expression);
+            addSchemaField(newName, type);
             fields.put(name, newName);
         }
 
-        boolean requiresNoCopyFlag = topKExpressions.stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
+        requiresNoCopyFlag = topKExpressions.stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
 
-        if (requiresNoCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), false);
-        } else {
-            projection = new Projection();
-        }
+        doProjection();
 
-        ExpressionVisitor.visit(topKNode, querySchema);
+        visit(topKNode);
         String topKAlias = processedQuery.getAlias(topKNode);
-        querySchema.addSchemaField(topKAlias, Type.LONG);
+        addSchemaField(topKAlias, Type.LONG);
 
-        querySchema.nextLayer(true);
+        addSchemaLayer(true);
 
         // Check for duplicate aggregate names
         duplicates(fields.values()).ifPresent(duplicates ->
@@ -409,38 +431,34 @@ public class QueryBuilder {
         Map<String, String> fields = new HashMap<>();
 
         for (ExpressionNode node : processedQuery.getGroupByNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             Type type = expression.getType();
             String name = node.getName();
             String newName = processedQuery.getAliasOrName(node);
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(name, newName);
+                addAlias(name, newName);
             }
-            querySchema.addProjectionField(name, expression);
-            querySchema.addSchemaField(newName, type);
+            addProjectionField(name, expression);
+            addSchemaField(newName, type);
             fields.put(name, newName);
             if (isNonPrimitive(type)) {
                 addError(node, "The GROUP BY field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for GROUP BY.");
             }
         }
 
-        boolean requiresNoCopyFlag = processedQuery.getGroupByNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
+        requiresNoCopyFlag = processedQuery.getGroupByNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode));
 
-        if (requiresNoCopyFlag) {
-            projection = new Projection(querySchema.getProjectionFields(), false);
-        } else {
-            projection = new Projection();
-        }
+        doProjection();
 
         ExpressionNode countNode = processedQuery.getGroupOpNodes().iterator().next();
-        ExpressionVisitor.visit(countNode, querySchema);
+        visit(countNode);
         String countAliasOrName = processedQuery.getAliasOrName(countNode);
         if (processedQuery.hasAlias(countNode)) {
-            querySchema.addAlias(countNode.getName(), countAliasOrName);
+            addAlias(countNode.getName(), countAliasOrName);
         }
-        querySchema.addSchemaField(countAliasOrName, Type.LONG);
+        addSchemaField(countAliasOrName, Type.LONG);
 
-        querySchema.nextLayer(true);
+        addSchemaLayer(true);
 
         Long threshold = null;
         if (processedQuery.getHaving() != null) {
@@ -457,38 +475,60 @@ public class QueryBuilder {
         doComputation();
     }
 
-    private void doSelectProjection() {
+    private void doSelectFields() {
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
-            querySchema.addProjectionField(newName, expression);
-            querySchema.addSchemaField(newName, type);
+            addProjectionField(newName, expression);
+            addSchemaField(newName, type);
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(node.getName(), newName);
+                addAlias(node.getName(), newName);
             }
+        }
+    }
+
+    private void doProjection() {
+        Map<String, Long> fieldsToCount = projectionFields.stream().map(Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        List<String> duplicates = fieldsToCount.entrySet().stream().filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).collect(Collectors.toList());
+        if (!duplicates.isEmpty()) {
+            addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.");
+        }
+        if (requiresCopyFlag) {
+            projection = new Projection(new ArrayList<>(projectionFields), true);
+        } else if (requiresNoCopyFlag) {
+            projection = new Projection(new ArrayList<>(projectionFields), false);
+        } else {
+            projection = new Projection();
         }
     }
 
     private void doComputation() {
         for (ExpressionNode node : processedQuery.getSelectNodes()) {
-            if (querySchema.contains(node)) {
+            if (layeredSchema.hasField(node.getName())) {
                 continue;
             }
-            Expression expression = ExpressionVisitor.visit(node, querySchema);
+            Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
+            addComputationField(newName, expression);
+
+            addSchemaField(newName, type);
             if (processedQuery.hasAlias(node)) {
-                querySchema.addAlias(node.getName(), newName);
+                addAlias(node.getName(), newName);
             }
-            querySchema.addComputationField(newName, expression);
-            querySchema.addSchemaField(newName, type);
         }
-        List<Field> fields = querySchema.getComputationFields();
-        if (!fields.isEmpty()) {
-            postAggregations.add(new Computation(fields));
+
+        Map<String, Long> fieldsToCount = computationFields.stream().map(Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        List<String> duplicates = fieldsToCount.entrySet().stream().filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).collect(Collectors.toList());
+        if (!duplicates.isEmpty()) {
+            errors.add(new BulletError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases."));
         }
-        querySchema.nextLayer(false);
+
+        if (!computationFields.isEmpty()) {
+            postAggregations.add(new Computation(new ArrayList<>(computationFields)));
+        }
+        addSchemaLayer(false);
     }
 
     private void doOrderBy() {
@@ -498,7 +538,7 @@ public class QueryBuilder {
         List<OrderBy.SortItem> sortItems = new ArrayList<>();
         for (SortItemNode sortItem : processedQuery.getSortItems()) {
             ExpressionNode orderByNode = sortItem.getExpression();
-            Expression expression = ExpressionVisitor.visit(orderByNode, querySchema);
+            Expression expression = visit(orderByNode);
             if (isNonPrimitive(expression.getType())) {
                 addError(orderByNode, "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field.");
             }
@@ -508,11 +548,41 @@ public class QueryBuilder {
     }
 
     private void doTransient() {
-        Set<String> transientFields = new HashSet<>(querySchema.getCurrentSchema().keySet());
+        Set<String> transientFields = layeredSchema.getFields();
         processedQuery.getSelectNodes().stream().map(processedQuery::getAliasOrName).forEach(transientFields::remove);
         if (!transientFields.isEmpty()) {
             postAggregations.add(new Culling(transientFields));
         }
+    }
+
+    private Expression visit(ExpressionNode node) {
+        return expressionVisitor.process(node, layeredSchema);
+    }
+
+    private void addProjectionField(String name, Expression expression) {
+        projectionFields.add(new Field(name, expression));
+    }
+
+    private void addComputationField(String name, Expression expression) {
+        computationFields.add(new Field(name, expression));
+    }
+
+    private void addSchemaField(String name, Type type) {
+        schema.addField(name, type);
+    }
+
+    private void addAlias(String name, String alias) {
+        aliases.put(name, alias);
+    }
+
+    private void addSchemaLayer(boolean lockTopLayer) {
+        if (lockTopLayer) {
+            layeredSchema.lockTopLayer();
+        }
+        layeredSchema.addLayer(schema, aliases);
+        schema = new Schema();
+        aliases = new HashMap<>();
+        expressionVisitor.resetMapping();
     }
 
     private static Window getWindow(WindowNode windowNode) {
@@ -549,13 +619,10 @@ public class QueryBuilder {
     }
 
     public List<BulletError> getErrors() {
-        List<BulletError> bulletErrors = new ArrayList<>();
-        bulletErrors.addAll(errors);
-        bulletErrors.addAll(querySchema.getErrors());
-        return bulletErrors;
+        return new ArrayList<>(errors);
     }
 
     public boolean hasErrors() {
-        return !errors.isEmpty() || !querySchema.getErrors().isEmpty();
+        return !errors.isEmpty();
     }
 }

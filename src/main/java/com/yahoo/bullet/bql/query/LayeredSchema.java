@@ -7,18 +7,57 @@ package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
+import lombok.Getter;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Getter
 public class LayeredSchema {
     private Schema schema;
+    private Map<String, String> aliases;
     private LayeredSchema subSchema;
+    private boolean locked;
 
     public LayeredSchema(Schema schema) {
         this.schema = schema;
+        this.aliases = Collections.emptyMap();
     }
 
-    public LayeredSchema(Schema schema, LayeredSchema subSchema) {
+    public LayeredSchema(Schema schema, Map<String, String> aliases, LayeredSchema subSchema, boolean locked) {
         this.schema = schema;
+        this.aliases = aliases;
         this.subSchema = subSchema;
+        this.locked = locked;
+    }
+
+    public void addLayer(Schema newSchema, Map<String, String> newAliases) {
+        subSchema = new LayeredSchema(schema, aliases, subSchema, locked);
+        schema = newSchema;
+        aliases = newAliases;
+        locked = false;
+    }
+
+    public void lockTopLayer() {
+        locked = true;
+    }
+
+    public Schema.Field getField(String field) {
+        if (schema == null) {
+            return null;
+        }
+        Type type = schema.getType(field);
+        if (type != Type.NULL) {
+            return new Schema.PlainField(field, type);
+        }
+        String alias = aliases.get(field);
+        if (alias != null) {
+            return new Schema.PlainField(alias, schema.getType(alias));
+        }
+        return subSchema != null && !subSchema.locked ? subSchema.getField(field) : null;
     }
 
     public Type getType(String field) {
@@ -30,17 +69,33 @@ public class LayeredSchema {
         if (type != Type.NULL) {
             return type;
         }
-        return subSchema != null ? subSchema.getType(field) : Type.NULL;
+        String alias = aliases.get(field);
+        if (alias != null) {
+            return schema.getType(alias);
+        }
+        return subSchema != null && !subSchema.locked ? subSchema.getType(field) : Type.NULL;
     }
 
-    // Add new schema on top
-    public void addLayer(Schema newSchema) {
-        subSchema = new LayeredSchema(schema, subSchema);
-        schema = newSchema;
+    public boolean hasField(String field) {
+        if (schema == null) {
+            return false;
+        }
+        if (schema.hasField(field)) {
+            return true;
+        }
+        if (aliases.containsKey(field)) {
+            return true;
+        }
+        return subSchema != null && !subSchema.locked && subSchema.hasField(field);
     }
 
-    public void replaceSchema(Schema newSchema) {
-        schema = newSchema;
-        subSchema = null;
+    public Set<String> getFields() {
+        Set<String> fields = schema.getFields().stream()
+                                               .map(Schema.Field::getName)
+                                               .collect(Collectors.toCollection(HashSet::new));
+        if (subSchema != null && !subSchema.locked) {
+            fields.addAll(subSchema.getFields());
+        }
+        return fields;
     }
 }

@@ -11,6 +11,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
+
 public class LayeredSchemaTest {
     private Schema baseSchema;
 
@@ -42,7 +44,7 @@ public class LayeredSchemaTest {
         Schema newSchema = new Schema();
         newSchema.addField("foo", Type.FLOAT);
 
-        schema.addLayer(newSchema);
+        schema.addLayer(newSchema, Collections.emptyMap());
         Assert.assertEquals(schema.getType("foo"), Type.FLOAT);
         Assert.assertEquals(schema.getType("bar"), Type.NULL);
     }
@@ -52,22 +54,29 @@ public class LayeredSchemaTest {
         LayeredSchema schema = new LayeredSchema(null);
         Assert.assertEquals(schema.getType("abc"), Type.UNKNOWN);
 
-        schema.addLayer(baseSchema);
+        schema.addLayer(baseSchema, Collections.emptyMap());
         Assert.assertEquals(schema.getType("abc"), Type.INTEGER);
 
-        schema.addLayer(null);
+        schema.addLayer(null, null);
         Assert.assertEquals(schema.getType("abc"), Type.UNKNOWN);
     }
 
     @Test
-    public void testReplaceSchema() {
+    public void testLockTopLayer() {
         LayeredSchema schema = new LayeredSchema(null);
         Assert.assertEquals(schema.getType("abc"), Type.UNKNOWN);
 
-        schema.replaceSchema(baseSchema);
+        schema.addLayer(baseSchema, Collections.emptyMap());
+
         Assert.assertEquals(schema.getType("abc"), Type.INTEGER);
 
-        schema.replaceSchema(null);
-        Assert.assertEquals(schema.getType("abc"), Type.UNKNOWN);
+        schema.addLayer(new Schema(), Collections.emptyMap());
+
+        Assert.assertEquals(schema.getType("abc"), Type.INTEGER);
+
+        schema.lockTopLayer();
+
+        schema.addLayer(new Schema(), Collections.emptyMap());
+        Assert.assertEquals(schema.getType("abc"), Type.NULL);
     }
 }

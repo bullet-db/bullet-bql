@@ -29,11 +29,9 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
     `mvn clean compile` 
 
-    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. For example:
+    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. To run:
      
-    `mvn exec:java -Dexec.args="'SELECT * FROM STREAM(30000, TIME) LIMIT 1;'"` 
-
-    **Note:** Notice the query must be enclosed in single+double quotes: `"'` so each word is not interpreted as it's own argument.
+    `mvn exec:java` 
      
 * Bullet-BQL is currently being integrated into [Bullet-Service](https://github.com/bullet-db/bullet-service/), and will provide a BQL endpoint directly. 
 

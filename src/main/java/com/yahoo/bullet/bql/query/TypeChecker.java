@@ -31,17 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TypeChecker {
-    /*
-    public static Optional<List<BulletError>> validateFieldType(FieldExpressionNode node, FieldExpression fieldExpression, Type type) {
-        if (Type.isUnknown(type)) {
-            return unknownError();
-        } else if (type == null) {
-            return makeError(node, "The field " + fieldExpression.getField() + " does not exist in the schema.");
-        }
-        return Optional.empty();
-    }
-    */
-    public static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression fieldExpression) {
+    static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression fieldExpression) {
         Type type = fieldExpression.getType();
         if (Type.isUnknown(type)) {
             return unknownError();
@@ -51,7 +41,7 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validateListSubTypes(ListExpressionNode node, ListExpression listExpression) {
+    static Optional<List<BulletError>> validateListSubTypes(ListExpressionNode node, ListExpression listExpression) {
         Set<Type> listSubTypes = listExpression.getValues().stream().map(Expression::getType).collect(Collectors.toSet());
         if (listSubTypes.isEmpty()) {
             return makeError(node, "Empty lists are currently not supported.");
@@ -69,7 +59,7 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validateUnaryType(ExpressionNode node, UnaryExpression unaryExpression) {
+    static Optional<List<BulletError>> validateUnaryType(ExpressionNode node, UnaryExpression unaryExpression) {
         Type operandType = unaryExpression.getOperand().getType();
         if (Type.isUnknown(operandType)) {
             return unknownError();
@@ -93,7 +83,7 @@ public class TypeChecker {
         throw new IllegalArgumentException("This is not a supported unary operation: " + unaryExpression.getOp());
     }
 
-    public static Optional<List<BulletError>> validateNAryType(NAryExpressionNode node, NAryExpression nAryExpression) {
+    static Optional<List<BulletError>> validateNAryType(NAryExpressionNode node, NAryExpression nAryExpression) {
         List<Type> argTypes = nAryExpression.getOperands().stream().map(Expression::getType).collect(Collectors.toList());
         if (argTypes.contains(Type.UNKNOWN)) {
             return unknownError();
@@ -113,7 +103,7 @@ public class TypeChecker {
         throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
     }
 
-    public static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Expression expression) {
+    static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Expression expression) {
         Type type = expression.getType();
         if (Type.isUnknown(type)) {
             return unknownError();
@@ -124,7 +114,7 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validatePrimitiveTypes(ExpressionNode node, List<Expression> expressions) {
+    static Optional<List<BulletError>> validatePrimitiveTypes(ExpressionNode node, List<Expression> expressions) {
         List<Type> types = expressions.stream().map(Expression::getType).collect(Collectors.toList());
         if (types.contains(Type.UNKNOWN)) {
             return unknownError();
@@ -135,7 +125,7 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validateCastType(CastExpressionNode node, CastExpression castExpression) {
+    static Optional<List<BulletError>> validateCastType(CastExpressionNode node, CastExpression castExpression) {
         Type argType = castExpression.getValue().getType();
         Type castType = castExpression.getCastType();
         if (Type.isUnknown(argType)) {
@@ -146,7 +136,7 @@ public class TypeChecker {
         return Optional.empty();
     }
 
-    public static Optional<List<BulletError>> validateBinaryType(BinaryExpressionNode node, BinaryExpression binaryExpression) {
+    static Optional<List<BulletError>> validateBinaryType(BinaryExpressionNode node, BinaryExpression binaryExpression) {
         Type leftType = binaryExpression.getLeft().getType();
         Type rightType = binaryExpression.getRight().getType();
         if (Type.isUnknown(leftType) || Type.isUnknown(rightType)) {
@@ -291,7 +281,7 @@ public class TypeChecker {
         return Optional.of(Collections.emptyList());
     }
 
-    private static BulletError makeErrorOnly(Node node, String message) {
+    static BulletError makeErrorOnly(Node node, String message) {
         return new BulletError(node.getLocation() + message, (List<String>) null);
     }
 

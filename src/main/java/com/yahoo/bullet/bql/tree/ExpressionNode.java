@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class ExpressionNode extends Node {
+    private String name;
+
     protected ExpressionNode(NodeLocation location) {
         super(location);
     }
@@ -31,7 +33,10 @@ public abstract class ExpressionNode extends Node {
      * @return A String.
      */
     public String getName() {
-        return ExpressionFormatter.format(this, false);
+        if (name == null) {
+            name = ExpressionFormatter.format(this, false);
+        }
+        return name;
     }
 
     public List<ExpressionNode> getChildren() {

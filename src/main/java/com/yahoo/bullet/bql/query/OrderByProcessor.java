@@ -10,15 +10,18 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.query.expressions.FieldExpression;
+import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema> {
-    private Set<String> transientFields = new HashSet<>();
+@RequiredArgsConstructor
+public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchema> {
+    private final Schema baseSchema;
+    private Set<String> additionalFields = new HashSet<>();
 
     @Override
     public Void process(Node node) {
@@ -26,43 +29,42 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, QuerySchema>
     }
 
     @Override
-    public Void process(Node node, QuerySchema querySchema) {
-        if (querySchema.contains((ExpressionNode) node)) {
+    public Void process(Node node, LayeredSchema layeredSchema) {
+        if (layeredSchema.hasField(((ExpressionNode) node).getName())) {
             return null;
         }
-        return super.process(node, querySchema);
+        return super.process(node, layeredSchema);
     }
 
-    public Set<String> process(Collection<? extends Node> nodes, QuerySchema querySchema) {
-        nodes.forEach(node -> process(node, querySchema));
-        return transientFields;
+    public Set<String> process(Collection<? extends Node> nodes, LayeredSchema layeredSchema) {
+        nodes.forEach(node -> process(node, layeredSchema));
+        return additionalFields;
     }
 
     @Override
-    protected Void visitExpression(ExpressionNode node, QuerySchema querySchema) {
+    protected Void visitExpression(ExpressionNode node, LayeredSchema layeredSchema) {
         throw new RuntimeException("This method should not be called.");
     }
 
     @Override
-    protected Void visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
-        String name = node.getField().getValue();
-        Type type = querySchema.getBaseSchemaType(name);
-        if (type != Type.NULL) {
-            FieldExpression expression = new FieldExpression(name);
-            expression.setType(type);
-            querySchema.addProjectionField(name, expression);
-            querySchema.addCurrentSchemaField(name, type);
-            transientFields.add(name);
+    protected Void visitFieldExpression(FieldExpressionNode node, LayeredSchema layeredSchema) {
+        if (baseSchema != null) {
+            String name = node.getField().getValue();
+            Type type = baseSchema.getType(name);
+            if (type != Type.NULL) {
+                layeredSchema.getSchema().addField(name, type);
+                additionalFields.add(name);
+            }
         }
         return null;
     }
 
     @Override
-    protected Void visitLiteral(LiteralNode node, QuerySchema querySchema) {
+    protected Void visitLiteral(LiteralNode node, LayeredSchema layeredSchema) {
         return null;
     }
 
-    public static Set<String> visit(Collection<? extends Node> nodes, QuerySchema querySchema) {
-        return new OrderByProcessor().process(nodes, querySchema);
+    public static Set<String> visit(Collection<? extends Node> nodes, LayeredSchema layeredSchema, Schema baseSchema) {
+        return new OrderByProcessor(baseSchema).process(nodes, layeredSchema);
     }
 }

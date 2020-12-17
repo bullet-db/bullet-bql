@@ -22,6 +22,8 @@ import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
+import com.yahoo.bullet.common.BulletError;
+import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
 import com.yahoo.bullet.query.expressions.Expression;
@@ -31,16 +33,23 @@ import com.yahoo.bullet.query.expressions.NAryExpression;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.query.expressions.ValueExpression;
+import com.yahoo.bullet.typesystem.Schema;
+import com.yahoo.bullet.typesystem.Type;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.yahoo.bullet.bql.query.TypeSetter.setType;
 
-public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, QuerySchema> {
-    private static final ExpressionVisitor INSTANCE = new ExpressionVisitor();
+@RequiredArgsConstructor
+public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, LayeredSchema> {
+    private final List<BulletError> errors;
+    private Map<Node, Expression> mapping = new HashMap<>();
 
     @Override
     public Expression process(Node node) {
@@ -48,38 +57,61 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
     }
 
     @Override
-    public Expression process(Node node, QuerySchema querySchema) {
+    public Expression process(Node node, LayeredSchema layeredSchema) {
         if (node == null) {
             return null;
         }
-        Expression expression = querySchema.get((ExpressionNode) node);
+        Expression expression = mapping.get(node);
         if (expression != null) {
             return expression;
         }
-        return super.process(node, querySchema);
+        String name = ((ExpressionNode) node).getName();
+        // Type override
+        if (node instanceof FieldExpressionNode) {
+            Type type = ((FieldExpressionNode) node).getType();
+            if (type != null) {
+                return field(name, type);
+            }
+        } else if (node instanceof SubFieldExpressionNode) {
+            Type type = ((SubFieldExpressionNode) node).getType();
+            if (type != null) {
+                return field(name, type);
+            }
+        }
+        Schema.Field field = layeredSchema.getField(name);
+        if (field != null) {
+            return field(field.getName(), field.getType());
+        }
+        return super.process(node, layeredSchema);
     }
 
-    @Override
-    protected Expression visitNode(Node node, QuerySchema querySchema) {
-        throw new RuntimeException("This method should not be called.");
-    }
-
-    @Override
-    protected Expression visitExpression(ExpressionNode node, QuerySchema querySchema) {
-        throw new RuntimeException("This method should not be called.");
-    }
-
-    @Override
-    protected Expression visitFieldExpression(FieldExpressionNode node, QuerySchema querySchema) {
-        FieldExpression expression = new FieldExpression(node.getField().getValue());
-        setType(node, expression, querySchema);
-        querySchema.put(node, expression);
+    private static FieldExpression field(String name, Type type) {
+        FieldExpression expression = new FieldExpression(name);
+        expression.setType(type);
         return expression;
     }
 
     @Override
-    protected Expression visitSubFieldExpression(SubFieldExpressionNode node, QuerySchema querySchema) {
-        FieldExpression fieldExpression = (FieldExpression) process(node.getField(), querySchema);
+    protected Expression visitNode(Node node, LayeredSchema layeredSchema) {
+        throw new RuntimeException("This method should not be called.");
+    }
+
+    @Override
+    protected Expression visitExpression(ExpressionNode node, LayeredSchema layeredSchema) {
+        throw new RuntimeException("This method should not be called.");
+    }
+
+    @Override
+    protected Expression visitFieldExpression(FieldExpressionNode node, LayeredSchema layeredSchema) {
+        FieldExpression expression = new FieldExpression(node.getField().getValue());
+        setType(node, expression, layeredSchema, errors);
+        mapping.put(node, expression);
+        return expression;
+    }
+
+    @Override
+    protected Expression visitSubFieldExpression(SubFieldExpressionNode node, LayeredSchema layeredSchema) {
+        FieldExpression fieldExpression = (FieldExpression) process(node.getField(), layeredSchema);
         FieldExpression expression;
         if (fieldExpression.getIndex() != null) {
             expression = new FieldExpression(fieldExpression.getField(), fieldExpression.getIndex(), node.getKey().getValue());
@@ -90,118 +122,114 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Query
         } else {
             expression = new FieldExpression(fieldExpression.getField(), node.getKey().getValue());
         }
-        setType(node, expression, fieldExpression, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, fieldExpression, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitListExpression(ListExpressionNode node, QuerySchema querySchema) {
-        List<Expression> expressions = node.getExpressions().stream().map(processFunc(querySchema)).collect(Collectors.toCollection(ArrayList::new));
+    protected Expression visitListExpression(ListExpressionNode node, LayeredSchema layeredSchema) {
+        List<Expression> expressions = node.getExpressions().stream().map(processFunc(layeredSchema)).collect(Collectors.toCollection(ArrayList::new));
         ListExpression listExpression = new ListExpression(expressions);
-        setType(node, listExpression, querySchema);
-        querySchema.put(node, listExpression);
+        setType(node, listExpression, errors);
+        mapping.put(node, listExpression);
         return listExpression;
     }
 
     @Override
-    protected Expression visitNullPredicate(NullPredicateNode node, QuerySchema querySchema) {
-        Expression operand = process(node.getExpression(), querySchema);
+    protected Expression visitNullPredicate(NullPredicateNode node, LayeredSchema layeredSchema) {
+        Expression operand = process(node.getExpression(), layeredSchema);
         Operation op = node.isNot() ? Operation.IS_NOT_NULL : Operation.IS_NULL;
         UnaryExpression expression = new UnaryExpression(operand, op);
-        setType(node, expression, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitUnaryExpression(UnaryExpressionNode node, QuerySchema querySchema) {
-        Expression operand = process(node.getExpression(), querySchema);
+    protected Expression visitUnaryExpression(UnaryExpressionNode node, LayeredSchema layeredSchema) {
+        Expression operand = process(node.getExpression(), layeredSchema);
         UnaryExpression expression = new UnaryExpression(operand, node.getOp());
-        setType(node, expression, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitNAryExpression(NAryExpressionNode node, QuerySchema querySchema) {
-        List<Expression> operands = node.getExpressions().stream().map(processFunc(querySchema)).collect(Collectors.toCollection(ArrayList::new));
+    protected Expression visitNAryExpression(NAryExpressionNode node, LayeredSchema layeredSchema) {
+        List<Expression> operands = node.getExpressions().stream().map(processFunc(layeredSchema)).collect(Collectors.toCollection(ArrayList::new));
         NAryExpression expression = new NAryExpression(operands, node.getOp());
-        setType(node, expression, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitGroupOperation(GroupOperationNode node, QuerySchema querySchema) {
-        Expression operand = process(node.getExpression(), querySchema);
+    protected Expression visitGroupOperation(GroupOperationNode node, LayeredSchema layeredSchema) {
+        Expression operand = process(node.getExpression(), layeredSchema);
         FieldExpression expression = new FieldExpression(node.getName());
-        setType(node, expression, operand, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, operand, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitCountDistinct(CountDistinctNode node, QuerySchema querySchema) {
-        List<Expression> expressions = node.getExpressions().stream().map(processFunc(querySchema)).collect(Collectors.toList());
+    protected Expression visitCountDistinct(CountDistinctNode node, LayeredSchema layeredSchema) {
+        List<Expression> expressions = node.getExpressions().stream().map(processFunc(layeredSchema)).collect(Collectors.toList());
         FieldExpression expression = new FieldExpression(node.getName());
-        setType(node, expression, expressions, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, expressions, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitDistribution(DistributionNode node, QuerySchema querySchema) {
-        Expression expression = process(node.getExpression(), querySchema);
-        TypeChecker.validateNumericType(node, expression).ifPresent(querySchema::addErrors);
+    protected Expression visitDistribution(DistributionNode node, LayeredSchema layeredSchema) {
+        Expression expression = process(node.getExpression(), layeredSchema);
+        TypeChecker.validateNumericType(node, expression).ifPresent(errors::addAll);
         return null;
     }
 
     @Override
-    protected Expression visitTopK(TopKNode node, QuerySchema querySchema) {
-        List<Expression> expressions = node.getExpressions().stream().map(processFunc(querySchema)).collect(Collectors.toList());
-        TypeChecker.validatePrimitiveTypes(node, expressions).ifPresent(querySchema::addErrors);
+    protected Expression visitTopK(TopKNode node, LayeredSchema layeredSchema) {
+        List<Expression> expressions = node.getExpressions().stream().map(processFunc(layeredSchema)).collect(Collectors.toList());
+        TypeChecker.validatePrimitiveTypes(node, expressions).ifPresent(errors::addAll);
         return null;
     }
 
     @Override
-    protected Expression visitCastExpression(CastExpressionNode node, QuerySchema querySchema) {
-        Expression operand = process(node.getExpression(), querySchema);
+    protected Expression visitCastExpression(CastExpressionNode node, LayeredSchema layeredSchema) {
+        Expression operand = process(node.getExpression(), layeredSchema);
         CastExpression expression = new CastExpression(operand, node.getCastType());
-        setType(node, expression, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitBinaryExpression(BinaryExpressionNode node, QuerySchema querySchema) {
-        Expression left = process(node.getLeft(), querySchema);
-        Expression right = process(node.getRight(), querySchema);
+    protected Expression visitBinaryExpression(BinaryExpressionNode node, LayeredSchema layeredSchema) {
+        Expression left = process(node.getLeft(), layeredSchema);
+        Expression right = process(node.getRight(), layeredSchema);
         BinaryExpression expression = new BinaryExpression(left, right, node.getOp());
-        setType(node, expression, querySchema);
-        querySchema.put(node, expression);
+        setType(node, expression, errors);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitParenthesesExpression(ParenthesesExpressionNode node, QuerySchema querySchema) {
-        Expression expression = process(node.getExpression(), querySchema);
-        querySchema.put(node, expression);
+    protected Expression visitParenthesesExpression(ParenthesesExpressionNode node, LayeredSchema layeredSchema) {
+        Expression expression = process(node.getExpression(), layeredSchema);
+        mapping.put(node, expression);
         return expression;
     }
 
     @Override
-    protected Expression visitLiteral(LiteralNode node, QuerySchema querySchema) {
+    protected Expression visitLiteral(LiteralNode node, LayeredSchema layeredSchema) {
         ValueExpression expression = new ValueExpression(node.getValue());
-        querySchema.put(node, expression);
+        mapping.put(node, expression);
         return expression;
     }
 
-    public static Expression visit(Node node, QuerySchema querySchema) {
-        return INSTANCE.process(node, querySchema);
-    }
-
-    public static void visit(Collection<? extends Node> nodes, QuerySchema querySchema) {
-        nodes.forEach(INSTANCE.process(querySchema));
+    void resetMapping() {
+        mapping.clear();
     }
 }
