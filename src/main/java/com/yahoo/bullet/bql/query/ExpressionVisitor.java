@@ -23,7 +23,6 @@ import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
-import com.yahoo.bullet.query.Field;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
 import com.yahoo.bullet.query.expressions.Expression;
@@ -35,7 +34,6 @@ import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.query.expressions.ValueExpression;
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
