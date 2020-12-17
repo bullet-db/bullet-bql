@@ -86,6 +86,7 @@ public class QueryBuilder {
     private boolean requiresCopyFlag;
     private boolean requiresNoCopyFlag;
 
+    @Getter
     private List<BulletError> errors = new ArrayList<>();
     private List<PostAggregation> postAggregations = new ArrayList<>();
 
@@ -237,9 +238,7 @@ public class QueryBuilder {
         addSchemaLayer(true);
 
         // Check for duplicate aggregate names
-        duplicates(fields.values()).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
+        checkDuplicates(fields.values());
 
         aggregation = new GroupBy(limit, fields, Collections.emptySet());
 
@@ -302,9 +301,7 @@ public class QueryBuilder {
         doProjection();
 
         // Check for duplicate aggregate names
-        duplicates(schemaFields).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
+        checkDuplicates(schemaFields);
 
         if (!fields.isEmpty()) {
             aggregation = new GroupBy(limit, fields, operations);
@@ -382,7 +379,6 @@ public class QueryBuilder {
         addSchemaLayer(true);
 
         // No need to check for duplicates in aggregation because fixed fields
-
         aggregation = distributionNode.getAggregation(limit);
 
         doComputation();
@@ -418,9 +414,7 @@ public class QueryBuilder {
         addSchemaLayer(true);
 
         // Check for duplicate aggregate names
-        duplicates(fields.values()).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
+        checkDuplicates(fields.values());
 
         aggregation = new TopK(fields, topKNode.getSize(), topKNode.getThreshold(), topKAlias);
 
@@ -466,9 +460,7 @@ public class QueryBuilder {
         }
 
         // Check for duplicate aggregate names
-        duplicates(fields.values()).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
-        );
+        checkDuplicates(fields.values());
 
         aggregation = new TopK(fields, limit, threshold, countAliasOrName);
 
@@ -489,11 +481,6 @@ public class QueryBuilder {
     }
 
     private void doProjection() {
-        Map<String, Long> fieldsToCount = projectionFields.stream().map(Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        List<String> duplicates = fieldsToCount.entrySet().stream().filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).collect(Collectors.toList());
-        if (!duplicates.isEmpty()) {
-            addError("The following field names are shared: " + duplicates, "Please specify non-overlapping field names.");
-        }
         if (requiresCopyFlag) {
             projection = new Projection(new ArrayList<>(projectionFields), true);
         } else if (requiresNoCopyFlag) {
@@ -501,6 +488,7 @@ public class QueryBuilder {
         } else {
             projection = new Projection();
         }
+        checkDuplicates(projectionFields.stream().map(Field::getName).collect(Collectors.toList()));
     }
 
     private void doComputation() {
@@ -518,17 +506,11 @@ public class QueryBuilder {
                 addAlias(node.getName(), newName);
             }
         }
-
-        Map<String, Long> fieldsToCount = computationFields.stream().map(Field::getName).collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        List<String> duplicates = fieldsToCount.entrySet().stream().filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).collect(Collectors.toList());
-        if (!duplicates.isEmpty()) {
-            errors.add(new BulletError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases."));
-        }
-
         if (!computationFields.isEmpty()) {
             postAggregations.add(new Computation(new ArrayList<>(computationFields)));
         }
         addSchemaLayer(false);
+        checkDuplicates(computationFields.stream().map(Field::getName).collect(Collectors.toList()));
     }
 
     private void doOrderBy() {
@@ -610,16 +592,18 @@ public class QueryBuilder {
         return !Type.isUnknown(type) && !Type.isPrimitive(type);
     }
 
+    private void checkDuplicates(Collection<String> fields) {
+        duplicates(fields).ifPresent(duplicates ->
+            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
+        );
+    }
+
     private void addError(ExpressionNode node, String message, String resolution) {
         errors.add(new BulletError(node.getLocation() + message, resolution));
     }
 
     private void addError(String message, String resolution) {
         errors.add(new BulletError(message, resolution));
-    }
-
-    public List<BulletError> getErrors() {
-        return new ArrayList<>(errors);
     }
 
     public boolean hasErrors() {

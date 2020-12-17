@@ -87,8 +87,8 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawAliasesClash() {
         build("SELECT abc, def AS abc, aaa, bbb AS aaa, ccc FROM STREAM()");
-        Assert.assertTrue(errors.get(0).getError().equals("The following field names are shared: [abc, aaa]") ||
-                          errors.get(0).getError().equals("The following field names are shared: [aaa, abc]"));
+        Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa]") ||
+                          errors.get(0).getError().equals("The following field names/aliases are shared: [aaa, abc]"));
         Assert.assertEquals(errors.size(), 1);
     }
 
