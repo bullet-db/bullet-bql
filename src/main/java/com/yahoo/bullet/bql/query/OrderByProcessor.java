@@ -10,7 +10,6 @@ import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.Node;
-import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +19,6 @@ import java.util.Set;
 
 @RequiredArgsConstructor
 public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchema> {
-    private final Schema baseSchema;
     private Set<String> additionalFields = new HashSet<>();
 
     @Override
@@ -48,13 +46,11 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchem
 
     @Override
     protected Void visitFieldExpression(FieldExpressionNode node, LayeredSchema layeredSchema) {
-        if (baseSchema != null) {
-            String name = node.getField().getValue();
-            Type type = baseSchema.getType(name);
-            if (type != Type.NULL) {
-                layeredSchema.getSchema().addField(name, type);
-                additionalFields.add(name);
-            }
+        String name = node.getField().getValue();
+        Type type = layeredSchema.getSubSchema().getType(name);
+        if (type != Type.NULL) {
+            layeredSchema.getSchema().addField(name, type);
+            additionalFields.add(name);
         }
         return null;
     }
@@ -64,7 +60,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchem
         return null;
     }
 
-    public static Set<String> visit(Collection<? extends Node> nodes, LayeredSchema layeredSchema, Schema baseSchema) {
-        return new OrderByProcessor(baseSchema).process(nodes, layeredSchema);
+    public static Set<String> visit(Collection<? extends Node> nodes, LayeredSchema layeredSchema) {
+        return new OrderByProcessor().process(nodes, layeredSchema);
     }
 }

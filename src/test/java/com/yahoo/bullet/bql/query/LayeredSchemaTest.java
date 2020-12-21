@@ -62,7 +62,7 @@ public class LayeredSchemaTest {
     }
 
     @Test
-    public void testLockTopLayer() {
+    public void testLock() {
         LayeredSchema schema = new LayeredSchema(null);
         Assert.assertEquals(schema.getType("abc"), Type.UNKNOWN);
 
@@ -78,5 +78,22 @@ public class LayeredSchemaTest {
 
         schema.addLayer(new Schema(), Collections.emptyMap());
         Assert.assertEquals(schema.getType("abc"), Type.NULL);
+    }
+
+    @Test
+    public void testGetFieldNames() {
+        LayeredSchema schema = new LayeredSchema(null);
+        Assert.assertEquals(schema.getFieldNames(), Collections.emptySet());
+
+        schema.addLayer(baseSchema, Collections.emptyMap());
+        Assert.assertEquals(schema.getFieldNames(), Collections.singleton("abc"));
+
+        schema.addLayer(new Schema(), Collections.emptyMap());
+        Assert.assertEquals(schema.getFieldNames(), Collections.singleton("abc"));
+
+        schema.lock();
+
+        schema.addLayer(new Schema(), Collections.emptyMap());
+        Assert.assertEquals(schema.getFieldNames(), Collections.emptySet());
     }
 }

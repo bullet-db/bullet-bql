@@ -11,12 +11,12 @@ public class OrderByProcessorTest {
     @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
     public void testProcess() {
         // coverage
-        new OrderByProcessor(null).process(null);
+        new OrderByProcessor().process(null);
     }
 
     @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "This method should not be called\\.")
     public void testVisitExpression() {
         // coverage
-        new OrderByProcessor(null).visitExpression(null, null);
+        new OrderByProcessor().visitExpression(null, null);
     }
 }

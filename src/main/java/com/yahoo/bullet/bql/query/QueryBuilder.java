@@ -182,7 +182,7 @@ public class QueryBuilder {
         aggregation = new Raw(limit);
 
         // Missing fields
-        Set<String> additionalFields = OrderByProcessor.visit(processedQuery.getOrderByNodes(), layeredSchema, baseSchema);
+        Set<String> additionalFields = OrderByProcessor.visit(processedQuery.getOrderByNodes(), layeredSchema);
 
         for (String field : additionalFields) {
             FieldExpression expression = new FieldExpression(field);
@@ -544,7 +544,7 @@ public class QueryBuilder {
     }
 
     private void doTransient() {
-        Set<String> transientFields = layeredSchema.getFields();
+        Set<String> transientFields = layeredSchema.getFieldNames();
         processedQuery.getSelectNodes().stream().map(processedQuery::getAliasOrName).forEach(transientFields::remove);
         if (!transientFields.isEmpty()) {
             postAggregations.add(new Culling(transientFields));

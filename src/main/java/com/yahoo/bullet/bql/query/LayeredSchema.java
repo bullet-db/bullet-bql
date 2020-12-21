@@ -83,14 +83,14 @@ public class LayeredSchema {
         return subSchema != null && !subSchema.locked && subSchema.hasField(field);
     }
 
-    public Set<String> getFields() {
+    public Set<String> getFieldNames() {
         Set<String> fields = new HashSet<>();
         if (subSchema != null && !subSchema.locked) {
-            fields.addAll(subSchema.getFields());
+            fields.addAll(subSchema.getFieldNames());
         }
-        schema.getFields().stream()
-                          .map(Schema.Field::getName)
-                          .forEach(fields::add);
+        if (schema != null) {
+            schema.getFields().stream().map(Schema.Field::getName).forEach(fields::add);
+        }
         return fields;
     }
 }

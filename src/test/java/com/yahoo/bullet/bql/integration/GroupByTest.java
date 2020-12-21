@@ -165,7 +165,7 @@ public class GroupByTest extends IntegrationTest {
         Assert.assertEquals(orderBy.getFields().size(), 1);
         // TODO note: behavior changed
         /*
-        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.INTEGER),
+        Assert.assertEquals(orderBy.getFieldNames().get(0).getExpression(), binary(field("abc", Type.INTEGER),
                                                                                value(5),
                                                                                Operation.ADD,
                                                                                Type.INTEGER));
@@ -225,7 +225,7 @@ public class GroupByTest extends IntegrationTest {
         Assert.assertEquals(orderBy.getFields().size(), 1);
         // TODO note: behavior changed
         /*
-        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(binary(field("abc", Type.INTEGER),
+        Assert.assertEquals(orderBy.getFieldNames().get(0).getExpression(), binary(binary(field("abc", Type.INTEGER),
                                                                                       value(5),
                                                                                       Operation.ADD,
                                                                                       Type.INTEGER),
