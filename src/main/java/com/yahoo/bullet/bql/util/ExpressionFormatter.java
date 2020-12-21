@@ -32,6 +32,7 @@ import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
+import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -147,10 +148,16 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitFieldExpression(FieldExpressionNode node, Void context) {
-            return process(node.getField()) +
-                   (node.getIndex() != null ? "[" + node.getIndex() + "]" : "") +
-                   (node.getKey() != null ? "." + process(node.getKey()) : "") +
-                   (node.getSubKey() != null ? "." + process(node.getSubKey()) : "");
+            return process(node.getField());
+        }
+
+        @Override
+        protected String visitSubFieldExpression(SubFieldExpressionNode node, Void context) {
+            if (node.getIndex() != null) {
+                return process(node.getField()) + "[" + node.getIndex() + "]";
+            } else {
+                return process(node.getField()) + "." + process(node.getKey());
+            }
         }
 
         @Override

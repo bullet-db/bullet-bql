@@ -9,6 +9,9 @@ import com.yahoo.bullet.query.aggregations.Distribution;
 import com.yahoo.bullet.query.aggregations.DistributionType;
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.List;
+
 @Getter
 public abstract class DistributionNode extends ExpressionNode {
     protected final DistributionType type;
@@ -25,5 +28,10 @@ public abstract class DistributionNode extends ExpressionNode {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitDistribution(this, context);
+    }
+
+    @Override
+    public List<ExpressionNode> getChildren() {
+        return Collections.singletonList(expression);
     }
 }

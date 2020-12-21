@@ -29,6 +29,11 @@ public class TopKNode extends ExpressionNode {
     }
 
     @Override
+    public List<ExpressionNode> getChildren() {
+        return expressions;
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (obj == this) {
             return true;

@@ -8,6 +8,8 @@ package com.yahoo.bullet.bql.tree;
 import com.yahoo.bullet.query.expressions.Operation;
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 @Getter
@@ -26,6 +28,11 @@ public class BinaryExpressionNode extends ExpressionNode {
     @Override
     public <R, C> R accept(ASTVisitor<R, C> visitor, C context) {
         return visitor.visitBinaryExpression(this, context);
+    }
+
+    @Override
+    public List<ExpressionNode> getChildren() {
+        return Arrays.asList(left, right);
     }
 
     @Override

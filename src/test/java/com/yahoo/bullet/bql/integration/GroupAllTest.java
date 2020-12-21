@@ -13,6 +13,7 @@ import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.postaggregations.Computation;
 import com.yahoo.bullet.query.postaggregations.Culling;
+import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
@@ -174,8 +175,55 @@ public class GroupAllTest extends IntegrationTest {
     }
 
     @Test
-    public void testGroupOpCannotBeUsedAsFieldInComputation() {
+    public void testGroupOpRenameComputationShadowsOpUsedInOrderByValid() {
+        // String QuerySchema doesn't error out since the name of AVG(abc) is "AVG(abc)" which is in the schema
+        build("SELECT AVG(abc) > 5 AS \"AVG(abc)\" FROM STREAM() ORDER BY AVG(abc)");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupAll aggregation = (GroupAll) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
+        Assert.assertEquals(aggregation.getOperations(), Collections.singleton(new GroupOperation(GroupOperation.GroupOperationType.AVG,
+                                                                                                  "abc",
+                                                                                                  "AVG(abc)")));
+
+        Assert.assertEquals(query.getPostAggregations().size(), 2);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc)", binary(field("AVG(abc)", Type.DOUBLE),
+                                                                                                            value(5),
+                                                                                                            Operation.GREATER_THAN,
+                                                                                                            Type.BOOLEAN))));
+
+        OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
+
+        Assert.assertEquals(orderBy.getFields().size(), 1);
+        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("AVG(abc)", Type.BOOLEAN));
+        // Note: Type BOOLEAN and not DOUBLE since AVG(abc) was shadowed.
+    }
+
+    @Test
+    public void testGroupOpCanBeUsedAsFieldInComputation() {
         build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:18: The field AVG(abc) does not exist in the schema.");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupAll aggregation = (GroupAll) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
+        Assert.assertEquals(aggregation.getOperations(), Collections.singleton(new GroupOperation(GroupOperation.GroupOperationType.AVG,
+                                                                                                  "abc",
+                                                                                                  "AVG(abc)")));
+
+        Assert.assertEquals(query.getPostAggregations().size(), 1);
+
+        Computation computation = (Computation) query.getPostAggregations().get(0);
+
+        Assert.assertEquals(computation.getFields(), Collections.singletonList(new Field("AVG(abc) + 5", binary(field("AVG(abc)", Type.DOUBLE),
+                                                                                                                value(5),
+                                                                                                                Operation.ADD,
+                                                                                                                Type.DOUBLE))));
     }
 }

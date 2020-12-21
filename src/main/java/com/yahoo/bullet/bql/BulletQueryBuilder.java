@@ -8,9 +8,8 @@ package com.yahoo.bullet.bql;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
 import com.yahoo.bullet.bql.query.QueryProcessor;
-import com.yahoo.bullet.bql.extractor.QueryExtractor;
 import com.yahoo.bullet.bql.parser.BQLParser;
-import com.yahoo.bullet.bql.query.QueryValidator;
+import com.yahoo.bullet.bql.query.QueryBuilder;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.util.ExpressionFormatter;
 import com.yahoo.bullet.common.BulletConfig;
@@ -22,11 +21,9 @@ import com.yahoo.bullet.typesystem.Schema;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class BulletQueryBuilder {
-    private final QueryProcessor queryProcessor = new QueryProcessor();
     private final BQLParser bqlParser = new BQLParser();
     private final BQLConfig config;
     private final Schema schema;
@@ -62,20 +59,18 @@ public class BulletQueryBuilder {
             QueryNode queryNode = bqlParser.createQueryNode(bql);
 
             // Parse node tree into query components
-            ProcessedQuery processedQuery = queryProcessor.process(queryNode);
-            if (!processedQuery.getErrors().isEmpty()) {
+            ProcessedQuery processedQuery = QueryProcessor.visit(queryNode);
+            if (!processedQuery.validate()) {
                 return new BQLResult(processedQuery.getErrors());
             }
 
-            // Build query from query components
-            Query query = QueryExtractor.extractQuery(processedQuery);
+            QueryBuilder builder = new QueryBuilder(processedQuery, schema);
+            if (builder.hasErrors()) {
+                return new BQLResult(builder.getErrors());
+            }
+            Query query = builder.getQuery();
             query.configure(config);
 
-            // Check query and type semantics
-            List<BulletError> errors = QueryValidator.validate(processedQuery, query, schema);
-            if (!errors.isEmpty()) {
-                return new BQLResult(errors);
-            }
             return new BQLResult(query, ExpressionFormatter.format(queryNode, true));
         } catch (BulletException e) {
             return makeBQLResultError(e.getError());
