@@ -1,6 +1,6 @@
 # Bullet-BQL
 
-[![Build Status](https://travis-ci.com/bullet-db/bullet-bql.svg?branch=master)](https://travis-ci.com/bullet-db/bullet-bql) [![Coverage Status](https://coveralls.io/repos/github/bullet-db/bullet-bql/badge.svg?branch=master)](https://coveralls.io/github/bullet-db/bullet-bql?branch=master) [![Download](https://api.bintray.com/packages/yahoo/maven/bullet-bql/images/download.svg) ](https://bintray.com/yahoo/maven/bullet-bql/_latestVersion)
+[![Build Status](https://travis-ci.org/bullet-db/bullet-bql.svg?branch=master)](https://travis-ci.com/bullet-db/bullet-bql) [![Coverage Status](https://coveralls.io/repos/github/bullet-db/bullet-bql/badge.svg?branch=master)](https://coveralls.io/github/bullet-db/bullet-bql?branch=master) [![Download](https://api.bintray.com/packages/yahoo/maven/bullet-bql/images/download.svg) ](https://bintray.com/yahoo/maven/bullet-bql/_latestVersion)
 
 >BQL is a SQL-like query language specifically designed for the [Bullet](https://bullet-db.github.io/) query engine, which provides an easy-to-use yet powerful interactive SQL-like interface. 
 
@@ -30,8 +30,8 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
     `mvn clean compile` 
 
     Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. To run:
-     
-    `mvn exec:java` 
+    
+    `mvn exec:java`
      
 * Bullet-BQL is currently being integrated into [Bullet-Service](https://github.com/bullet-db/bullet-service/), and will provide a BQL endpoint directly. 
 
@@ -40,12 +40,8 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 * Build a [Bullet](https://bullet-db.github.io/) Query from a BQL string.
 
     Simply construct a `BulletQueryBuilder` and call `buildQuery(String bql)`. A [Bullet](https://bullet-db.github.io/) Query is returned.
-    
-* Build a [Bullet JSON](https://bullet-db.github.io/ws/api/) from a BQL string.
 
-    Simply construct a `BulletQueryBuilder` and call `buildJson(String bql)`. A [Bullet JSON](https://bullet-db.github.io/ws/api/) is returned.
-    
-* You can change `BQLConfig` by altering `.yaml` to change BQL delimiter and how parser treats decimal numbers.
+* You can change the max query length in `BQLConfig` by altering the `.yaml`.
 
 ## Data Types
 
@@ -57,565 +53,206 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * **Long**: 64-bit signed two’s complement integer with a minimum value of `-2^63 + 1` and a maximum value of `2^63 - 1`. Example: `9223372036854775807`, `-9223372036854775807`.
 
-* **Double**: 64-bit inexact, variable-precision with a minimum value of `2^-1074` and a maximum value of `(2-2^-52)·2^1023`. Example: `1.7976931348623157E+308`, `.17976931348623157E+309`, `4.9E-324`.
+* **Float**: 32-bit inexact, variable-precision with a minimum value of `2^-149` and a maximum value of `(2-2^-23)·2^127`. Example: `1.70141183E+38`, `1.17549435E-38`, `0.15625`.
 
-* **Decimal**: decimal number can be treated as Double, String or ParsingException. This is controlled by `ParsingOptions`. `1.7976931348623157`, `.17976931348623157`.
+* **Double**: 64-bit inexact, variable-precision with a minimum value of `2^-1074` and a maximum value of `(2-2^-52)·2^1023`. Example: `1.7976931348623157E+308`, `.17976931348623157E+309`, `4.9E-324`.
 
 * **String**: character string which can have escapes. Example: `'this is a string'`, `'this is ''another'' string'`.
 
-* **ColumnReference**: representation of a column field. Unquoted ColumnReference must start with a letter or `_`. Example: `column_name` or `column_name.foo`  or `column_name.foo.bar` or `column_name.0.bar`.
+* **Identifier**: representation of a field. Unquoted identifier must start with a letter or `_`. Example: `column_name`, `column_name.foo`, `column_name.foo.bar`, `column_name[0].bar`, or `"123column"`.
 
-* **All**: representation of all columns. Example: `*`. `column_name.*` is interpreted as `column_name`.
-
-## Reserved Keywords
-
-|      Keyword          |    SQL:2016     |   SQL-92      |
-| --------------------- | :-------------: | :-----------: |
-| `ALTER`               |     reserved    |   reserved    |
-| `AND`                 |     reserved    |   reserved    |
-| `AS`                  |     reserved    |   reserved    |
-| `BETWEEN`             |     reserved    |   reserved    |
-| `BY`                  |     reserved    |   reserved    |
-| `CASE`                |     reserved    |   reserved    |
-| `CAST`                |     reserved    |   reserved    |
-| `CONSTRAINT`          |     reserved    |   reserved    |
-| `CREATE`              |     reserved    |   reserved    |
-| `CROSS`               |     reserved    |   reserved    |
-| `CUBE`                |     reserved    |               |
-| `CURRENT_DATE`        |     reserved    |   reserved    |
-| `CURRENT_TIME`        |     reserved    |   reserved    |
-| `CURRENT_TIMESTAMP`   |     reserved    |   reserved    |
-| `CURRENT_USER`        |     reserved    |               |
-| `DEALLOCATE`          |     reserved    |   reserved    |
-| `DELETE`              |     reserved    |   reserved    |
-| `DESCRIBE`            |     reserved    |   reserved    |
-| `DISTINCT`            |     reserved    |   reserved    |
-| `DROP`                |     reserved    |   reserved    |
-| `ELSE`                |     reserved    |   reserved    |
-| `END`                 |     reserved    |   reserved    |
-| `ESCAPE`              |     reserved    |   reserved    |
-| `EXCEPT`              |     reserved    |   reserved    |
-| `EXECUTE`             |     reserved    |   reserved    |
-| `EXISTS`              |     reserved    |   reserved    |
-| `EXTRACT`             |     reserved    |   reserved    |
-| `FALSE`               |     reserved    |   reserved    |
-| `FOR`                 |     reserved    |   reserved    |
-| `FROM`                |     reserved    |   reserved    |
-| `FULL`                |     reserved    |   reserved    |
-| `GROUP`               |     reserved    |   reserved    |
-| `GROUPING`            |     reserved    |               |
-| `HAVING`              |     reserved    |   reserved    |
-| `IN`                  |     reserved    |   reserved    |
-| `INNER`               |     reserved    |   reserved    |
-| `INSERT`              |     reserved    |   reserved    |
-| `INTERSECT`           |     reserved    |   reserved    |
-| `INTO`                |     reserved    |   reserved    |
-| `IS`                  |     reserved    |   reserved    |
-| `JOIN`                |     reserved    |   reserved    |
-| `LEFT`                |     reserved    |   reserved    |
-| `LIKE`                |     reserved    |   reserved    |
-| `LOCALTIME`           |     reserved    |               |
-| `LOCALTIMESTAMP`      |     reserved    |               |
-| `NATURAL`             |     reserved    |   reserved    |
-| `NORMALIZE`           |     reserved    |               |
-| `NOT`                 |     reserved    |   reserved    |
-| `NULL`                |     reserved    |   reserved    |
-| `ON`                  |     reserved    |   reserved    |
-| `OR`                  |     reserved    |   reserved    |
-| `ORDER`               |     reserved    |   reserved    |
-| `OUTER`               |     reserved    |   reserved    |
-| `PREPARE`             |     reserved    |   reserved    |
-| `RECURSIVE`           |     reserved    |               |
-| `RIGHT`               |     reserved    |   reserved    |
-| `ROLLUP`              |     reserved    |               |
-| `SELECT`              |     reserved    |   reserved    |
-| `TABLE`               |     reserved    |   reserved    |
-| `THEN`                |     reserved    |   reserved    |
-| `TRUE`                |     reserved    |   reserved    |
-| `UESCAPE`             |     reserved    |               |
-| `UNION`               |     reserved    |   reserved    |
-| `UNNEST`              |     reserved    |               |
-| `USING`               |     reserved    |   reserved    |
-| `VALUES`              |     reserved    |   reserved    |
-| `WHEN`                |     reserved    |   reserved    |
-| `WHERE`               |     reserved    |   reserved    |
-| `WITH`                |     reserved    |   reserved    |
+* **All**: representation of all fields. Example: `*`.
 
 ## Statement Syntax
 
-    SELECT DISTINCT? select_clause
-    FROM from_clause
-    ( WHERE where_clause )?
-    ( GROUP BY groupBy_clause )?
-    ( HAVING having_clause )?
-    ( ORDER BY orderBy_clause )?
-    ( WINDOWING windowing_clause )?
-    ( LIMIT limit_clause )?;
+    SELECT select
+    FROM stream
+    ( WHERE expression )?
+    ( GROUP BY expression ( , expression )* )?
+    ( HAVING expression )?
+    ( ORDER BY orderBy )?
+    ( WINDOWING window )?
+    ( LIMIT Integer )?
+    ';'?
     
-where `select_clause` is one of
+where `select` is 
     
-    * ( , arithmetic_expr (AS? ColumnReference )? )*
-    COUNT( DISTINCT reference_expr ( , reference_expr )* )
-    group_function ( AS? ColumnReference )? ( , group_function ( AS? ColumnReference )? )* ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
-    reference_expr ( AS? ColumnReference )? ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
-    arithmetic_expr ( AS? ColumnReference )? ( , arithmetic_expr ( AS? ColumnReference )? )*
-    distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
-    TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
+    DISTINCT? selectItem ( , selectItem )*
     
-`reference_expr` is one of `ColumnReference` or `Dereference`.
+and `selectItem` is one of
 
-`arithmetic_expr` is one of
-    
-    ( arithmetic_expr )
-    arithmetic_expr ( * | / | + | - ) arithmetic_expr
-    CAST ( arithmetic_expr , ( 'INTEGER' | 'LONG' | 'FLOAT' | 'DOUBLE' | 'BOOLEAN' | 'STRING' ) )
-    reference_expr
-    Integer | Long | Double | Decimal | Boolean | String
-    
-and `group_function` is one of `SUM(reference_expr)`, `MIN(reference_expr)`, `MAX(reference_expr)`, `AVG(reference_expr)` and `COUNT(*)`. `reference_expr` is one of ColumnReference and Dereference. `distribution_type` is one of `QUANTILE`, `FREQ` and `CUMFREQ`. The 1st number in `TOP` is K, and the 2nd number is an optional threshold.  The `input_mode` is one of 
+    expression ( AS? identifier )?
+    *
 
-    LINEAR, ( Integer | Long )                                              evenly spaced
-    REGION, ( Integer | Long ), ( Integer | Long ), ( Integer | Long )      evenly spaced in a region
-    MANUAL, ( Integer | Long ) (, ( Integer | Long ) )*                     defined points
-    
-and `from_clause` is one of
+and `expression` is one of
 
-    STREAM()                                                          default time duration will be set from BQLConfig
-    STREAM( ( Long | MAX ), TIME )                                    time based duration control. 
-    STREAM( ( Long | MAX ), TIME, ( Long | MAX ), RECORD )            time and record based duration control. 
+    valueExpression                                                                         
+    fieldExpression                                                                         
+    listExpression                                                                          
+    expression IS NULL                                                                      
+    expression IS NOT NULL                                                                  
+    unaryExpression                                                                         
+    functionExpression                                                                      
+    expression NOT? IN expression                                    
+    expression RLIKE ANY? expression                                 
+    expression ( * | / ) expression                                  
+    expression ( + | - ) expression                                      
+    expression ( < | <= | > | >= ) ( ANY | ALL )? expression         
+    expression ( = | != ) ( ANY | ALL )? expression                    
+    expression AND expression                                                 
+    expression XOR expression                                                 
+    expression OR expression                                                  
+    ( expression )                                                                      
+
+where `valueExpression` is one of Null, Boolean, Integer, Long, Float, Double, or String
+
+and `fieldExpression` is one of
+
+    identifier ( : fieldType )?
+    identifier [ Integer ] ( : fieldType )?
+    identifier [ Integer ] . identifier ( : fieldType )?
+    identifier . identifier ( : fieldType )?
+    identifier . identifier . identifier ( : fieldType )?
+    
+`fieldType` is one of
+
+    primitiveType
+    LIST [ primitiveType ]
+    MAP [ primitiveType ]
+    LIST [ MAP [ primitiveType ] ]
+    MAP [ MAP [ primitiveType ] ]
+    
+and `primitiveType` is `INTEGER`, `LONG`, `FLOAT`, `DOUBLE`, `BOOLEAN`, or `STRING`
+
+where `listExpression` is one of
+    
+    []
+    [ expression ( , expression )* ]
+
+`unaryExpression` is 
+    
+    ( NOT | SIZEOF ) ( expression )                                                 with optional parentheses
+
+`functionExpression` is one of
+
+    ( SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER ) ( expression, expression )      
+    IF ( expression ( , expression )* )                                             three arguments                         
+    aggregateExpression                               
+    CAST ( expression AS primitiveType )          
+
+where `aggregateExpression` is one of
+
+    COUNT ( * )                                                    
+    ( SUM | AVG | MIN | MAX ) ( expression )                                
+    COUNT ( DISTINCT expression ( , expression )* )                                           
+    distributionType ( expression, inputMode )                            
+    TOP ( Integer ( , Integer )?, expression ( , expression )* )
+
+where `distributionType` is `QUANTILE`, `FREQ`, or `CUMFREQ`
+
+and `inputMode` is one of
+
+    LINEAR, Integer                                                                 evenly spaced
+    REGION, Number, Number, Number                                                  evenly spaced in a region
+    MANUAL, Number ( , Number )*                                                    defined points
+
+
+and `stream` is one of
+
+    STREAM()                                                                        default time duration will be set from BQLConfig
+    STREAM( ( Integer | MAX ), TIME )                                               time based duration control 
 
 `RECORD` will be supported in the future.
 
-and `where_clause` is one of
+and `orderBy` is 
 
-    NOT where_clause
-    where_clause AND where_clause
-    where_clause OR where_clause
-    reference_expr IS NOT? NULL
-    reference_expr IS NOT? EMPTY
-    reference_expr IS NOT? DISTINCT FROM value_expr
-    reference_expr NOT? BETWEEN value_expr AND value_expr
-    reference_expr NOT? IN ( value_expr ( , value_expr )* )
-    reference_expr NOT? LIKE ( value_expr ( , value_expr )* )
-    reference_expr NOT? CONTAINSKEY ( value_expr ( , value_expr )* )
-    reference_expr NOT? CONTAINSVALUE ( value_expr ( , value_expr )* )
-    reference_expr ( = | <> | != | < | > | <= | >= ) value_expr
-    SIZEOF(reference_expr) ( = | <> | != ) value_expr
-    SIZEOF(reference_expr) NOT? IN ( value_expr ( , value_expr )* )
-    SIZEOF(reference_expr) NOT? DISTINCT FROM value_expr
-  
-`value_expr` is one of Null, Boolean, Integer, Long, Double, Decimal, String or `reference_expr`.
+    expression ( ASC | DESC )? ( , expression ( ASC | DESC )? )*
 
-and `groupBy_clause` is one of
+and `window` is one of 
 
-    ()                                                                group all
-    reference_expr ( , reference_expr )*                              group by
-    ( reference_expr ( , reference_expr )* )                          group by    
-
-and `HAVING` and `ORDER BY` together is only supported for TopK. In which case, `having_clause` is 
-
-    COUNT(*) >= Integer
-    
-and `orderBy_clause` is
-
-    COUNT(*) DESC
-    
-If not TopK, `HAVING` is not supported, and `orderBy_clause` is
-
-    reference_expr (ASC | DESC)? ( , reference_expr (ASC | DESC)? )*
-
-and `windowing_clause` is one of 
-
-    ( EVERY, ( Integer | Long ), ( TIME | RECORD ), include )
-    ( TUMBLING, ( Integer | Long ), ( TIME | RECORD ) )
+    EVERY ( Integer, ( TIME | RECORD ), include )
+    TUMBLING ( Integer, ( TIME | RECORD ) )
 
 `include` is one of 
 
     ALL
-    FIRST, ( Integer | Long ), ( TIME | RECORD )
-    LAST, ( Integer | Long ), ( TIME | RECORD )                       will be supported
-
-and `limit_clause` is one of
-
-    Integer | Long 
-    ALL                                                               will be supported
+    FIRST, Integer, ( TIME | RECORD )
 
 ### Simplest Query
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### Simple Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id = 'btsg8l9b234ha'
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"btsg8l9b234ha"
-                    }
-                ],
-                "operation":"=="
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### SIZEOF Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE SIZEOF(id_map) = 4
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id_map",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"4"
-                    }
-                ],
-                "operation":"SIZEIS"
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### CONTAINSKEY Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id_map CONTAINSKEY ("key")
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id_map",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"key"
-                    }
-                ],
-                "operation":"CONTAINSKEY"
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### CONTAINSVALUE Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id_map NOT CONTAINSVALUE ("btsg8l9b234ha")
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "clauses":[
-                    {
-                        "field":"id_map",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"btsg8l9b234ha"
-                            }
-                        ],
-                        "operation":"CONTAINSVALUE"
-                    }
-                ],
-                "operation": "NOT"
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### Compare to other fields Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id = uid
     LIMIT 1;
-
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id",
-                "values":[
-                    {
-                        "kind":"FIELD",
-                        "value":"uid"
-                    }
-                ],
-                "operation":"=="
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-          
+     
 ### Relational & Logical Filters and Projections
-
-**BQL**
 
     SELECT timestamp AS ts, device_timestamp AS device_ts, 
            event AS event, page_domain AS domain, page_id AS id
     FROM STREAM(20000, TIME)
     WHERE id = 'btsg8l9b234ha' AND page_id IS NOT NULL
     LIMIT 10;
-    
-**Bullet Query**
 
-    {
-        "filters":[
-            {
-                "clauses":[
-                    {
-                        "field":"id",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"btsg8l9b234ha"
-                            }
-                        ],
-                        "operation":"=="
-                    },
-                    {
-                        "field":"page_id",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"NULL"
-                            }
-                        ],
-                        "operation":"!="
-                    }
-                ],
-                "operation":"AND"
-            }
-        ],
-        "projection":{
-            "fields":{
-                "page_domain":"domain",
-                "page_id":"id",
-                "device_timestamp":"device_ts",
-                "event":"event",
-                "timestamp":"ts"
-            }
-        },
-        "aggregation":{
-            "type":"RAW","size":10
-        },
-        "duration":20000
-    }
-    
 ### GROUP ALL COUNT Aggregation
-
-**BQL**
 
     SELECT COUNT(*) AS numSeniors
     FROM STREAM(20000, TIME)
-    WHERE demographics.age > 65
-    GROUP BY ();
-    
-**Bullet Query**
+    WHERE demographics.age > 65;
 
-    {
-        "filters":[
-            {
-                "field":"demographics.age",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"65"
-                    }
-                ],
-                "operation":">"
-            }
-        ],
-        "aggregation":{
-            "type":"GROUP",
-            "size":500,
-            "attributes":{
-                "operations":[
-                    {
-                        "newName":"numSeniors",
-                        "type":"COUNT"
-                    }
-                ]
-            }
-        },
-        "duration":20000
-    }
-    
 ### GROUP ALL Multiple Aggregations
-
-**BQL**
 
     SELECT COUNT(*) AS numCalifornians, AVG(demographics.age) AS avgAge, 
            MIN(demographics.age) AS minAge, MAX(demographics.age) AS maxAge
     FROM STREAM(20000, TIME)
-    WHERE demographics.state = 'california'
-    GROUP BY ();
-    
-**Bullet Query**
+    WHERE demographics.state = 'california';
 
-    {
-        "filters":[
-            {
-                "field":"demographics.state",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"california"
-                    }
-                ],
-                "operation":"=="
-            }
-        ],
-        "aggregation":{
-            "type":"GROUP",
-            "size":500,
-            "attributes":{
-                "operations":[
-                    {
-                        "newName":"numCalifornians",
-                        "type":"COUNT"
-                    },
-                    {
-                        "newName":"minAge",
-                        "field":"demographics.age",
-                        "type":"MIN"
-                    },
-                    {
-                        "newName":"avgAge",
-                        "field":"demographics.age",
-                        "type":"AVG"
-                    },
-                    {
-                        "newName":"maxAge",
-                        "field":"demographics.age",
-                        "type":"MAX"
-                    }
-                ]
-            }
-        },
-        "duration":20000
-    }
-    
 ### COUNT DISTINCT Aggregation
-
-**BQL**
 
     SELECT COUNT(DISTINCT browser_name, browser_version) AS "COUNT DISTINCT"
     FROM STREAM(10000, TIME);
-  
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"COUNT DISTINCT",
-            "size":500,
-            "fields":{
-                "browser_name":"browser_name",
-                "browser_version":"browser_version"
-            },
-            "attributes":{
-                "newName":"CountDistinct"
-            }
-        },
-        "duration":10000
-    }
-    
 ### DISTINCT Aggregation
-
-**BQL**
 
     SELECT browser_name AS browser
     FROM STREAM(30000, TIME)
     GROUP BY browser_name
     LIMIT 10;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"GROUP",
-            "size":10,
-            "fields":{
-                "browser_name":"browser"
-            }
-        },
-        "duration":30000
-    }
-    
 ### GROUP BY Aggregation
-
-**BQL**
 
     SELECT demographics.country AS country, device AS device,
            COUNT(*) AS count, AVG(demographics.age) AS averageAge,
@@ -625,132 +262,25 @@ and `limit_clause` is one of
     GROUP BY demographics.country, device
     LIMIT 50;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"demographics",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"NULL"
-                    }
-                ],
-                "operation":"!="
-            }
-        ],
-        "aggregation":{
-            "type":"GROUP",
-            "size":50,
-            "fields":{
-                "demographics.country":"country",
-                "device":"device"
-            },
-            "attributes":{
-                "operations":[
-                    {
-                        "newName":"count",
-                        "type":"COUNT"
-                    },
-                    {
-                        "newName":"averageTimespent",
-                        "field":"timespent",
-                        "type":"AVG"
-                    },
-                    {
-                        "newName":"averageAge",
-                        "field":"demographics.age",
-                        "type":"AVG"
-                    }
-                ]
-            }
-        },
-        "duration":20000
-    }
-
 ### QUANTILE Distribution Aggregation
-
-**BQL**
 
     SELECT QUANTILE(duration, LINEAR, 11)
     FROM STREAM(5000, TIME)
     LIMIT 11;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"DISTRIBUTION",
-            "size":11,
-            "fields":{
-                "duration":"duration"
-            },
-            "attributes":{
-                "numberOfPoints":11,
-                "type":"QUANTILE"
-            }
-        },
-        "duration":5000
-    }
-    
 ### FREQ(Frequencies) Distribution Aggregation
-
-**BQL**
 
     SELECT FREQ(duration, REGION, 2000, 20000, 500)
     FROM STREAM(5000, TIME)
     LIMIT 100;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"DISTRIBUTION",
-            "size":100,
-            "fields":{
-                "duration":"duration"
-            },
-            "attributes":{
-                "start":2000.0,
-                "increment":500.0,
-                "end":20000.0,
-                "type":"PMF"
-            }
-        },
-        "duration":5000
-    }
-    
 ### CUMFREQ(Cumulative Frequencies) Distribution Aggregation
 
-**BQL**
-    
     SELECT CUMFREQ(duration, MANUAL, 20000, 2000, 15000, 45000)
     FROM STREAM(5000, TIME)
     LIMIT 100;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"DISTRIBUTION",
-            "size":100,
-            "fields":{
-                "duration":"duration"
-            },
-            "attributes":{
-                "type":"CDF",
-                "points":[
-                    20000.0,2000.0,15000.0,45000.0
-                ]
-            }
-        },
-        "duration":5000
-    }
-    
 ### TOP K Aggregation
-
-**BQL**
 
     SELECT TOP(500, 100, demographics.country, browser_name) AS numEvents
     FROM STREAM(10000, TIME)
@@ -765,128 +295,17 @@ Or
     HAVING COUNT(*) >= 100
     ORDER BY COUNT(*) DESC
     LIMIT 500;
-    
-**Bullet Query**
 
-    {
-        "filters":[
-            {
-                "clauses":[
-                    {
-                        "field":"demographics.country",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"NULL"
-                            }
-                        ],
-                        "operation":"!="
-                    },
-                    {
-                        "field":"browser_name",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"NULL"
-                            }
-                        ],
-                        "operation":"!="
-                    }
-                ],
-                "operation":"AND"
-            }
-        ],
-        "aggregation":{
-            "type":"TOP K",
-            "size":500,
-            "fields":{
-                "browser_name":"browser_name",
-                "demographics.country":"demographics.country"
-            },
-            "attributes":{
-                "newName":"numEvents",
-                "threshold":100
-            }
-        },
-        "duration":10000
-    }
-    
 ### Computation
-
-**BQL**
 
     SELECT TOP(500, 100, demographics.country, browser_name) AS numEvents, numEvents * 100 AS inflatedNumEvents
     FROM STREAM(10000, TIME);
     
-**Bullet Query**
-
-    {
-        "aggregation":{
-            "size":500,
-            "type":"TOP K",
-            "attributes":{
-                "newName":"numEvents",
-                "threshold":100
-            },
-            "fields":{
-                "browser_name":"browser_name",
-                "demographics.country":"demographics.country"
-            }
-        },
-        "duration":10000,
-        "postAggregations":[
-            {
-                "expression":{
-                    "left":{
-                        "value":{
-                            "kind":"FIELD",
-                            "value":"numEvents"
-                        }
-                    },
-                    "right":{
-                        "value":{
-                            "kind":"VALUE",
-                            "value":"100"
-                        }
-                    },
-                    "operation":"*"
-                },
-                "newName":"inflatedNumEvents",
-                "type":"COMPUTATION"
-            }
-        ]
-    }
-
 ### Order By
-
-**BQL**
 
     SELECT DISTINCT browser_name
     FROM STREAM(30000, TIME)
     ORDER BY browser_name;
-    
-**Bullet Query**
-
-    {
-        "aggregation":{
-            "type":"GROUP",
-            "fields":{
-                "browser_name":"browser_name"
-            }
-        },
-        "duration":30000,
-        "postAggregations":[
-            {
-                "fields":[
-                    {
-                        "field":"browser_name",
-                        "direction":"ASC"
-                    }
-                ],
-                "type":"ORDERBY"
-            }
-        ]
-    }
 
 ## Useful links
 
