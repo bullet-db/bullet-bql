@@ -173,14 +173,7 @@ public class GroupAllTest extends IntegrationTest {
                                                                                                             Operation.ADD,
                                                                                                             Type.DOUBLE))));
     }
-/*
-    @Test
-    public void testGroupOpRenameComputationShadowsOpUsedInOrderByInvalid() {
-        // Node QuerySchema errors out because "AVG(abc)" gets shadowed so it's impossible to order by AVG(abc)
-        build("SELECT AVG(abc) > 5 AS \"AVG(abc)\" FROM STREAM() ORDER BY AVG(abc)");
-        Assert.assertEquals(errors.get(0).getError(), "1:58: The field AVG(abc) does not exist in the schema.");
-    }
-*/
+
     @Test
     public void testGroupOpRenameComputationShadowsOpUsedInOrderByValid() {
         // String QuerySchema doesn't error out since the name of AVG(abc) is "AVG(abc)" which is in the schema
@@ -211,13 +204,6 @@ public class GroupAllTest extends IntegrationTest {
         // Note: Type BOOLEAN and not DOUBLE since AVG(abc) was shadowed.
     }
 
-/*
-    @Test
-    public void testGroupOpCannotBeUsedAsFieldInComputation() {
-        build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:18: The field AVG(abc) does not exist in the schema.");
-    }
-*/
     @Test
     public void testGroupOpCanBeUsedAsFieldInComputation() {
         build("SELECT AVG(abc), \"AVG(abc)\" + 5 FROM STREAM()");

@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.Collections;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
+@AllArgsConstructor
 public class LayeredSchema {
     private Schema schema;
     private Map<String, String> aliases;
@@ -27,13 +29,6 @@ public class LayeredSchema {
         this.aliases = Collections.emptyMap();
     }
 
-    public LayeredSchema(Schema schema, Map<String, String> aliases, LayeredSchema subSchema, boolean locked) {
-        this.schema = schema;
-        this.aliases = aliases;
-        this.subSchema = subSchema;
-        this.locked = locked;
-    }
-
     public void addLayer(Schema newSchema, Map<String, String> newAliases) {
         subSchema = new LayeredSchema(schema, aliases, subSchema, locked);
         schema = newSchema;
@@ -41,7 +36,7 @@ public class LayeredSchema {
         locked = false;
     }
 
-    public void lockTopLayer() {
+    public void lock() {
         locked = true;
     }
 
@@ -90,12 +85,13 @@ public class LayeredSchema {
     }
 
     public Set<String> getFields() {
-        Set<String> fields = schema.getFields().stream()
-                                               .map(Schema.Field::getName)
-                                               .collect(Collectors.toCollection(HashSet::new));
+        Set<String> fields = new HashSet<>();
         if (subSchema != null && !subSchema.locked) {
             fields.addAll(subSchema.getFields());
         }
+        schema.getFields().stream()
+                          .map(Schema.Field::getName)
+                          .forEach(fields::add);
         return fields;
     }
 }

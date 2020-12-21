@@ -170,17 +170,9 @@ public class DistinctTest extends IntegrationTest {
         Assert.assertEquals(orderBy.getFields().size(), 1);
         Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc + 5", Type.INTEGER));
     }
-/*
-    @Test
-    public void testDistinctWithOrderByComplexFieldNameInvalid() {
-        build("SELECT DISTINCT abc + 5 FROM STREAM() ORDER BY \"abc + 5\"");
-        Assert.assertEquals(errors.get(0).getError(), "1:48: The field abc + 5 does not exist in the schema.");
-        Assert.assertEquals(errors.size(), 1);
-    }
-*/
+
     @Test
     public void testDistinctWithOrderByComplexFieldNameValid() {
-        // TODO behavior changed
         build("SELECT DISTINCT abc + 5 FROM STREAM() ORDER BY \"abc + 5\"");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("abc + 5", binary(field("abc", Type.INTEGER),
@@ -255,13 +247,6 @@ public class DistinctTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(0);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        // TODO Note: behavior changed
-        /*
-        Assert.assertEquals(orderBy.getFields().get(0).getExpression(), binary(field("abc", Type.FLOAT),
-                                                                               value(5),
-                                                                               Operation.ADD,
-                                                                               Type.FLOAT));
-        */
         Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc + 5", Type.INTEGER));
     }
 
@@ -300,7 +285,6 @@ public class DistinctTest extends IntegrationTest {
     @Test
     public void testDistinctMultipleAggregates() {
         build("SELECT DISTINCT AVG(abc) FROM STREAM()");
-        //Assert.assertEquals(errors.get(0).getError(), "Query does not match exactly one query type: [SELECT_DISTINCT, GROUP]");
         Assert.assertEquals(errors.get(0).getError(), "Query consists of multiple aggregation types.");
         Assert.assertEquals(errors.size(), 1);
     }

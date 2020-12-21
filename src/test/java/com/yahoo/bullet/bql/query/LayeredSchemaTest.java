@@ -74,7 +74,7 @@ public class LayeredSchemaTest {
 
         Assert.assertEquals(schema.getType("abc"), Type.INTEGER);
 
-        schema.lockTopLayer();
+        schema.lock();
 
         schema.addLayer(new Schema(), Collections.emptyMap());
         Assert.assertEquals(schema.getType("abc"), Type.NULL);

@@ -559,7 +559,7 @@ public class QueryBuilder {
 
     private void addSchemaLayer(boolean lockTopLayer) {
         if (lockTopLayer) {
-            layeredSchema.lockTopLayer();
+            layeredSchema.lock();
         }
         layeredSchema.addLayer(schema, aliases);
         schema = new Schema();
