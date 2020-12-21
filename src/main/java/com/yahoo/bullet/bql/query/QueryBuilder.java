@@ -39,6 +39,7 @@ import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -70,6 +71,19 @@ public class QueryBuilder {
                 new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
+    }
+
+    @AllArgsConstructor
+    public enum QueryError {
+        WHERE_CANNOT_CAST_TO_BOOLEAN("WHERE clause cannot be casted to BOOLEAN: %s", "Please specify a valid WHERE clause."),
+        HAVING_CANNOT_CAST_TO_BOOLEAN("HAVING clause cannot be casted to BOOLEAN: %s", "Please specify a valid HAVING clause."),
+        SELECT_DISTINCT_FIELD_NON_PRIMITIVE("The SELECT DISTINCT field %s is non-primitive. Type given: %s", "Please specify primitive fields only for SELECT DISTINCT."),
+        GROUP_BY_FIELD_NON_PRIMITIVE("The GROUP BY field %s is non-primitive. Type given: %s", "Please specify primitive fields only for GROUP BY."),
+        ORDER_BY_FIELD_NON_PRIMITIVE("ORDER BY contains a non-primitive field: %s", "Please specify a primitive field."),
+        DUPLICATE_FIELD_NAMES_ALIASES("The following field names/aliases are shared: %s", "Please specify non-overlapping field names and aliases.");
+
+        private String messageFormat;
+        private String resolution;
     }
 
     private ProcessedQuery processedQuery;
@@ -153,7 +167,7 @@ public class QueryBuilder {
         if (whereNode != null) {
             filter = visit(processedQuery.getWhere());
             if (cannotCastToBoolean(filter.getType())) {
-                addError(whereNode, "WHERE clause cannot be casted to BOOLEAN: " + whereNode, "Please specify a valid WHERE clause.");
+                addError(whereNode, QueryError.WHERE_CANNOT_CAST_TO_BOOLEAN, whereNode);
             }
         }
     }
@@ -227,7 +241,7 @@ public class QueryBuilder {
             fields.put(name, newName);
 
             if (isNonPrimitive(type)) {
-                addError(node, "The SELECT DISTINCT field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for SELECT DISTINCT.");
+                addError(node, QueryError.SELECT_DISTINCT_FIELD_NON_PRIMITIVE, node, type);
             }
         }
 
@@ -268,7 +282,7 @@ public class QueryBuilder {
                 requiresNoCopyFlag = true;
             }
             if (isNonPrimitive(type)) {
-                addError(node, "The GROUP BY field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for GROUP BY.");
+                addError(node, QueryError.GROUP_BY_FIELD_NON_PRIMITIVE, node, type);
             }
         }
 
@@ -316,7 +330,7 @@ public class QueryBuilder {
             Expression expression = visit(having);
             Type type = expression.getType();
             if (cannotCastToBoolean(type)) {
-                addError(having, "HAVING clause cannot be casted to BOOLEAN: " + having, "Please specify a valid HAVING clause.");
+                addError(having, QueryError.HAVING_CANNOT_CAST_TO_BOOLEAN, having);
             }
             postAggregations.add(new Having(expression));
         }
@@ -436,7 +450,7 @@ public class QueryBuilder {
             addSchemaField(newName, type);
             fields.put(name, newName);
             if (isNonPrimitive(type)) {
-                addError(node, "The GROUP BY field " + node + " is non-primitive. Type given: " + type, "Please specify primitive fields only for GROUP BY.");
+                addError(node, QueryError.GROUP_BY_FIELD_NON_PRIMITIVE, node, type);
             }
         }
 
@@ -522,7 +536,7 @@ public class QueryBuilder {
             ExpressionNode orderByNode = sortItem.getExpression();
             Expression expression = visit(orderByNode);
             if (isNonPrimitive(expression.getType())) {
-                addError(orderByNode, "ORDER BY contains a non-primitive field: " + orderByNode, "Please specify a primitive field.");
+                addError(orderByNode, QueryError.ORDER_BY_FIELD_NON_PRIMITIVE, orderByNode);
             }
             sortItems.add(new OrderBy.SortItem(expression, sortItem.getOrdering().getDirection()));
         }
@@ -594,16 +608,16 @@ public class QueryBuilder {
 
     private void checkDuplicates(Collection<String> fields) {
         duplicates(fields).ifPresent(duplicates ->
-            addError("The following field names/aliases are shared: " + duplicates, "Please specify non-overlapping field names and aliases.")
+            addError(null, QueryError.DUPLICATE_FIELD_NAMES_ALIASES, duplicates)
         );
     }
 
-    private void addError(ExpressionNode node, String message, String resolution) {
-        errors.add(new BulletError(node.getLocation() + message, resolution));
-    }
-
-    private void addError(String message, String resolution) {
-        errors.add(new BulletError(message, resolution));
+    private void addError(ExpressionNode node, QueryError queryError, Object... args) {
+        if (node != null) {
+            errors.add(new BulletError(node.getLocation() + String.format(queryError.messageFormat, args), queryError.resolution));
+        } else {
+            errors.add(new BulletError(String.format(queryError.messageFormat, args), queryError.resolution));
+        }
     }
 
     public boolean hasErrors() {
