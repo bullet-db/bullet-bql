@@ -9,43 +9,44 @@ import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.NAryExpression;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
+import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
 
-public class TypeCheckerTest {
-    @Test
-    public void testConstructor() {
-        // coverage
-        new TypeChecker();
-    }
-
+public class TypeSetterTest {
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported unary operation: \\+")
-    public void testValidateUnaryTypeNotUnary() {
+    public void testGetUnaryTypeNotUnary() {
         // coverage
         UnaryExpression expression = Mockito.mock(UnaryExpression.class);
         Mockito.when(expression.getOperand()).thenReturn(expression);
         Mockito.when(expression.getOp()).thenReturn(Operation.ADD);
-        TypeChecker.validateUnaryType(null, expression);
+        TypeSetter.setUnaryType(expression);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported n-ary operation: \\+")
-    public void testValidateNAryTypeNotNAry() {
+    public void testGetNAryTypeNotNAry() {
         // coverage
         NAryExpression expression = Mockito.mock(NAryExpression.class);
         Mockito.when(expression.getOperands()).thenReturn(Collections.emptyList());
         Mockito.when(expression.getOp()).thenReturn(Operation.ADD);
-        TypeChecker.validateNAryType(null, expression);
+        TypeSetter.setNAryType(expression);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported group operation: COUNT")
+    public void testGetAggregateType() {
+        // coverage
+        TypeSetter.setAggregateType(null, GroupOperation.GroupOperationType.COUNT, null);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported binary operation: NOT")
-    public void testValidateBinaryTypeNotBinary() {
+    public void testGetBinaryTypeNotBinary() {
         // coverage
         BinaryExpression expression = Mockito.mock(BinaryExpression.class);
         Mockito.when(expression.getLeft()).thenReturn(expression);
         Mockito.when(expression.getRight()).thenReturn(expression);
         Mockito.when(expression.getOp()).thenReturn(Operation.NOT);
-        TypeChecker.validateBinaryType(null, expression);
+        TypeSetter.setBinaryType(expression, false);
     }
 }
