@@ -59,89 +59,15 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * **Long**: 64-bit signed two’s complement integer with a minimum value of `-2^63 + 1` and a maximum value of `2^63 - 1`. Example: `9223372036854775807`, `-9223372036854775807`.
 
-* **Double**: 64-bit inexact, variable-precision with a minimum value of `2^-1074` and a maximum value of `(2-2^-52)·2^1023`. Example: `1.7976931348623157E+308`, `.17976931348623157E+309`, `4.9E-324`.
+* **Float**: 32-bit inexact, variable-precision with a minimum value of `2^-149` and a maximum value of `(2-2^-23)·2^127`. Example: `1.70141183E+38`, `1.17549435E-38`, `0.15625`.
 
-* **Decimal**: decimal number can be treated as Double, String or ParsingException. This is controlled by `ParsingOptions`. `1.7976931348623157`, `.17976931348623157`.
+* **Double**: 64-bit inexact, variable-precision with a minimum value of `2^-1074` and a maximum value of `(2-2^-52)·2^1023`. Example: `1.7976931348623157E+308`, `.17976931348623157E+309`, `4.9E-324`.
 
 * **String**: character string which can have escapes. Example: `'this is a string'`, `'this is ''another'' string'`.
 
-* **ColumnReference**: representation of a column field. Unquoted ColumnReference must start with a letter or `_`. Example: `column_name` or `column_name.foo`  or `column_name.foo.bar` or `column_name.0.bar`.
+* **ColumnReference**: representation of a column field. Unquoted ColumnReference must start with a letter or `_`. Example: `column_name`, `column_name.foo`, `column_name.foo.bar`, `column_name[0].bar`, or `"123column"`.
 
-* **All**: representation of all columns. Example: `*`. `column_name.*` is interpreted as `column_name`.
-
-## Reserved Keywords
-
-|      Keyword          |    SQL:2016     |   SQL-92      |
-| --------------------- | :-------------: | :-----------: |
-| `ALTER`               |     reserved    |   reserved    |
-| `AND`                 |     reserved    |   reserved    |
-| `AS`                  |     reserved    |   reserved    |
-| `BETWEEN`             |     reserved    |   reserved    |
-| `BY`                  |     reserved    |   reserved    |
-| `CASE`                |     reserved    |   reserved    |
-| `CAST`                |     reserved    |   reserved    |
-| `CONSTRAINT`          |     reserved    |   reserved    |
-| `CREATE`              |     reserved    |   reserved    |
-| `CROSS`               |     reserved    |   reserved    |
-| `CUBE`                |     reserved    |               |
-| `CURRENT_DATE`        |     reserved    |   reserved    |
-| `CURRENT_TIME`        |     reserved    |   reserved    |
-| `CURRENT_TIMESTAMP`   |     reserved    |   reserved    |
-| `CURRENT_USER`        |     reserved    |               |
-| `DEALLOCATE`          |     reserved    |   reserved    |
-| `DELETE`              |     reserved    |   reserved    |
-| `DESCRIBE`            |     reserved    |   reserved    |
-| `DISTINCT`            |     reserved    |   reserved    |
-| `DROP`                |     reserved    |   reserved    |
-| `ELSE`                |     reserved    |   reserved    |
-| `END`                 |     reserved    |   reserved    |
-| `ESCAPE`              |     reserved    |   reserved    |
-| `EXCEPT`              |     reserved    |   reserved    |
-| `EXECUTE`             |     reserved    |   reserved    |
-| `EXISTS`              |     reserved    |   reserved    |
-| `EXTRACT`             |     reserved    |   reserved    |
-| `FALSE`               |     reserved    |   reserved    |
-| `FOR`                 |     reserved    |   reserved    |
-| `FROM`                |     reserved    |   reserved    |
-| `FULL`                |     reserved    |   reserved    |
-| `GROUP`               |     reserved    |   reserved    |
-| `GROUPING`            |     reserved    |               |
-| `HAVING`              |     reserved    |   reserved    |
-| `IN`                  |     reserved    |   reserved    |
-| `INNER`               |     reserved    |   reserved    |
-| `INSERT`              |     reserved    |   reserved    |
-| `INTERSECT`           |     reserved    |   reserved    |
-| `INTO`                |     reserved    |   reserved    |
-| `IS`                  |     reserved    |   reserved    |
-| `JOIN`                |     reserved    |   reserved    |
-| `LEFT`                |     reserved    |   reserved    |
-| `LIKE`                |     reserved    |   reserved    |
-| `LOCALTIME`           |     reserved    |               |
-| `LOCALTIMESTAMP`      |     reserved    |               |
-| `NATURAL`             |     reserved    |   reserved    |
-| `NORMALIZE`           |     reserved    |               |
-| `NOT`                 |     reserved    |   reserved    |
-| `NULL`                |     reserved    |   reserved    |
-| `ON`                  |     reserved    |   reserved    |
-| `OR`                  |     reserved    |   reserved    |
-| `ORDER`               |     reserved    |   reserved    |
-| `OUTER`               |     reserved    |   reserved    |
-| `PREPARE`             |     reserved    |   reserved    |
-| `RECURSIVE`           |     reserved    |               |
-| `RIGHT`               |     reserved    |   reserved    |
-| `ROLLUP`              |     reserved    |               |
-| `SELECT`              |     reserved    |   reserved    |
-| `TABLE`               |     reserved    |   reserved    |
-| `THEN`                |     reserved    |   reserved    |
-| `TRUE`                |     reserved    |   reserved    |
-| `UESCAPE`             |     reserved    |               |
-| `UNION`               |     reserved    |   reserved    |
-| `UNNEST`              |     reserved    |               |
-| `USING`               |     reserved    |   reserved    |
-| `VALUES`              |     reserved    |   reserved    |
-| `WHEN`                |     reserved    |   reserved    |
-| `WHERE`               |     reserved    |   reserved    |
-| `WITH`                |     reserved    |   reserved    |
+* **All**: representation of all columns. Example: `*`.
 
 ## Statement Syntax
 
@@ -244,380 +170,79 @@ and `limit_clause` is one of
 
 ### Simplest Query
 
-**BQL**
-
     SELECT *
     FROM STREAM(30000, TIME)
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### Simple Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id = 'btsg8l9b234ha'
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"btsg8l9b234ha"
-                    }
-                ],
-                "operation":"=="
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### SIZEOF Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE SIZEOF(id_map) = 4
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id_map",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"4"
-                    }
-                ],
-                "operation":"SIZEIS"
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### CONTAINSKEY Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id_map CONTAINSKEY ("key")
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id_map",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"key"
-                    }
-                ],
-                "operation":"CONTAINSKEY"
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### CONTAINSVALUE Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id_map NOT CONTAINSVALUE ("btsg8l9b234ha")
     LIMIT 1;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "clauses":[
-                    {
-                        "field":"id_map",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"btsg8l9b234ha"
-                            }
-                        ],
-                        "operation":"CONTAINSVALUE"
-                    }
-                ],
-                "operation": "NOT"
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-
 ### Compare to other fields Filtering
-
-**BQL**
 
     SELECT *
     FROM STREAM(30000, TIME)
     WHERE id = uid
     LIMIT 1;
-
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"id",
-                "values":[
-                    {
-                        "kind":"FIELD",
-                        "value":"uid"
-                    }
-                ],
-                "operation":"=="
-            }
-        ],
-        "aggregation":{
-            "type":"RAW",
-            "size":1
-        },
-        "duration":30000
-    }
-          
+     
 ### Relational & Logical Filters and Projections
-
-**BQL**
 
     SELECT timestamp AS ts, device_timestamp AS device_ts, 
            event AS event, page_domain AS domain, page_id AS id
     FROM STREAM(20000, TIME)
     WHERE id = 'btsg8l9b234ha' AND page_id IS NOT NULL
     LIMIT 10;
-    
-**Bullet Query**
 
-    {
-        "filters":[
-            {
-                "clauses":[
-                    {
-                        "field":"id",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"btsg8l9b234ha"
-                            }
-                        ],
-                        "operation":"=="
-                    },
-                    {
-                        "field":"page_id",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"NULL"
-                            }
-                        ],
-                        "operation":"!="
-                    }
-                ],
-                "operation":"AND"
-            }
-        ],
-        "projection":{
-            "fields":{
-                "page_domain":"domain",
-                "page_id":"id",
-                "device_timestamp":"device_ts",
-                "event":"event",
-                "timestamp":"ts"
-            }
-        },
-        "aggregation":{
-            "type":"RAW","size":10
-        },
-        "duration":20000
-    }
-    
 ### GROUP ALL COUNT Aggregation
-
-**BQL**
 
     SELECT COUNT(*) AS numSeniors
     FROM STREAM(20000, TIME)
-    WHERE demographics.age > 65
-    GROUP BY ();
-    
-**Bullet Query**
+    WHERE demographics.age > 65;
 
-    {
-        "filters":[
-            {
-                "field":"demographics.age",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"65"
-                    }
-                ],
-                "operation":">"
-            }
-        ],
-        "aggregation":{
-            "type":"GROUP",
-            "size":500,
-            "attributes":{
-                "operations":[
-                    {
-                        "newName":"numSeniors",
-                        "type":"COUNT"
-                    }
-                ]
-            }
-        },
-        "duration":20000
-    }
-    
 ### GROUP ALL Multiple Aggregations
-
-**BQL**
 
     SELECT COUNT(*) AS numCalifornians, AVG(demographics.age) AS avgAge, 
            MIN(demographics.age) AS minAge, MAX(demographics.age) AS maxAge
     FROM STREAM(20000, TIME)
-    WHERE demographics.state = 'california'
-    GROUP BY ();
-    
-**Bullet Query**
+    WHERE demographics.state = 'california';
 
-    {
-        "filters":[
-            {
-                "field":"demographics.state",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"california"
-                    }
-                ],
-                "operation":"=="
-            }
-        ],
-        "aggregation":{
-            "type":"GROUP",
-            "size":500,
-            "attributes":{
-                "operations":[
-                    {
-                        "newName":"numCalifornians",
-                        "type":"COUNT"
-                    },
-                    {
-                        "newName":"minAge",
-                        "field":"demographics.age",
-                        "type":"MIN"
-                    },
-                    {
-                        "newName":"avgAge",
-                        "field":"demographics.age",
-                        "type":"AVG"
-                    },
-                    {
-                        "newName":"maxAge",
-                        "field":"demographics.age",
-                        "type":"MAX"
-                    }
-                ]
-            }
-        },
-        "duration":20000
-    }
-    
 ### COUNT DISTINCT Aggregation
-
-**BQL**
 
     SELECT COUNT(DISTINCT browser_name, browser_version) AS "COUNT DISTINCT"
     FROM STREAM(10000, TIME);
-  
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"COUNT DISTINCT",
-            "size":500,
-            "fields":{
-                "browser_name":"browser_name",
-                "browser_version":"browser_version"
-            },
-            "attributes":{
-                "newName":"CountDistinct"
-            }
-        },
-        "duration":10000
-    }
-    
 ### DISTINCT Aggregation
-
-**BQL**
 
     SELECT browser_name AS browser
     FROM STREAM(30000, TIME)
     GROUP BY browser_name
     LIMIT 10;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"GROUP",
-            "size":10,
-            "fields":{
-                "browser_name":"browser"
-            }
-        },
-        "duration":30000
-    }
-    
 ### GROUP BY Aggregation
-
-**BQL**
 
     SELECT demographics.country AS country, device AS device,
            COUNT(*) AS count, AVG(demographics.age) AS averageAge,
@@ -627,132 +252,25 @@ and `limit_clause` is one of
     GROUP BY demographics.country, device
     LIMIT 50;
 
-**Bullet Query**
-
-    {
-        "filters":[
-            {
-                "field":"demographics",
-                "values":[
-                    {
-                        "kind":"VALUE",
-                        "value":"NULL"
-                    }
-                ],
-                "operation":"!="
-            }
-        ],
-        "aggregation":{
-            "type":"GROUP",
-            "size":50,
-            "fields":{
-                "demographics.country":"country",
-                "device":"device"
-            },
-            "attributes":{
-                "operations":[
-                    {
-                        "newName":"count",
-                        "type":"COUNT"
-                    },
-                    {
-                        "newName":"averageTimespent",
-                        "field":"timespent",
-                        "type":"AVG"
-                    },
-                    {
-                        "newName":"averageAge",
-                        "field":"demographics.age",
-                        "type":"AVG"
-                    }
-                ]
-            }
-        },
-        "duration":20000
-    }
-
 ### QUANTILE Distribution Aggregation
-
-**BQL**
 
     SELECT QUANTILE(duration, LINEAR, 11)
     FROM STREAM(5000, TIME)
     LIMIT 11;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"DISTRIBUTION",
-            "size":11,
-            "fields":{
-                "duration":"duration"
-            },
-            "attributes":{
-                "numberOfPoints":11,
-                "type":"QUANTILE"
-            }
-        },
-        "duration":5000
-    }
-    
 ### FREQ(Frequencies) Distribution Aggregation
-
-**BQL**
 
     SELECT FREQ(duration, REGION, 2000, 20000, 500)
     FROM STREAM(5000, TIME)
     LIMIT 100;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"DISTRIBUTION",
-            "size":100,
-            "fields":{
-                "duration":"duration"
-            },
-            "attributes":{
-                "start":2000.0,
-                "increment":500.0,
-                "end":20000.0,
-                "type":"PMF"
-            }
-        },
-        "duration":5000
-    }
-    
 ### CUMFREQ(Cumulative Frequencies) Distribution Aggregation
 
-**BQL**
-    
     SELECT CUMFREQ(duration, MANUAL, 20000, 2000, 15000, 45000)
     FROM STREAM(5000, TIME)
     LIMIT 100;
-    
-**Bullet Query**
 
-    {
-        "aggregation":{
-            "type":"DISTRIBUTION",
-            "size":100,
-            "fields":{
-                "duration":"duration"
-            },
-            "attributes":{
-                "type":"CDF",
-                "points":[
-                    20000.0,2000.0,15000.0,45000.0
-                ]
-            }
-        },
-        "duration":5000
-    }
-    
 ### TOP K Aggregation
-
-**BQL**
 
     SELECT TOP(500, 100, demographics.country, browser_name) AS numEvents
     FROM STREAM(10000, TIME)
@@ -767,128 +285,17 @@ Or
     HAVING COUNT(*) >= 100
     ORDER BY COUNT(*) DESC
     LIMIT 500;
-    
-**Bullet Query**
 
-    {
-        "filters":[
-            {
-                "clauses":[
-                    {
-                        "field":"demographics.country",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"NULL"
-                            }
-                        ],
-                        "operation":"!="
-                    },
-                    {
-                        "field":"browser_name",
-                        "values":[
-                            {
-                                "kind":"VALUE",
-                                "value":"NULL"
-                            }
-                        ],
-                        "operation":"!="
-                    }
-                ],
-                "operation":"AND"
-            }
-        ],
-        "aggregation":{
-            "type":"TOP K",
-            "size":500,
-            "fields":{
-                "browser_name":"browser_name",
-                "demographics.country":"demographics.country"
-            },
-            "attributes":{
-                "newName":"numEvents",
-                "threshold":100
-            }
-        },
-        "duration":10000
-    }
-    
 ### Computation
-
-**BQL**
 
     SELECT TOP(500, 100, demographics.country, browser_name) AS numEvents, numEvents * 100 AS inflatedNumEvents
     FROM STREAM(10000, TIME);
     
-**Bullet Query**
-
-    {
-        "aggregation":{
-            "size":500,
-            "type":"TOP K",
-            "attributes":{
-                "newName":"numEvents",
-                "threshold":100
-            },
-            "fields":{
-                "browser_name":"browser_name",
-                "demographics.country":"demographics.country"
-            }
-        },
-        "duration":10000,
-        "postAggregations":[
-            {
-                "expression":{
-                    "left":{
-                        "value":{
-                            "kind":"FIELD",
-                            "value":"numEvents"
-                        }
-                    },
-                    "right":{
-                        "value":{
-                            "kind":"VALUE",
-                            "value":"100"
-                        }
-                    },
-                    "operation":"*"
-                },
-                "newName":"inflatedNumEvents",
-                "type":"COMPUTATION"
-            }
-        ]
-    }
-
 ### Order By
-
-**BQL**
 
     SELECT DISTINCT browser_name
     FROM STREAM(30000, TIME)
     ORDER BY browser_name;
-    
-**Bullet Query**
-
-    {
-        "aggregation":{
-            "type":"GROUP",
-            "fields":{
-                "browser_name":"browser_name"
-            }
-        },
-        "duration":30000,
-        "postAggregations":[
-            {
-                "fields":[
-                    {
-                        "field":"browser_name",
-                        "direction":"ASC"
-                    }
-                ],
-                "type":"ORDERBY"
-            }
-        ]
-    }
 
 ## Useful links
 
