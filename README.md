@@ -25,15 +25,13 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql).
 
-* To run the tool from the command line, first compile:
+* To run the tool from the command line, first compile and then run:
 
     `mvn clean compile` 
+    
+    `mvn exec:java`
 
-    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. For example:
-     
-    `mvn exec:java -Dexec.args="'SELECT * FROM STREAM(30000, TIME) LIMIT 1;'"` 
-
-    **Note:** Notice the query must be enclosed in single+double quotes: `"'` so each word is not interpreted as it's own argument.
+    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries.
      
 * Bullet-BQL is currently being integrated into [Bullet-Service](https://github.com/bullet-db/bullet-service/), and will provide a BQL endpoint directly. 
 
@@ -42,12 +40,8 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 * Build a [Bullet](https://bullet-db.github.io/) Query from a BQL string.
 
     Simply construct a `BulletQueryBuilder` and call `buildQuery(String bql)`. A [Bullet](https://bullet-db.github.io/) Query is returned.
-    
-* Build a [Bullet JSON](https://bullet-db.github.io/ws/api/) from a BQL string.
 
-    Simply construct a `BulletQueryBuilder` and call `buildJson(String bql)`. A [Bullet JSON](https://bullet-db.github.io/ws/api/) is returned.
-    
-* You can change `BQLConfig` by altering `.yaml` to change BQL delimiter and how parser treats decimal numbers.
+* You can change the max query length in `BQLConfig` by altering the `.yaml`.
 
 ## Data Types
 
