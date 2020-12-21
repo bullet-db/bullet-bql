@@ -59,108 +59,124 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * **String**: character string which can have escapes. Example: `'this is a string'`, `'this is ''another'' string'`.
 
-* **ColumnReference**: representation of a column field. Unquoted ColumnReference must start with a letter or `_`. Example: `column_name`, `column_name.foo`, `column_name.foo.bar`, `column_name[0].bar`, or `"123column"`.
+* **Identifier**: representation of a field. Unquoted identifier must start with a letter or `_`. Example: `column_name`, `column_name.foo`, `column_name.foo.bar`, `column_name[0].bar`, or `"123column"`.
 
-* **All**: representation of all columns. Example: `*`.
+* **All**: representation of all fields. Example: `*`.
 
 ## Statement Syntax
 
-    SELECT DISTINCT? select_clause
-    FROM from_clause
-    ( WHERE where_clause )?
-    ( GROUP BY groupBy_clause )?
-    ( HAVING having_clause )?
-    ( ORDER BY orderBy_clause )?
-    ( WINDOWING windowing_clause )?
-    ( LIMIT limit_clause )?;
+    SELECT select
+    FROM stream
+    ( WHERE expression )?
+    ( GROUP BY expression ( , expression )* )?
+    ( HAVING expression )?
+    ( ORDER BY orderBy )?
+    ( WINDOWING window )?
+    ( LIMIT Integer )?
+    ';'?
     
-where `select_clause` is one of
+where `select` is 
     
-    * ( , arithmetic_expr (AS? ColumnReference )? )*
-    COUNT( DISTINCT reference_expr ( , reference_expr )* )
-    group_function ( AS? ColumnReference )? ( , group_function ( AS? ColumnReference )? )* ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
-    reference_expr ( AS? ColumnReference )? ( , reference_expr ( AS? ColumnReference )? )* ( , arithmetic_expr (AS? ColumnReference )? )*
-    arithmetic_expr ( AS? ColumnReference )? ( , arithmetic_expr ( AS? ColumnReference )? )*
-    distribution_type( reference_expr, input_mode ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
-    TOP ( ( Integer | Long ) ( , Integer | Long ) )? , reference_expr ( , reference_expr )? ) ( AS? ColumnReference )? ( , arithmetic_expr (AS? ColumnReference )? )*
+    DISTINCT? selectItem ( , selectItem )*
     
-`reference_expr` is one of `ColumnReference` or `Dereference`.
+and `selectItem` is one of
 
-`arithmetic_expr` is one of
-    
-    ( arithmetic_expr )
-    arithmetic_expr ( * | / | + | - ) arithmetic_expr
-    CAST ( arithmetic_expr , ( 'INTEGER' | 'LONG' | 'FLOAT' | 'DOUBLE' | 'BOOLEAN' | 'STRING' ) )
-    reference_expr
-    Integer | Long | Double | Decimal | Boolean | String
-    
-and `group_function` is one of `SUM(reference_expr)`, `MIN(reference_expr)`, `MAX(reference_expr)`, `AVG(reference_expr)` and `COUNT(*)`. `reference_expr` is one of ColumnReference and Dereference. `distribution_type` is one of `QUANTILE`, `FREQ` and `CUMFREQ`. The 1st number in `TOP` is K, and the 2nd number is an optional threshold.  The `input_mode` is one of 
+    expression ( AS? identifier )?
+    *
 
-    LINEAR, ( Integer | Long )                                              evenly spaced
-    REGION, ( Integer | Long ), ( Integer | Long ), ( Integer | Long )      evenly spaced in a region
-    MANUAL, ( Integer | Long ) (, ( Integer | Long ) )*                     defined points
-    
-and `from_clause` is one of
+and `expression` is one of
 
-    STREAM()                                                          default time duration will be set from BQLConfig
-    STREAM( ( Long | MAX ), TIME )                                    time based duration control. 
-    STREAM( ( Long | MAX ), TIME, ( Long | MAX ), RECORD )            time and record based duration control. 
+    valueExpression                                                                         
+    fieldExpression                                                                         
+    listExpression                                                                          
+    expression IS NULL                                                                      
+    expression IS NOT NULL                                                                  
+    unaryExpression                                                                         
+    functionExpression                                                                      
+    expression NOT? IN expression                                    
+    expression RLIKE ANY? expression                                 
+    expression ( * | / ) expression                                  
+    expression ( + | - ) expression                                      
+    expression ( < | <= | > | >= ) ( ANY | ALL )? expression         
+    expression ( = | != ) ( ANY | ALL )? expression                    
+    expression AND expression                                                 
+    expression XOR expression                                                 
+    expression OR expression                                                  
+    ( expression )                                                                      
+
+where `valueExpression` is one of Null, Boolean, Integer, Long, Float, Double, or String
+
+and `fieldExpression` is one of
+
+    identifier ( : fieldType )?
+    identifier [ Integer ] ( : fieldType )?
+    identifier [ Integer ] . identifier ( : fieldType )?
+    identifier . identifier ( : fieldType )?
+    identifier . identifier . identifier ( : fieldType )?
+    
+`fieldType` is one of
+
+    primitiveType
+    LIST [ primitiveType ]
+    MAP [ primitiveType ]
+    LIST [ MAP [ primitiveType ] ]
+    MAP [ MAP [ primitiveType ] ]
+    
+and `primitiveType` is `INTEGER`, `LONG`, `FLOAT`, `DOUBLE`, `BOOLEAN`, or `STRING`
+
+where `listExpression` is one of
+    
+    []
+    [ expression ( , expression )* ]
+
+`unaryExpression` is 
+    
+    ( NOT | SIZEOF ) ( expression )                                                 with optional parentheses
+
+`functionExpression` is one of
+
+    ( SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER ) ( expression, expression )      
+    IF ( expression ( , expression )* )                                             three arguments                         
+    aggregateExpression                               
+    CAST ( expression AS primitiveType )          
+
+where `aggregateExpression` is one of
+
+    COUNT ( * )                                                    
+    ( SUM | AVG | MIN | MAX ) ( expression )                                
+    COUNT ( DISTINCT expression ( , expression )* )                                           
+    distributionType ( expression, inputMode )                            
+    TOP ( Integer ( , Integer )?, expression ( , expression )* )
+
+where `distributionType` is `QUANTILE`, `FREQ`, or `CUMFREQ`
+
+and `inputMode` is one of
+
+    LINEAR, Integer                                                                 evenly spaced
+    REGION, Number, Number, Number                                                  evenly spaced in a region
+    MANUAL, Number ( , Number )*                                                    defined points
+
+
+and `stream` is one of
+
+    STREAM()                                                                        default time duration will be set from BQLConfig
+    STREAM( ( Integer | MAX ), TIME )                                               time based duration control 
 
 `RECORD` will be supported in the future.
 
-and `where_clause` is one of
+and `orderBy` is 
 
-    NOT where_clause
-    where_clause AND where_clause
-    where_clause OR where_clause
-    reference_expr IS NOT? NULL
-    reference_expr IS NOT? EMPTY
-    reference_expr IS NOT? DISTINCT FROM value_expr
-    reference_expr NOT? BETWEEN value_expr AND value_expr
-    reference_expr NOT? IN ( value_expr ( , value_expr )* )
-    reference_expr NOT? LIKE ( value_expr ( , value_expr )* )
-    reference_expr NOT? CONTAINSKEY ( value_expr ( , value_expr )* )
-    reference_expr NOT? CONTAINSVALUE ( value_expr ( , value_expr )* )
-    reference_expr ( = | <> | != | < | > | <= | >= ) value_expr
-    SIZEOF(reference_expr) ( = | <> | != ) value_expr
-    SIZEOF(reference_expr) NOT? IN ( value_expr ( , value_expr )* )
-    SIZEOF(reference_expr) NOT? DISTINCT FROM value_expr
-  
-`value_expr` is one of Null, Boolean, Integer, Long, Double, Decimal, String or `reference_expr`.
+    expression ( ASC | DESC )? ( , expression ( ASC | DESC )? )*
 
-and `groupBy_clause` is one of
+and `window` is one of 
 
-    ()                                                                group all
-    reference_expr ( , reference_expr )*                              group by
-    ( reference_expr ( , reference_expr )* )                          group by    
-
-and `HAVING` and `ORDER BY` together is only supported for TopK. In which case, `having_clause` is 
-
-    COUNT(*) >= Integer
-    
-and `orderBy_clause` is
-
-    COUNT(*) DESC
-    
-If not TopK, `HAVING` is not supported, and `orderBy_clause` is
-
-    reference_expr (ASC | DESC)? ( , reference_expr (ASC | DESC)? )*
-
-and `windowing_clause` is one of 
-
-    ( EVERY, ( Integer | Long ), ( TIME | RECORD ), include )
-    ( TUMBLING, ( Integer | Long ), ( TIME | RECORD ) )
+    EVERY ( Integer, ( TIME | RECORD ), include )
+    TUMBLING ( Integer, ( TIME | RECORD ) )
 
 `include` is one of 
 
     ALL
-    FIRST, ( Integer | Long ), ( TIME | RECORD )
-    LAST, ( Integer | Long ), ( TIME | RECORD )                       will be supported
-
-and `limit_clause` is one of
-
-    Integer | Long 
-    ALL                                                               will be supported
+    FIRST, Integer, ( TIME | RECORD )
 
 ### Simplest Query
 
