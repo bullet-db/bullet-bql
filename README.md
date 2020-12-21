@@ -1,8 +1,8 @@
 # Bullet-BQL
 
-[![Build Status](https://travis-ci.org/bullet-db/bullet-bql.svg?branch=master)](https://travis-ci.org/bullet-db/bullet-bql) [![Coverage Status](https://coveralls.io/repos/github/bullet-db/bullet-bql/badge.svg?branch=master)](https://coveralls.io/github/bullet-db/bullet-bql?branch=master) [![Download](https://api.bintray.com/packages/yahoo/maven/bullet-bql/images/download.svg) ](https://bintray.com/yahoo/maven/bullet-bql/_latestVersion)
+[![Build Status](https://travis-ci.org/bullet-db/bullet-bql.svg?branch=master)](https://travis-ci.com/bullet-db/bullet-bql) [![Coverage Status](https://coveralls.io/repos/github/bullet-db/bullet-bql/badge.svg?branch=master)](https://coveralls.io/github/bullet-db/bullet-bql?branch=master) [![Download](https://api.bintray.com/packages/yahoo/maven/bullet-bql/images/download.svg) ](https://bintray.com/yahoo/maven/bullet-bql/_latestVersion)
 
->BQL is a SQL-like query language specifically designed for [Bullet](https://bullet-db.github.io/) query engine, which provides an easy-to-use yet powerful interactive SQL-like interface. 
+>BQL is a SQL-like query language specifically designed for the [Bullet](https://bullet-db.github.io/) query engine, which provides an easy-to-use yet powerful interactive SQL-like interface. 
 
 This project contains a BQL parser built in [ANTLR 4](http://www.antlr.org/). A BQL query will be parsed, classified, validated and extracted to a [Bullet](https://bullet-db.github.io/) Query or [Bullet JSON](https://bullet-db.github.io/ws/api/).
 
@@ -25,13 +25,13 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 * The Bullet-BQL artifact can be obtained from [JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=bullet-bql).
 
-* To run the tool from the command line, first compile and then run:
+* To run the tool from the command line, first compile:
 
     `mvn clean compile` 
+
+    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries. To run:
     
     `mvn exec:java`
-
-    Then you can use bullet-bql to parse BQL strings into [Bullet JSON](https://bullet-db.github.io/ws/api/) queries.
      
 * Bullet-BQL is currently being integrated into [Bullet-Service](https://github.com/bullet-db/bullet-service/), and will provide a BQL endpoint directly. 
 
