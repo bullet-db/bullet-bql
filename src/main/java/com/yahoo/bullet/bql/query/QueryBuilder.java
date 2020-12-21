@@ -107,7 +107,6 @@ public class QueryBuilder {
     @Getter
     private Query query;
 
-    private Schema baseSchema;
     private LayeredSchema layeredSchema;
 
     // Used to build layers
@@ -118,7 +117,6 @@ public class QueryBuilder {
 
     public QueryBuilder(ProcessedQuery processedQuery, Schema schema) {
         this.processedQuery = processedQuery;
-        this.baseSchema = schema;
         this.layeredSchema = new LayeredSchema(schema);
         buildQuery();
     }
@@ -158,7 +156,7 @@ public class QueryBuilder {
         query = new Query(projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, window, duration);
     }
 
-    public void doCommon() {
+    private void doCommon() {
         window = getWindow(processedQuery.getWindow());
         duration = processedQuery.getDuration();
         limit = processedQuery.getLimit();
@@ -172,7 +170,7 @@ public class QueryBuilder {
         }
     }
 
-    public void doSelect() {
+    private void doSelect() {
         doSelectFields();
 
         requiresNoCopyFlag = true;
@@ -200,7 +198,7 @@ public class QueryBuilder {
         doProjection();
     }
 
-    public void doSelectAll() {
+    private void doSelectAll() {
         doSelectFields();
 
         requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
@@ -297,6 +295,7 @@ public class QueryBuilder {
                 addAlias(node.getName(), newName);
             }
             addSchemaField(newName, type);
+
             schemaFields.add(newName);
 
             ExpressionNode expressionNode = node.getExpression();
@@ -486,11 +485,11 @@ public class QueryBuilder {
             Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
-            addProjectionField(newName, expression);
-            addSchemaField(newName, type);
             if (processedQuery.hasAlias(node)) {
                 addAlias(node.getName(), newName);
             }
+            addProjectionField(newName, expression);
+            addSchemaField(newName, type);
         }
     }
 
@@ -513,12 +512,11 @@ public class QueryBuilder {
             Expression expression = visit(node);
             String newName = processedQuery.getAliasOrName(node);
             Type type = expression.getType();
-            addComputationField(newName, expression);
-
-            addSchemaField(newName, type);
             if (processedQuery.hasAlias(node)) {
                 addAlias(node.getName(), newName);
             }
+            addComputationField(newName, expression);
+            addSchemaField(newName, type);
         }
         if (!computationFields.isEmpty()) {
             postAggregations.add(new Computation(new ArrayList<>(computationFields)));
@@ -571,8 +569,8 @@ public class QueryBuilder {
         aliases.put(name, alias);
     }
 
-    private void addSchemaLayer(boolean lockTopLayer) {
-        if (lockTopLayer) {
+    private void addSchemaLayer(boolean lockSchema) {
+        if (lockSchema) {
             layeredSchema.lock();
         }
         layeredSchema.addLayer(schema, aliases);
