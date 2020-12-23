@@ -285,8 +285,20 @@ public class TypeChecker {
         return new BulletError(node.getLocation() + message, (List<String>) null);
     }
 
+    private static Optional<List<BulletError>> makeError(BulletError error) {
+        return Optional.of(Collections.singletonList(error));
+    }
+
+    private static Optional<List<BulletError>> makeError(Node node, QueryError error) {
+        return makeError(error.format(node.getLocation()));
+    }
+
+    private static Optional<List<BulletError>> makeError(Node node, QueryError error, Object... arguments) {
+        return makeError(error.format(node.getLocation(), arguments));
+    }
+
     private static Optional<List<BulletError>> makeError(Node node, String message) {
-        return Optional.of(Collections.singletonList(makeErrorOnly(node, message)));
+        return makeError(makeErrorOnly(node, message));
     }
 
     private static boolean isCollection(Type type) {
