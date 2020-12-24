@@ -53,6 +53,7 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchem
         other aggregations, we need to see if we should add additional projections to do the order by (this only
         happens in case of RAW queries). So resolve these additional fields by looking past the top layer after unlock
         */
+        boolean wasLocked = layeredSchema.isLocked();
         layeredSchema.unlock();
         FieldLocation field = layeredSchema.findField(name, layeredSchema.depth() + 1);
         Type type = field.getType();
@@ -60,7 +61,9 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchem
             layeredSchema.addField(name, type);
             additionalFields.add(name);
         }
-        layeredSchema.lock();
+        if (wasLocked) {
+            layeredSchema.lock();
+        }
         return null;
     }
 

@@ -21,6 +21,7 @@ public class LayeredSchema {
     private Map<String, String> aliases;
     private LayeredSchema subSchema;
     private int depth;
+    @Getter
     private boolean locked;
     private static final int TOP_LAYER = 0;
 
