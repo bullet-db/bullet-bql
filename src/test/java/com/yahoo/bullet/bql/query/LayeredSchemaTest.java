@@ -76,7 +76,6 @@ public class LayeredSchemaTest {
 
         schema.lock();
 
-        schema.addLayer(new Schema(), Collections.emptyMap());
         Assert.assertEquals(schema.getType("abc"), Type.NULL);
     }
 
@@ -93,7 +92,6 @@ public class LayeredSchemaTest {
 
         schema.lock();
 
-        schema.addLayer(new Schema(), Collections.emptyMap());
         Assert.assertEquals(schema.getFieldNames(), Collections.emptySet());
     }
 }
