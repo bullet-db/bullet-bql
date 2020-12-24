@@ -39,32 +39,66 @@ public class LayeredSchema {
         }
     }
 
+    /**
+     * Constructor.
+     *
+     * @param schema The {@link Schema} to use.
+     */
     public LayeredSchema(Schema schema) {
         this.schema = schema;
         this.aliases = Collections.emptyMap();
         this.depth = TOP_LAYER;
     }
 
+    /**
+     * Adds a new layer to the top of this, pushing every layer one deeper. Note that if this layered schema had layers
+     * on top, their depths will not be adjusted. It is recommended to add layers from the top.
+     *
+     * @param newSchema The new {@link Schema} to add to the top layer.
+     * @param newAliases The new {@link Map} of aliases to add to the top layer.
+     */
     public void addLayer(Schema newSchema, Map<String, String> newAliases) {
-        subSchema = new LayeredSchema(schema, aliases, subSchema, depth + 1, locked);
+        subSchema = new LayeredSchema(schema, aliases, subSchema, depth, locked);
         schema = newSchema;
         aliases = newAliases;
         locked = false;
-        depth = 0;
+        subSchema.increaseDepth();
     }
 
+    /**
+     * Locks this {@link LayeredSchema}, preventing access to all layers below.
+     */
     public void lock() {
         locked = true;
     }
 
+    /**
+     * Unlocks this {@link LayeredSchema}, allowing access to layers below.
+     */
     public void unlock() {
         locked = false;
     }
 
+    /**
+     * Gets the current depth of this {@link LayeredSchema}. Depth is defined starting at 0 for the top layer and
+     * increases as you go deeper.
+     *
+     * @return The depth of this layer.
+     */
     public int depth() {
         return depth;
     }
 
+    /**
+     * Searches for the given field from this layer. The minimum depth parameter can be provided to ensure that
+     * the field, if found, is at that depth or greater. The depth is the depth of this layered schema as defined by
+     * {@link #depth()}. This can be used to skip layers for the search.
+     *
+     * @param field The field to search for.
+     * @param minimumDepth The minimum (whole number) for the depth to find the field from.
+     * @return A {@link FieldLocation} for the field. It is non-null. If the schema does not exist, the type will be
+     *         {@link Type#UNKNOWN}. If field is not found, the type will be be {@link Type#NULL}.
+     */
     public FieldLocation findField(String field, int minimumDepth) {
         if (schema == null) {
             // If the schema is null, ignore the subschema and just return Type.UNKNOWN
@@ -82,29 +116,65 @@ public class LayeredSchema {
         return canGoDeeper() ? subSchema.findField(field, minimumDepth) : FieldLocation.from(null, Type.NULL, depth);
     }
 
+    /**
+     * Searches for the given field in this layer and below.
+     *
+     * @param field The field to search for.
+     * @return A {@link FieldLocation} for the field. It is non-null. If the schema does not exist, the type will be
+     *         {@link Type#UNKNOWN}. If field is not found, the type will be be {@link Type#NULL}.
+     */
     public FieldLocation findField(String field) {
         // No depth requirement
-        return findField(field, TOP_LAYER);
+        return findField(field, depth);
     }
 
+    /**
+     * Searches for the given field in this layer and below.
+     *
+     * @param field The field to search for.
+     * @return The {@link Schema.Field} or null if not found.
+     */
     public Schema.Field getField(String field) {
         return findField(field).getField();
     }
 
+    /**
+     * Searches for the type of the given field in this layer and below.
+     *
+     * @param field The field to search for.
+     * @return The {@link Type} or {@link Type#NULL} if not found, or if the schema is absent, {@link Type#UNKNOWN}.
+     */
     public Type getType(String field) {
         return findField(field).getType();
     }
 
+    /**
+     * Checks to see if the given field exists in this layer or below.
+     *
+     * @param field The field to search for.
+     * @return A boolean denoting if the field exists or not.
+     */
     public boolean hasField(String field) {
         return findField(field).getField() != null;
     }
 
+    /**
+     * Adds a new field to the {@link Schema} at this layer.
+     *
+     * @param field The name of the field to add.
+     * @param type The {@link Type} of the field to add.
+     */
     public void addField(String field, Type type) {
         if (schema != null) {
             schema.addField(field, type);
         }
     }
 
+    /**
+     * Retrieves the names of all the fields in this and accessible layers below.
+     *
+     * @return The {@link Set} of field names after flattening.
+     */
     public Set<String> getFieldNames() {
         Set<String> fields = new HashSet<>();
         if (canGoDeeper()) {
@@ -116,6 +186,11 @@ public class LayeredSchema {
         return fields;
     }
 
+    /**
+     * Retrieves field names that have aliases but do not exist in the schema at each accessible layer.
+     *
+     * @return The {@link Set} of extraneous aliases.
+     */
     public Set<String> getExtraneousAliases() {
         Set<String> fields = new HashSet<>();
         if (canGoDeeper()) {
@@ -125,6 +200,13 @@ public class LayeredSchema {
             aliases.keySet().stream().filter(field -> !schema.hasField(field)).forEach(fields::add);
         }
         return fields;
+    }
+
+    private void increaseDepth() {
+        depth++;
+        if (subSchema != null) {
+            subSchema.increaseDepth();
+        }
     }
 
     private boolean canGoDeeper() {
