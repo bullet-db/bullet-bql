@@ -21,66 +21,72 @@ public class LayeredSchema {
     private Schema schema;
     private Map<String, String> aliases;
     private LayeredSchema subSchema;
+    private int depth;
     private boolean locked;
+
+    @Getter
+    public static class FieldLocation {
+        private Schema.Field field;
+        private Type type;
+        private int depth;
+
+        private static FieldLocation from(Schema.Field field, Type type, int depth) {
+            FieldLocation location = new FieldLocation();
+            location.field = field;
+            location.type = type;
+            location.depth = depth;
+            return location;
+        }
+    }
 
     public LayeredSchema(Schema schema) {
         this.schema = schema;
         this.aliases = Collections.emptyMap();
+        this.depth = 0;
     }
 
     public void addLayer(Schema newSchema, Map<String, String> newAliases) {
-        subSchema = new LayeredSchema(schema, aliases, subSchema, locked);
+        subSchema = new LayeredSchema(schema, aliases, subSchema, depth + 1, locked);
         schema = newSchema;
         aliases = newAliases;
         locked = false;
+        depth = 0;
     }
 
     public void lock() {
         locked = true;
     }
 
-    public Schema.Field getField(String field) {
+    public FieldLocation findField(String field) {
         if (schema == null) {
-            return null;
+            // If the schema is null, ignore the subschema and just return Type.UNKNOWN
+            return FieldLocation.from(null, Type.UNKNOWN, depth);
         }
         Type type = schema.getType(field);
         if (type != Type.NULL) {
-            return new Schema.PlainField(field, type);
+            return FieldLocation.from(new Schema.PlainField(field, type), type, depth);
         }
         String alias = aliases.get(field);
         if (alias != null) {
-            return new Schema.PlainField(alias, schema.getType(alias));
+            type = schema.getType(alias);
+            return FieldLocation.from(new Schema.PlainField(alias, type), type, depth);
         }
-        return subSchema != null && !subSchema.locked ? subSchema.getField(field) : null;
+        return subSchema != null && !subSchema.locked ? subSchema.findField(field) : FieldLocation.from(null, Type.NULL, depth);
+    }
+
+    public Schema.Field getField(String field) {
+        FieldLocation location = findField(field);
+        return location == null ? null : location.getField();
     }
 
     public Type getType(String field) {
-        if (schema == null) {
-            // If the schema is null, ignore the subschema and just return Type.UNKNOWN
-            return Type.UNKNOWN;
-        }
-        Type type = schema.getType(field);
-        if (type != Type.NULL) {
-            return type;
-        }
-        String alias = aliases.get(field);
-        if (alias != null) {
-            return schema.getType(alias);
-        }
-        return subSchema != null && !subSchema.locked ? subSchema.getType(field) : Type.NULL;
+        FieldLocation location = findField(field);
+        return location == null ? null : location.getType();
     }
 
     public boolean hasField(String field) {
-        if (schema == null) {
-            return false;
-        }
-        if (schema.hasField(field)) {
-            return true;
-        }
-        if (aliases.containsKey(field)) {
-            return true;
-        }
-        return subSchema != null && !subSchema.locked && subSchema.hasField(field);
+        FieldLocation location = findField(field);
+        return location != null && location.getField() != null;
     }
 
     public Set<String> getFieldNames() {

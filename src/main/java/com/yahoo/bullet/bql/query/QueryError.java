@@ -100,6 +100,15 @@ public enum QueryError {
     /**
      * Formats the error as a {@link BulletError}.
      *
+     * @return A {@link BulletError}.
+     */
+    public BulletError format() {
+        return new BulletError(errorFormat, resolutions);
+    }
+
+    /**
+     * Formats the error as a {@link BulletError}.
+     *
      * @param arguments The non-null arguments to pass to the specific error to format itself with actual values.
      * @return A {@link BulletError}.
      */
