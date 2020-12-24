@@ -114,7 +114,7 @@ public class BulletQueryBuilderTest {
         BQLResult result = builder.buildQuery("SELECT * FROM STREAM()");
         Assert.assertTrue(result.hasErrors());
         Assert.assertEquals(result.getErrors().size(), 1);
-        Assert.assertNull(result.getErrors().get(0).getError());
+        Assert.assertEquals(result.getErrors().get(0).getError(), "null");
         Assert.assertEquals(result.getErrors().get(0).getResolutions(), Collections.singletonList("This is an application error and not a user error."));
     }
 }

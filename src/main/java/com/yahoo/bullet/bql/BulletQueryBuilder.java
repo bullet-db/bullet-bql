@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql;
 
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.bql.query.ProcessedQuery;
+import com.yahoo.bullet.bql.query.QueryError;
 import com.yahoo.bullet.bql.query.QueryProcessor;
 import com.yahoo.bullet.bql.parser.BQLParser;
 import com.yahoo.bullet.bql.query.QueryBuilder;
@@ -48,11 +49,11 @@ public class BulletQueryBuilder {
      */
     public BQLResult buildQuery(String bql) {
         if (Utilities.isEmpty(bql)) {
-            return makeBQLResultError("The given BQL query is empty.", "Please specify a non-empty query.");
+            return makeError(QueryError.EMPTY_QUERY.format());
         }
         if (bql.length() > maxQueryLength) {
-            return makeBQLResultError("The given BQL string is too long. (" + bql.length() + " characters)",
-                                      "Please reduce the length of the query to at most " + maxQueryLength + " characters.");
+            String resolution = "Please reduce the length of the query to at most " + maxQueryLength + " characters.";
+            return makeError(QueryError.QUERY_TOO_LONG.formatWithResolution(resolution, bql.length()));
         }
         try {
             // Parse BQL into node tree
@@ -73,19 +74,15 @@ public class BulletQueryBuilder {
 
             return new BQLResult(query, ExpressionFormatter.format(queryNode, true));
         } catch (BulletException e) {
-            return makeBQLResultError(e.getError());
+            return makeError(e.getError());
         } catch (ParsingException e) {
-            return makeBQLResultError(e.getMessage(), "This is a parsing error.");
+            return makeError(QueryError.GENERIC_PARSING_ERROR.format(e.getMessage()));
         } catch (Exception e) {
-            return makeBQLResultError(e.getMessage(), "This is an application error and not a user error.");
+            return makeError(QueryError.GENERIC_ERROR.format(e.getMessage()));
         }
     }
 
-    private BQLResult makeBQLResultError(BulletError error) {
+    private BQLResult makeError(BulletError error) {
         return new BQLResult(Collections.singletonList(error));
-    }
-
-    private BQLResult makeBQLResultError(String error, String resolution) {
-        return makeBQLResultError(new BulletError(error, resolution));
     }
 }

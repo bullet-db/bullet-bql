@@ -39,7 +39,7 @@ public class CountDistinctTest extends IntegrationTest {
     @Test
     public void testCountDistinctNonPrimitive() {
         build("SELECT COUNT(DISTINCT aaa, bbb) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in COUNT(DISTINCT aaa, bbb) must be primitive. Types given: [STRING_MAP_LIST, STRING_MAP_MAP]");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in COUNT(DISTINCT aaa, bbb) must be primitive. Types given: [STRING_MAP_LIST, STRING_MAP_MAP].");
         Assert.assertEquals(errors.size(), 1);
     }
 

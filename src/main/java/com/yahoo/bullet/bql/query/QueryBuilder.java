@@ -39,7 +39,6 @@ import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.typesystem.Schema;
 import com.yahoo.bullet.typesystem.Type;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -71,19 +70,6 @@ public class QueryBuilder {
                 new Schema(Arrays.asList(new Schema.PlainField(QuantileSketch.PROBABILITY_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.COUNT_FIELD, Type.DOUBLE),
                                          new Schema.PlainField(QuantileSketch.RANGE_FIELD, Type.STRING))));
-    }
-
-    @AllArgsConstructor
-    public enum QueryError {
-        WHERE_CANNOT_CAST_TO_BOOLEAN("WHERE clause cannot be casted to BOOLEAN: %s", "Please specify a valid WHERE clause."),
-        HAVING_CANNOT_CAST_TO_BOOLEAN("HAVING clause cannot be casted to BOOLEAN: %s", "Please specify a valid HAVING clause."),
-        SELECT_DISTINCT_FIELD_NON_PRIMITIVE("The SELECT DISTINCT field %s is non-primitive. Type given: %s", "Please specify primitive fields only for SELECT DISTINCT."),
-        GROUP_BY_FIELD_NON_PRIMITIVE("The GROUP BY field %s is non-primitive. Type given: %s", "Please specify primitive fields only for GROUP BY."),
-        ORDER_BY_FIELD_NON_PRIMITIVE("ORDER BY contains a non-primitive field: %s", "Please specify a primitive field."),
-        DUPLICATE_FIELD_NAMES_ALIASES("The following field names/aliases are shared: %s", "Please specify non-overlapping field names and aliases.");
-
-        private String messageFormat;
-        private String resolution;
     }
 
     private ProcessedQuery processedQuery;
@@ -611,11 +597,7 @@ public class QueryBuilder {
     }
 
     private void addError(ExpressionNode node, QueryError queryError, Object... args) {
-        if (node != null) {
-            errors.add(new BulletError(node.getLocation() + String.format(queryError.messageFormat, args), queryError.resolution));
-        } else {
-            errors.add(new BulletError(String.format(queryError.messageFormat, args), queryError.resolution));
-        }
+        errors.add(node == null ? queryError.format(args) : queryError.format(node.getLocation(), args));
     }
 
     public boolean hasErrors() {

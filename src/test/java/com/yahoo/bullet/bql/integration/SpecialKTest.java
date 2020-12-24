@@ -216,14 +216,14 @@ public class SpecialKTest extends IntegrationTest {
         Assert.assertNotEquals(query.getAggregation().getType(), AggregationType.TOP_K);
 
         build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) >= '5' ORDER BY COUNT(*) DESC LIMIT 10");
-        Assert.assertEquals(errors.get(0).getError(), "1:56: The right operand in COUNT(*) >= '5' must be numeric. Type given: STRING");
+        Assert.assertEquals(errors.get(0).getError(), "1:56: The right operand in COUNT(*) >= '5' must be numeric. Type given: STRING.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testNotSpecialKInvalidType() {
         build("SELECT aaa, COUNT(*) FROM STREAM() GROUP BY aaa ORDER BY COUNT(*) DESC LIMIT 10");
-        Assert.assertEquals(errors.get(0).getError(), "1:45: The GROUP BY field aaa is non-primitive. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(0).getError(), "1:45: The GROUP BY field aaa is non-primitive. Type given: STRING_MAP_LIST.");
     }
 
     @Test

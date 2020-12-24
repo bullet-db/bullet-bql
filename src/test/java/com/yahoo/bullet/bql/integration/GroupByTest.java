@@ -42,8 +42,8 @@ public class GroupByTest extends IntegrationTest {
     @Test
     public void testGroupByNonPrimitive() {
         build("SELECT aaa, bbb FROM STREAM() GROUP BY aaa, bbb");
-        Assert.assertEquals(errors.get(0).getError(), "1:40: The GROUP BY field aaa is non-primitive. Type given: STRING_MAP_LIST");
-        Assert.assertEquals(errors.get(1).getError(), "1:45: The GROUP BY field bbb is non-primitive. Type given: STRING_MAP_MAP");
+        Assert.assertEquals(errors.get(0).getError(), "1:40: The GROUP BY field aaa is non-primitive. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(1).getError(), "1:45: The GROUP BY field bbb is non-primitive. Type given: STRING_MAP_MAP.");
         Assert.assertEquals(errors.size(), 2);
     }
 
@@ -281,7 +281,7 @@ public class GroupByTest extends IntegrationTest {
     @Test
     public void testHavingNotCastable() {
         build("SELECT AVG(abc) FROM STREAM() GROUP BY abc HAVING [abc]");
-        Assert.assertEquals(errors.get(0).getError(), "1:51: HAVING clause cannot be casted to BOOLEAN: [abc]");
+        Assert.assertEquals(errors.get(0).getError(), "1:51: HAVING clause cannot be casted to BOOLEAN: [abc].");
         Assert.assertEquals(errors.size(), 1);
     }
 
