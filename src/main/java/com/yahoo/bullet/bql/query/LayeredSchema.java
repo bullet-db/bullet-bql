@@ -75,18 +75,15 @@ public class LayeredSchema {
     }
 
     public Schema.Field getField(String field) {
-        FieldLocation location = findField(field);
-        return location == null ? null : location.getField();
+        return findField(field).getField();
     }
 
     public Type getType(String field) {
-        FieldLocation location = findField(field);
-        return location == null ? null : location.getType();
+        return findField(field).getType();
     }
 
     public boolean hasField(String field) {
-        FieldLocation location = findField(field);
-        return location != null && location.getField() != null;
+        return findField(field).getField() != null;
     }
 
     public Set<String> getFieldNames() {
