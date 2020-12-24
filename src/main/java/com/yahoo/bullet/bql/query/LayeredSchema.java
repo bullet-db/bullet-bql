@@ -104,14 +104,16 @@ public class LayeredSchema {
             // If the schema is null, ignore the subschema and just return Type.UNKNOWN
             return FieldLocation.from(null, Type.UNKNOWN, depth);
         }
-        Type type = schema.getType(field);
-        if (type != Type.NULL && depth >= minimumDepth) {
-            return FieldLocation.from(new Schema.PlainField(field, type), type, depth);
-        }
-        String alias = aliases.get(field);
-        if (alias != null && depth >= minimumDepth) {
-            type = schema.getType(alias);
-            return FieldLocation.from(new Schema.PlainField(alias, type), type, depth);
+        if (depth >= minimumDepth) {
+            Type type = schema.getType(field);
+            if (type != Type.NULL) {
+                return FieldLocation.from(new Schema.PlainField(field, type), type, depth);
+            }
+            String alias = aliases.get(field);
+            if (alias != null) {
+                type = schema.getType(alias);
+                return FieldLocation.from(new Schema.PlainField(alias, type), type, depth);
+            }
         }
         return canGoDeeper() ? subSchema.findField(field, minimumDepth) : FieldLocation.from(null, Type.NULL, depth);
     }
