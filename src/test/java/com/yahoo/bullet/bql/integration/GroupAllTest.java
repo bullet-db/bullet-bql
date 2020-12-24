@@ -59,14 +59,14 @@ public class GroupAllTest extends IntegrationTest {
     @Test
     public void testGroupOpNotNumber() {
         build("SELECT AVG(aaa) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in AVG(aaa) must be numeric. Type given: STRING_MAP_LIST");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in AVG(aaa) must be numeric. Type given: STRING_MAP_LIST.");
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testGroupOpAliasesClash() {
         build("SELECT AVG(abc) AS avg, AVG(def) AS avg FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "The following field names/aliases are shared: [avg]");
+        Assert.assertEquals(errors.get(0).getError(), "The following field names/aliases are shared: [avg].");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -140,7 +140,7 @@ public class GroupAllTest extends IntegrationTest {
     @Test
     public void testGroupOpAsComputationAliasesClash() {
         build("SELECT AVG(abc) + 5 AS sum, AVG(def) + 5 AS sum FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "The following field names/aliases are shared: [sum]");
+        Assert.assertEquals(errors.get(0).getError(), "The following field names/aliases are shared: [sum].");
         Assert.assertEquals(errors.size(), 1);
     }
 

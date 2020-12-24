@@ -34,7 +34,7 @@ public class TypeSetter {
         String field = fieldExpression.getField();
         Type type = layeredSchema.getType(field);
         if (type == Type.NULL) {
-            bulletErrors.add(TypeChecker.makeErrorOnly(node, "The field " + field + " does not exist in the schema."));
+            bulletErrors.add(QueryError.FIELD_NOT_IN_SCHEMA.format(node.getLocation(), field));
         }
         fieldExpression.setType(Type.UNKNOWN);
     }

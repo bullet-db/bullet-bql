@@ -42,11 +42,11 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testSubFieldTypeInvalid() {
         build("SELECT abc[0] FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield abc[0] is invalid since the field abc has type: INTEGER");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield abc[0] is invalid since the field abc has type: INTEGER.");
         Assert.assertEquals(errors.size(), 1);
 
         build("SELECT ccc[0].def FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield ccc[0].def is invalid since the field ccc[0] has type: INTEGER");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield ccc[0].def is invalid since the field ccc[0] has type: INTEGER.");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -87,8 +87,8 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawAliasesClash() {
         build("SELECT abc, def AS abc, aaa, bbb AS aaa, ccc FROM STREAM()");
-        Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa]") ||
-                          errors.get(0).getError().equals("The following field names/aliases are shared: [aaa, abc]"));
+        Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa].") ||
+                          errors.get(0).getError().equals("The following field names/aliases are shared: [aaa, abc]."));
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -160,7 +160,7 @@ public class RawTest extends IntegrationTest {
     @Test
     public void testRawAllWithOrderByNonPrimitiveNotAllowed() {
         build("SELECT * FROM STREAM() ORDER BY aaa");
-        Assert.assertEquals(errors.get(0).getError(), "1:33: ORDER BY contains a non-primitive field: aaa");
+        Assert.assertEquals(errors.get(0).getError(), "1:33: ORDER BY contains a non-primitive field: aaa.");
         Assert.assertEquals(errors.size(), 1);
     }
 

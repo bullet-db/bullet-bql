@@ -305,7 +305,7 @@ public class ExpressionTest extends IntegrationTest {
     @Test
     public void testUnaryExpressionSizeOfInvalid() {
         build("SELECT SIZEOF(5) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in SIZEOF(5) must be some LIST, MAP, or STRING. Type given: INTEGER");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in SIZEOF(5) must be some LIST, MAP, or STRING. Type given: INTEGER.");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -334,7 +334,7 @@ public class ExpressionTest extends IntegrationTest {
     @Test
     public void testUnaryExpressionNotInvalid() {
         build("SELECT NOT 'foo' FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in NOT 'foo' must be numeric or BOOLEAN. Type given: STRING");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in NOT 'foo' must be numeric or BOOLEAN. Type given: STRING.");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -376,15 +376,15 @@ public class ExpressionTest extends IntegrationTest {
     @Test
     public void testListExpressionTypeCheckMultiple() {
         build("SELECT [5, 'foo'] FROM STREAM()");
-        Assert.assertTrue(errors.get(0).getError().equals("1:8: The list [5, 'foo'] consists of objects of multiple types: [INTEGER, STRING]") ||
-                          errors.get(0).getError().equals("1:8: The list [5, 'foo'] consists of objects of multiple types: [STRING, INTEGER]"));
+        Assert.assertTrue(errors.get(0).getError().equals("1:8: The list [5, 'foo'] consists of objects of multiple types: [INTEGER, STRING].") ||
+                          errors.get(0).getError().equals("1:8: The list [5, 'foo'] consists of objects of multiple types: [STRING, INTEGER]."));
         Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
     public void testListExpressionTypeCheckSubType() {
         build("SELECT [[5], [10]] FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The list [[5], [10]] must consist of objects of a single primitive or primitive map type. Subtype given: INTEGER_LIST");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The list [[5], [10]] must consist of objects of a single primitive or primitive map type. Subtype given: INTEGER_LIST.");
         Assert.assertEquals(errors.size(), 1);
     }
 
@@ -404,8 +404,8 @@ public class ExpressionTest extends IntegrationTest {
     @Test
     public void testNAryExpressionBadArguments() {
         build("SELECT IF(c, 5, 10.0) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING");
-        Assert.assertEquals(errors.get(1).getError(), "1:8: The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING.");
+        Assert.assertEquals(errors.get(1).getError(), "1:8: The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE.");
     }
 
     @Test
