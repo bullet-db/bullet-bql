@@ -199,10 +199,7 @@ public class QueryBuilder {
 
         // Renamed fields that are not in the final schema are removed
         if (requiresCopyFlag) {
-            Schema schema = layeredSchema.getSchema();
-            Set<String> transientFields = layeredSchema.getAliases().keySet().stream()
-                                                                             .filter(field -> !schema.hasField(field))
-                                                                             .collect(Collectors.toCollection(HashSet::new));
+            Set<String> transientFields = layeredSchema.getExtraneousAliases();
             if (!transientFields.isEmpty()) {
                 postAggregations.add(new Culling(transientFields));
             }
@@ -556,13 +553,13 @@ public class QueryBuilder {
     }
 
     private void addSchemaLayer(boolean lockSchema) {
-        if (lockSchema) {
-            layeredSchema.lock();
-        }
         layeredSchema.addLayer(schema, aliases);
         schema = new Schema();
         aliases = new HashMap<>();
         expressionVisitor.resetMapping();
+        if (lockSchema) {
+            layeredSchema.lock();
+        }
     }
 
     private static Window getWindow(WindowNode windowNode) {

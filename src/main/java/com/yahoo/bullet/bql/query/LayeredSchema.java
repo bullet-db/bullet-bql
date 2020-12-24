@@ -57,6 +57,10 @@ public class LayeredSchema {
         locked = true;
     }
 
+    public void unlock() {
+        locked = false;
+    }
+
     public FieldLocation findField(String field) {
         if (schema == null) {
             // If the schema is null, ignore the subschema and just return Type.UNKNOWN
@@ -71,7 +75,7 @@ public class LayeredSchema {
             type = schema.getType(alias);
             return FieldLocation.from(new Schema.PlainField(alias, type), type, depth);
         }
-        return subSchema != null && !subSchema.locked ? subSchema.findField(field) : FieldLocation.from(null, Type.NULL, depth);
+        return canDive() ? subSchema.findField(field) : FieldLocation.from(null, Type.NULL, depth);
     }
 
     public Schema.Field getField(String field) {
@@ -88,12 +92,27 @@ public class LayeredSchema {
 
     public Set<String> getFieldNames() {
         Set<String> fields = new HashSet<>();
-        if (subSchema != null && !subSchema.locked) {
+        if (canDive()) {
             fields.addAll(subSchema.getFieldNames());
         }
         if (schema != null) {
             schema.getFields().stream().map(Schema.Field::getName).forEach(fields::add);
         }
         return fields;
+    }
+
+    public Set<String> getExtraneousAliases() {
+        Set<String> fields = new HashSet<>();
+        if (canDive()) {
+            fields.addAll(subSchema.getExtraneousAliases());
+        }
+        if (schema != null) {
+            aliases.keySet().stream().filter(field -> !schema.hasField(field)).forEach(fields::add);
+        }
+        return fields;
+    }
+
+    private boolean canDive() {
+        return subSchema != null && !locked;
     }
 }
