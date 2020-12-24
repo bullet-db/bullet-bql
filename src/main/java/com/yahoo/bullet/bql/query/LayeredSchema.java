@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@Getter
 @AllArgsConstructor
 public class LayeredSchema {
     private Schema schema;
@@ -23,6 +22,7 @@ public class LayeredSchema {
     private LayeredSchema subSchema;
     private int depth;
     private boolean locked;
+    private static final int TOP_LAYER = 0;
 
     @Getter
     public static class FieldLocation {
@@ -42,7 +42,7 @@ public class LayeredSchema {
     public LayeredSchema(Schema schema) {
         this.schema = schema;
         this.aliases = Collections.emptyMap();
-        this.depth = 0;
+        this.depth = TOP_LAYER;
     }
 
     public void addLayer(Schema newSchema, Map<String, String> newAliases) {
@@ -61,6 +61,10 @@ public class LayeredSchema {
         locked = false;
     }
 
+    public int depth() {
+        return depth;
+    }
+
     public FieldLocation findField(String field, int minimumDepth) {
         if (schema == null) {
             // If the schema is null, ignore the subschema and just return Type.UNKNOWN
@@ -75,12 +79,12 @@ public class LayeredSchema {
             type = schema.getType(alias);
             return FieldLocation.from(new Schema.PlainField(alias, type), type, depth);
         }
-        return canDive() ? subSchema.findField(field, minimumDepth) : FieldLocation.from(null, Type.NULL, depth);
+        return canGoDeeper() ? subSchema.findField(field, minimumDepth) : FieldLocation.from(null, Type.NULL, depth);
     }
 
     public FieldLocation findField(String field) {
         // No depth requirement
-        return findField(field, 0);
+        return findField(field, TOP_LAYER);
     }
 
     public Schema.Field getField(String field) {
@@ -95,9 +99,15 @@ public class LayeredSchema {
         return findField(field).getField() != null;
     }
 
+    public void addField(String field, Type type) {
+        if (schema != null) {
+            schema.addField(field, type);
+        }
+    }
+
     public Set<String> getFieldNames() {
         Set<String> fields = new HashSet<>();
-        if (canDive()) {
+        if (canGoDeeper()) {
             fields.addAll(subSchema.getFieldNames());
         }
         if (schema != null) {
@@ -108,7 +118,7 @@ public class LayeredSchema {
 
     public Set<String> getExtraneousAliases() {
         Set<String> fields = new HashSet<>();
-        if (canDive()) {
+        if (canGoDeeper()) {
             fields.addAll(subSchema.getExtraneousAliases());
         }
         if (schema != null) {
@@ -117,7 +127,7 @@ public class LayeredSchema {
         return fields;
     }
 
-    private boolean canDive() {
+    private boolean canGoDeeper() {
         return subSchema != null && !locked;
     }
 }
