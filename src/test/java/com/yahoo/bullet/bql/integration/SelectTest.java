@@ -44,7 +44,7 @@ public class SelectTest extends IntegrationTest {
     @Test
     public void testWhereNotCastable() {
         build("SELECT * FROM STREAM() WHERE aaa");
-        Assert.assertEquals(errors.get(0).getError(), "1:30: WHERE clause cannot be casted to BOOLEAN: aaa");
+        Assert.assertEquals(errors.get(0).getError(), "1:30: WHERE clause cannot be casted to BOOLEAN: aaa.");
         Assert.assertEquals(errors.size(), 1);
     }
 

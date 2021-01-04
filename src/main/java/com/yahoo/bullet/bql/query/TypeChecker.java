@@ -36,7 +36,7 @@ public class TypeChecker {
         if (Type.isUnknown(type)) {
             return unknownError();
         } else if (!isCollection(type)) {
-            return makeError(node, "The subfield " + node + " is invalid since the field " + node.getField() + " has type: " + type);
+            return makeError(node, QueryError.SUBFIELD_INVALID_DUE_TO_FIELD_TYPE, node, node.getField(), type);
         }
         return Optional.empty();
     }
@@ -44,17 +44,17 @@ public class TypeChecker {
     static Optional<List<BulletError>> validateListSubTypes(ListExpressionNode node, ListExpression listExpression) {
         Set<Type> listSubTypes = listExpression.getValues().stream().map(Expression::getType).collect(Collectors.toSet());
         if (listSubTypes.isEmpty()) {
-            return makeError(node, "Empty lists are currently not supported.");
+            return makeError(node, QueryError.EMPTY_LISTS_NOT_SUPPORTED);
         }
         if (listSubTypes.contains(Type.UNKNOWN)) {
             return unknownError();
         }
         if (listSubTypes.size() > 1) {
-            return makeError(node, "The list " + node + " consists of objects of multiple types: " + listSubTypes);
+            return makeError(node, QueryError.LIST_HAS_MULTIPLE_TYPES, node, listSubTypes);
         }
         Type subType = listSubTypes.iterator().next();
         if (!Type.isPrimitive(subType) && !Type.isPrimitiveMap(subType)) {
-            return makeError(node, "The list " + node + " must consist of objects of a single primitive or primitive map type. Subtype given: " + subType);
+            return makeError(node, QueryError.LIST_HAS_INVALID_SUBTYPE, node, subType);
         }
         return Optional.empty();
     }
@@ -67,12 +67,12 @@ public class TypeChecker {
         switch (unaryExpression.getOp()) {
             case NOT:
                 if (!Type.isNumeric(operandType) && operandType != Type.BOOLEAN) {
-                    return makeError(node, "The type of the argument in " + node + " must be numeric or BOOLEAN. Type given: " + operandType);
+                    return makeError(node, QueryError.NOT_HAS_WRONG_TYPE, node, operandType);
                 }
                 return Optional.empty();
             case SIZE_OF:
                 if (!isCollection(operandType) && operandType != Type.STRING) {
-                    return makeError(node, "The type of the argument in " + node + " must be some LIST, MAP, or STRING. Type given: " + operandType);
+                    return makeError(node, QueryError.SIZE_OF_HAS_WRONG_TYPE, node, operandType);
                 }
                 return Optional.empty();
             case IS_NULL:
@@ -92,10 +92,10 @@ public class TypeChecker {
         if (nAryExpression.getOp() == Operation.IF) {
             List<BulletError> errors = new ArrayList<>();
             if (argTypes.get(0) != Type.BOOLEAN) {
-                errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be BOOLEAN. Type given: " + argTypes.get(0)));
+                errors.add(makeErrorOnly(node, QueryError.IF_FIRST_ARGUMENT_HAS_WRONG_TYPE, node, argTypes.get(0)));
             }
             if (argTypes.get(1) != argTypes.get(2)) {
-                errors.add(makeErrorOnly(node, "The types of the second and third arguments in " + node + " must match. Types given: " + argTypes.get(1) + ", " + argTypes.get(2)));
+                errors.add(makeErrorOnly(node, QueryError.IF_ARGUMENT_TYPES_DO_NOT_MATCH, node, argTypes.get(1), argTypes.get(2)));
             }
             return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
@@ -109,7 +109,7 @@ public class TypeChecker {
             return unknownError();
         }
         if (!Type.isNumeric(type)) {
-            return makeError(node, "The type of the argument in " + node + " must be numeric. Type given: " + type);
+            return makeError(node, QueryError.EXPECTED_NUMERIC_TYPE, node, type);
         }
         return Optional.empty();
     }
@@ -120,7 +120,7 @@ public class TypeChecker {
             return unknownError();
         }
         if (!types.stream().allMatch(Type::isPrimitive)) {
-            return makeError(node, "The types of the arguments in " + node + " must be primitive. Types given: " + types);
+            return makeError(node, QueryError.EXPECTED_PRIMITIVE_TYPES, node, types);
         }
         return Optional.empty();
     }
@@ -131,7 +131,7 @@ public class TypeChecker {
         if (Type.isUnknown(argType)) {
             return unknownError();
         } else if (!Type.canForceCast(castType, argType)) {
-            return makeError(node, "Cannot cast " + node.getExpression() + " from " + argType + " to " + castType + ".");
+            return makeError(node, QueryError.CANNOT_FORCE_CAST, node.getExpression(), argType, castType);
         }
         return Optional.empty();
     }
@@ -150,13 +150,13 @@ public class TypeChecker {
             case MUL:
             case DIV:
                 if (!Type.isNumeric(leftType) || !Type.isNumeric(rightType)) {
-                    return makeError(node, "The left and right operands in " + node + " must be numeric. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.BINARY_TYPES_NOT_NUMERIC, node, leftType, rightType);
                 }
                 return Optional.empty();
             case EQUALS:
             case NOT_EQUALS:
                 if (!Type.canCompare(leftType, rightType)) {
-                    return makeError(node, "The left and right operands in " + node + " must be comparable. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.BINARY_TYPES_NOT_COMPARABLE, node, leftType, rightType);
                 }
                 return Optional.empty();
             case EQUALS_ANY:
@@ -164,10 +164,10 @@ public class TypeChecker {
             case NOT_EQUALS_ANY:
             case NOT_EQUALS_ALL:
                 if (!Type.isList(rightType)) {
-                    return makeError(node, "The right operand in " + node + " must be some LIST. Type given: " + rightType);
+                    return makeError(node, QueryError.BINARY_RHS_NOT_A_LIST, node, rightType);
                 }
                 if (!Type.canCompare(leftType, rightType.getSubType())) {
-                    return makeError(node, "The type of the left operand and the subtype of the right operand in " + node + " must be comparable. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.BINARY_LHS_AND_SUBTYPE_OF_RHS_NOT_COMPARABLE, node, leftType, rightType);
                 }
                 return Optional.empty();
             case GREATER_THAN:
@@ -175,10 +175,10 @@ public class TypeChecker {
             case LESS_THAN:
             case LESS_THAN_OR_EQUALS:
                 if (!Type.isNumeric(leftType)) {
-                    errors.add(makeErrorOnly(node, "The left operand in " + node + " must be numeric. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_NUMERIC, node, leftType));
                 }
                 if (!Type.isNumeric(rightType)) {
-                    errors.add(makeErrorOnly(node, "The right operand in " + node + " must be numeric. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_NUMERIC, node, rightType));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case GREATER_THAN_ANY:
@@ -190,85 +190,85 @@ public class TypeChecker {
             case LESS_THAN_OR_EQUALS_ANY:
             case LESS_THAN_OR_EQUALS_ALL:
                 if (!Type.isNumeric(leftType)) {
-                    errors.add(makeErrorOnly(node, "The left operand in " + node + " must be numeric. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_NUMERIC, node, leftType));
                 }
                 if (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType())) {
-                    errors.add(makeErrorOnly(node, "The right operand in " + node + " must be some numeric LIST. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_NUMERIC_LIST, node, rightType));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case REGEX_LIKE:
                 if (leftType != Type.STRING || rightType != Type.STRING) {
-                    return makeError(node, "The types of the arguments in " + node + " must be STRING. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.BINARY_TYPES_NOT_STRING, node, leftType, rightType);
                 }
                 return Optional.empty();
             case REGEX_LIKE_ANY:
                 if (leftType != Type.STRING) {
-                    errors.add(makeErrorOnly(node, "The type of the left operand in " + node + " must be STRING. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_STRING, node, leftType));
                 }
                 if (rightType != Type.STRING_LIST) {
-                    errors.add(makeErrorOnly(node, "The type of the right operand in " + node + " must be STRING_LIST. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_STRING_LIST, node, rightType));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case SIZE_IS:
                 if (!isCollection(leftType) && leftType != Type.STRING) {
-                    errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be some LIST, MAP, or STRING. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.SIZE_IS_HAS_WRONG_TYPE, node, leftType));
                 }
                 if (!Type.isNumeric(rightType)) {
-                    errors.add(makeErrorOnly(node, "The type of the second argument in " + node + " must be numeric. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.SIZE_IS_NOT_NUMERIC, node, rightType));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case CONTAINS_KEY:
                 if (!Type.isMap(leftType) && !Type.isComplexList(leftType)) {
-                    errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be some MAP or MAP_LIST. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.CONTAINS_KEY_HAS_WRONG_TYPE, node, leftType));
                 }
                 if (rightType != Type.STRING) {
-                    errors.add(makeErrorOnly(node, "The type of the second argument in " + node + " must be STRING. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.CONTAINS_KEY_NOT_STRING, node, rightType));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case CONTAINS_VALUE:
                 if (!isCollection(leftType)) {
-                    errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be some LIST or MAP. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.CONTAINS_VALUE_HAS_WRONG_TYPE, node, leftType));
                 }
                 if (!Type.isPrimitive(rightType)) {
-                    errors.add(makeErrorOnly(node, "The type of the second argument in " + node + " must be primitive. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.CONTAINS_VALUE_NOT_PRIMITIVE, node, rightType));
                 }
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
                 }
                 subType = leftType.getSubType();
                 if (subType != rightType && subType.getSubType() != rightType) {
-                    return makeError(node, "The primitive type of the first argument and the type of the second argument in " + node + " must match. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.CONTAINS_VALUE_PRIMITIVES_DO_NOT_MATCH, node, leftType, rightType);
                 }
                 return Optional.empty();
             case IN:
             case NOT_IN:
                 if (!Type.isPrimitive(leftType)) {
-                    errors.add(makeErrorOnly(node, "The type of the left operand in " + node + " must be primitive. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_PRIMITIVE, node, leftType));
                 }
                 if (!isCollection(rightType)) {
-                    errors.add(makeErrorOnly(node, "The type of the right operand in " + node + " must be some LIST or MAP. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_LIST_OR_MAP, node, rightType));
                 }
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
                 }
                 subType = rightType.getSubType();
                 if (subType != leftType && subType.getSubType() != leftType) {
-                    return makeError(node, "The type of the left operand and the primitive type of the right operand in " + node + " must match. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.IN_PRIMITIVES_NOT_MATCHING, node, leftType, rightType);
                 }
                 return Optional.empty();
             case AND:
             case OR:
             case XOR:
                 if (leftType != Type.BOOLEAN || rightType != Type.BOOLEAN) {
-                    return makeError(node, "The types of the arguments in " + node + " must be BOOLEAN. Types given: " + leftType + ", " + rightType);
+                    return makeError(node, QueryError.EXPECTED_BOOLEAN_TYPES, node, leftType, rightType);
                 }
                 return Optional.empty();
             case FILTER:
                 if (!Type.isList(leftType)) {
-                    errors.add(makeErrorOnly(node, "The type of the first argument in " + node + " must be some LIST. Type given: " + leftType));
+                    errors.add(makeErrorOnly(node, QueryError.FILTER_NOT_LIST, node, leftType));
                 }
                 if (rightType != Type.BOOLEAN_LIST) {
-                    errors.add(makeErrorOnly(node, "The type of the second argument in " + node + " must be BOOLEAN_LIST. Type given: " + rightType));
+                    errors.add(makeErrorOnly(node, QueryError.FILTER_NOT_BOOLEAN_LIST, node, rightType));
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
@@ -281,12 +281,24 @@ public class TypeChecker {
         return Optional.of(Collections.emptyList());
     }
 
-    static BulletError makeErrorOnly(Node node, String message) {
-        return new BulletError(node.getLocation() + message, (List<String>) null);
+    private static BulletError makeErrorOnly(Node node, QueryError error) {
+        return error.format(node.getLocation());
     }
 
-    private static Optional<List<BulletError>> makeError(Node node, String message) {
-        return Optional.of(Collections.singletonList(makeErrorOnly(node, message)));
+    private static BulletError makeErrorOnly(Node node, QueryError error, Object... arguments) {
+        return error.format(node.getLocation(), arguments);
+    }
+
+    private static Optional<List<BulletError>> makeError(BulletError error) {
+        return Optional.of(Collections.singletonList(error));
+    }
+
+    private static Optional<List<BulletError>> makeError(Node node, QueryError error) {
+        return makeError(makeErrorOnly(node, error));
+    }
+
+    private static Optional<List<BulletError>> makeError(Node node, QueryError error, Object... arguments) {
+        return makeError(makeErrorOnly(node, error, arguments));
     }
 
     private static boolean isCollection(Type type) {

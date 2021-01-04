@@ -60,8 +60,8 @@ public class DistinctTest extends IntegrationTest {
     @Test
     public void testMultipleDistinctNonPrimitive() {
         build("SELECT DISTINCT aaa, bbb FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:17: The SELECT DISTINCT field aaa is non-primitive. Type given: STRING_MAP_LIST");
-        Assert.assertEquals(errors.get(1).getError(), "1:22: The SELECT DISTINCT field bbb is non-primitive. Type given: STRING_MAP_MAP");
+        Assert.assertEquals(errors.get(0).getError(), "1:17: The SELECT DISTINCT field aaa is non-primitive. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(1).getError(), "1:22: The SELECT DISTINCT field bbb is non-primitive. Type given: STRING_MAP_MAP.");
         Assert.assertEquals(errors.size(), 2);
     }
 

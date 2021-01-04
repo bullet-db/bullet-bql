@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.query;
 
+import com.yahoo.bullet.bql.query.LayeredSchema.FieldLocation;
 import com.yahoo.bullet.bql.tree.DefaultTraversalVisitor;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
@@ -47,10 +48,21 @@ public class OrderByProcessor extends DefaultTraversalVisitor<Void, LayeredSchem
     @Override
     protected Void visitFieldExpression(FieldExpressionNode node, LayeredSchema layeredSchema) {
         String name = node.getField().getValue();
-        Type type = layeredSchema.getSubSchema().getType(name);
+        /*
+        Since order by is visited after and the top layer in the schema is seen as the schema of the record past
+        other aggregations, we need to see if we should add additional projections to do the order by (this only
+        happens in case of RAW queries). So resolve these additional fields by looking past the top layer after unlock
+        */
+        boolean wasLocked = layeredSchema.isLocked();
+        layeredSchema.unlock();
+        FieldLocation field = layeredSchema.findField(name, layeredSchema.depth() + 1);
+        Type type = field.getType();
         if (type != Type.NULL) {
-            layeredSchema.getSchema().addField(name, type);
+            layeredSchema.addField(name, type);
             additionalFields.add(name);
+        }
+        if (wasLocked) {
+            layeredSchema.lock();
         }
         return null;
     }

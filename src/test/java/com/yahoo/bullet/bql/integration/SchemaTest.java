@@ -23,11 +23,11 @@ public class SchemaTest extends IntegrationTest {
         // coverage
         build("SELECT AVG(foo) AS bar FROM STREAM() ORDER BY bar[0]");
         Assert.assertEquals(errors.get(0).getError(), "1:12: The field foo does not exist in the schema.");
-        Assert.assertEquals(errors.get(1).getError(), "1:47: The subfield bar[0] is invalid since the field bar has type: DOUBLE");
+        Assert.assertEquals(errors.get(1).getError(), "1:47: The subfield bar[0] is invalid since the field bar has type: DOUBLE.");
         Assert.assertEquals(errors.size(), 2);
 
         BQLResult result = noSchemaBuilder.buildQuery("SELECT AVG(foo) AS bar FROM STREAM() ORDER BY bar[0]");
-        Assert.assertEquals(result.getErrors().get(0).getError(), "1:47: The subfield bar[0] is invalid since the field bar has type: DOUBLE");
+        Assert.assertEquals(result.getErrors().get(0).getError(), "1:47: The subfield bar[0] is invalid since the field bar has type: DOUBLE.");
         Assert.assertEquals(result.getErrors().size(), 1);
     }
 
@@ -68,13 +68,13 @@ public class SchemaTest extends IntegrationTest {
         // coverage
         build("SELECT [(SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5], bar + foo, 5 + car FROM STREAM() WHERE foo");
         Assert.assertEquals(errors.get(0).getError(), "1:111: The field foo does not exist in the schema.");
-        Assert.assertEquals(errors.get(1).getError(), "1:9: The left and right operands in (SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5 must be numeric. Types given: BOOLEAN, INTEGER");
+        Assert.assertEquals(errors.get(1).getError(), "1:9: The left and right operands in (SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5 must be numeric. Types given: BOOLEAN, INTEGER.");
         Assert.assertEquals(errors.get(2).getError(), "1:72: The field bar does not exist in the schema.");
         Assert.assertEquals(errors.get(3).getError(), "1:87: The field car does not exist in the schema.");
         Assert.assertEquals(errors.size(), 4);
 
         BQLResult result = noSchemaBuilder.buildQuery("SELECT [(SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5], bar + foo, 5 + car FROM STREAM() WHERE foo");
-        Assert.assertEquals(result.getErrors().get(0).getError(), "1:9: The left and right operands in (SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5 must be numeric. Types given: BOOLEAN, INTEGER");
+        Assert.assertEquals(result.getErrors().get(0).getError(), "1:9: The left and right operands in (SIZEIS(CAST(IF(foo IS NOT NULL, 5, 10) AS STRING), 10)) + 5 must be numeric. Types given: BOOLEAN, INTEGER.");
         Assert.assertEquals(result.getErrors().size(), 1);
     }
 }
