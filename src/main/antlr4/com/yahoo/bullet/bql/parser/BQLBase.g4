@@ -235,7 +235,7 @@ STRING_TYPE: 'STRING';
 LIST_TYPE: 'LIST';
 MAP_TYPE: 'MAP';
 
-EQ  : '=';
+EQ  : '=' | '==';
 NEQ : '<>' | '!=';
 LT  : '<';
 LTE : '<=';
