@@ -236,7 +236,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitInfix(BQLBaseParser.InfixContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                         (ExpressionNode) visit(context.right),
-                                        getOperation(context.op, context.modifier),
+                                        getOperation(context.op, context.modifier, context.not),
                                         getLocation(context));
     }
 
@@ -376,8 +376,15 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return null;
     }
 
-    private static Operation getOperation(Token op, Token modifier) {
+    private static Operation getOperation(Token op, Token modifier, Token not) {
         if (modifier == null) {
+            if (not != null) {
+                if (op.getType() == BQLBaseLexer.RLIKE) {
+                    return Operation.NOT_REGEX_LIKE;
+                } else if (op.getType() == BQLBaseLexer.IN) {
+                    return Operation.NOT_IN;
+                }
+            }
             return getOperation(op);
         }
         if (modifier.getType() == BQLBaseLexer.ANY) {
@@ -395,7 +402,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ANY;
                 case BQLBaseLexer.RLIKE:
-                    return Operation.REGEX_LIKE_ANY;
+                    return not == null ? Operation.REGEX_LIKE_ANY : Operation.NOT_REGEX_LIKE_ANY;
             }
         } else if (modifier.getType() == BQLBaseLexer.ALL) {
             switch (op.getType()) {
@@ -411,10 +418,6 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                     return Operation.GREATER_THAN_OR_EQUALS_ALL;
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ALL;
-            }
-        } else if (modifier.getType() == BQLBaseLexer.NOT) {
-            if (op.getType() == BQLBaseLexer.IN) {
-                return Operation.NOT_IN;
             }
         }
         return getOperation(op);

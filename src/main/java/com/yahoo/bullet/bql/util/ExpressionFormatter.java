@@ -248,6 +248,8 @@ public final class ExpressionFormatter {
                 case LESS_THAN_OR_EQUALS_ALL:
                 case REGEX_LIKE:
                 case REGEX_LIKE_ANY:
+                case NOT_REGEX_LIKE:
+                case NOT_REGEX_LIKE_ANY:
                 case IN:
                 case NOT_IN:
                 case AND:

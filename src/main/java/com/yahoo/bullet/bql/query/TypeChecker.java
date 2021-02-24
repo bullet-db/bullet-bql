@@ -197,11 +197,13 @@ public class TypeChecker {
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case REGEX_LIKE:
+            case NOT_REGEX_LIKE:
                 if (leftType != Type.STRING || rightType != Type.STRING) {
                     return makeError(node, QueryError.BINARY_TYPES_NOT_STRING, node, leftType, rightType);
                 }
                 return Optional.empty();
             case REGEX_LIKE_ANY:
+            case NOT_REGEX_LIKE_ANY:
                 if (leftType != Type.STRING) {
                     errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_STRING, node, leftType));
                 }

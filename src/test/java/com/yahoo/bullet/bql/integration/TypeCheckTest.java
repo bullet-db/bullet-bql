@@ -42,18 +42,22 @@ public class TypeCheckTest extends IntegrationTest {
 
     @Test
     public void testTypeCheckRegexLike() {
-        build("SELECT 'foo' RLIKE 0, 0 RLIKE 'foo' FROM STREAM()");
+        build("SELECT 'foo' RLIKE 0, 0 RLIKE 'foo', 'foo' NOT RLIKE 0, 0 NOT RLIKE 'foo' FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 'foo' RLIKE 0 must be STRING. Types given: STRING, INTEGER.");
         Assert.assertEquals(errors.get(1).getError(), "1:23: The types of the arguments in 0 RLIKE 'foo' must be STRING. Types given: INTEGER, STRING.");
-        Assert.assertEquals(errors.size(), 2);
+        Assert.assertEquals(errors.get(2).getError(), "1:38: The types of the arguments in 'foo' NOT RLIKE 0 must be STRING. Types given: STRING, INTEGER.");
+        Assert.assertEquals(errors.get(3).getError(), "1:57: The types of the arguments in 0 NOT RLIKE 'foo' must be STRING. Types given: INTEGER, STRING.");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test
     public void testTypeCheckRegexLikeAny() {
-        build("SELECT 0 RLIKE ANY 'foo' FROM STREAM()");
+        build("SELECT 0 RLIKE ANY 'foo', 0 NOT RLIKE ANY 'foo' FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the left operand in 0 RLIKE ANY 'foo' must be STRING. Type given: INTEGER.");
         Assert.assertEquals(errors.get(1).getError(), "1:8: The type of the right operand in 0 RLIKE ANY 'foo' must be STRING_LIST. Type given: STRING.");
-        Assert.assertEquals(errors.size(), 2);
+        Assert.assertEquals(errors.get(2).getError(), "1:27: The type of the left operand in 0 NOT RLIKE ANY 'foo' must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(3).getError(), "1:27: The type of the right operand in 0 NOT RLIKE ANY 'foo' must be STRING_LIST. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test

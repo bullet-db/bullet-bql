@@ -198,6 +198,8 @@ public class TypeSetter {
             case LESS_THAN_OR_EQUALS_ALL:
             case REGEX_LIKE:
             case REGEX_LIKE_ANY:
+            case NOT_REGEX_LIKE:
+            case NOT_REGEX_LIKE_ANY:
             case SIZE_IS:
             case CONTAINS_KEY:
             case CONTAINS_VALUE:
