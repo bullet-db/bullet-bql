@@ -162,7 +162,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitListExpression(ListExpressionNode node, Void context) {
-            return "[" + join(node.getExpressions()) + "]";
+            return node.isParenthesized() ? "(" + join(node.getExpressions()) + ")" : "[" + join(node.getExpressions()) + "]";
         }
 
         @Override

@@ -236,14 +236,35 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitInfix(BQLBaseParser.InfixContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                         (ExpressionNode) visit(context.right),
-                                        getOperation(context.op, context.modifier, context.not),
+                                        getOperation(context.op, context.modifier, context.NOT() != null),
+                                        getLocation(context));
+    }
+
+    @Override
+    public Node visitInfixIn(BQLBaseParser.InfixInContext context) {
+        ExpressionNode rightNode;
+        if (context.right != null) {
+            // If the right operand is a parentheses-wrapped expression, treat it as a singleton list.
+            if (context.right instanceof BQLBaseParser.ParenthesesContext) {
+                ExpressionNode innerNode = (ExpressionNode) visit(((BQLBaseParser.ParenthesesContext) context.right).expression());
+                rightNode = new ListExpressionNode(Collections.singletonList(innerNode), true, getLocation(context.right));
+            } else {
+                rightNode = (ExpressionNode) visit(context.right);
+            }
+        } else {
+            rightNode = new ListExpressionNode(visitExpressionsList(context.expressions()), true, getLocation(context.expressions()));
+        }
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        rightNode,
+                                        getOperation(context.op, null, context.NOT() != null),
                                         getLocation(context));
     }
 
     @Override
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
-        ExpressionNode expression = (ExpressionNode) visit(context.expression());
-        if (expression instanceof BinaryExpressionNode) {
+        BQLBaseParser.ExpressionContext expressionContext = context.expression();
+        ExpressionNode expression = (ExpressionNode) visit(expressionContext);
+        if (expressionContext instanceof BQLBaseParser.InfixContext || expressionContext instanceof BQLBaseParser.NullPredicateContext) {
             return new ParenthesesExpressionNode(expression, getLocation(context));
         }
         return expression;
@@ -376,9 +397,9 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return null;
     }
 
-    private static Operation getOperation(Token op, Token modifier, Token not) {
+    private static Operation getOperation(Token op, Token modifier, boolean not) {
         if (modifier == null) {
-            if (not != null) {
+            if (not) {
                 if (op.getType() == BQLBaseLexer.RLIKE) {
                     return Operation.NOT_REGEX_LIKE;
                 } else if (op.getType() == BQLBaseLexer.IN) {
@@ -402,7 +423,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ANY;
                 case BQLBaseLexer.RLIKE:
-                    return not == null ? Operation.REGEX_LIKE_ANY : Operation.NOT_REGEX_LIKE_ANY;
+                    return !not ? Operation.REGEX_LIKE_ANY : Operation.NOT_REGEX_LIKE_ANY;
             }
         } else if (modifier.getType() == BQLBaseLexer.ALL) {
             switch (op.getType()) {

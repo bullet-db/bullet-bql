@@ -102,6 +102,15 @@ public class TypeCheckTest extends IntegrationTest {
     }
 
     @Test
+    public void testTypeCheckInWithParentheses() {
+        // Checking formatting of parentheses
+        build("SELECT aaa IN ('foo', 'bar'), aaa IN (aaa, bbb, 'bar') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the left operand in aaa IN ('foo', 'bar') must be primitive. Type given: STRING_MAP_LIST.");
+        Assert.assertTrue(errors.get(1).getError().startsWith("1:39: The list (aaa, bbb, 'bar') consists of objects of multiple types:"));
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
     public void testTypeCheckBooleanComparison() {
         build("SELECT 5 AND true, false OR 5, 'foo' XOR 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 5 AND true must be BOOLEAN. Types given: INTEGER, BOOLEAN.");

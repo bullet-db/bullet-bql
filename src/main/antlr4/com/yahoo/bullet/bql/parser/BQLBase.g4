@@ -61,12 +61,9 @@ expression
     : valueExpression                                                                                                   #value
     | fieldExpression                                                                                                   #field
     | listExpression                                                                                                    #list
-    | expression IS NULL                                                                                                #nullPredicate
-    | expression IS NOT NULL                                                                                            #nullPredicate
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
-    | left=expression not=NOT? op=IN right=expression                                                                   #infix
-    | left=expression not=NOT? op=RLIKE modifier=ANY? right=expression                                                  #infix
+    | expression IS NOT? NULL                                                                                           #nullPredicate
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
@@ -74,6 +71,8 @@ expression
     | left=expression op=AND right=expression                                                                           #infix
     | left=expression op=XOR right=expression                                                                           #infix
     | left=expression op=OR right=expression                                                                            #infix
+    | left=expression NOT? op=RLIKE modifier=ANY? right=expression                                                      #infix
+    | left=expression NOT? op=IN (right=expression | '(' expressions ')')                                               #infixIn
     | '(' expression ')'                                                                                                #parentheses
     ;
 

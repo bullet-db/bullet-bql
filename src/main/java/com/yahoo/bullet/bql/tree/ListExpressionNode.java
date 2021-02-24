@@ -13,10 +13,17 @@ import java.util.Objects;
 @Getter
 public class ListExpressionNode extends ExpressionNode {
     private final List<ExpressionNode> expressions;
+    // Not used for equals() and hashCode()
+    private final boolean parenthesized;
 
-    public ListExpressionNode(List<ExpressionNode> expressions, NodeLocation nodeLocation) {
+    public ListExpressionNode(List<ExpressionNode> expressions, boolean parenthesized, NodeLocation nodeLocation) {
         super(nodeLocation);
         this.expressions = expressions;
+        this.parenthesized = parenthesized;
+    }
+
+    public ListExpressionNode(List<ExpressionNode> expressions, NodeLocation nodeLocation) {
+        this(expressions, false, nodeLocation);
     }
 
     @Override
