@@ -81,6 +81,14 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     }
 
     @Override
+    protected R visitBetweenPredicate(BetweenPredicateNode node, C context) {
+        process(node.getExpression(), context);
+        process(node.getLower(), context);
+        process(node.getUpper(), context);
+        return null;
+    }
+
+    @Override
     protected R visitUnaryExpression(UnaryExpressionNode node, C context) {
         process(node.getExpression(), context);
         return null;

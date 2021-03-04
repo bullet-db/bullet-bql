@@ -10,6 +10,7 @@
  */
 package com.yahoo.bullet.bql.parser;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -160,6 +161,15 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new NullPredicateNode((ExpressionNode) visit(context.expression()),
                                      context.NOT() != null,
                                      getLocation(context));
+    }
+
+    @Override
+    public Node visitBetweenPredicate(BQLBaseParser.BetweenPredicateContext context) {
+        return new BetweenPredicateNode((ExpressionNode) visit(context.value),
+                                        (ExpressionNode) visit(context.lower),
+                                        (ExpressionNode) visit(context.upper),
+                                        context.NOT() != null,
+                                        getLocation(context));
     }
 
     @Override

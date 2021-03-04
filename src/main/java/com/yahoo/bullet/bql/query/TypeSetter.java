@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.query;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -13,7 +14,9 @@ import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
+import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
@@ -57,6 +60,14 @@ public class TypeSetter {
         } else {
             setListType(listExpression);
         }
+    }
+
+    static void setType(BetweenPredicateNode node, BinaryExpression binaryExpression, Expression value,  Expression lower, Expression upper, List<BulletError> bulletErrors) {
+        Optional<List<BulletError>> errors = TypeChecker.validateBetweenType(node, value, lower, upper);
+        errors.ifPresent(bulletErrors::addAll);
+        binaryExpression.setType(Type.BOOLEAN);
+        binaryExpression.getLeft().setType(Type.BOOLEAN);
+        binaryExpression.getRight().setType(Type.BOOLEAN);
     }
 
     // First argument is either UnaryExpressionNode or NullPredicateNode

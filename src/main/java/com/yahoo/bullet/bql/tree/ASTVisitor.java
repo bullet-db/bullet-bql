@@ -198,6 +198,17 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
+     * Visit a {@link BetweenPredicateNode} with passed in context.
+     *
+     * @param node A {@link BetweenPredicateNode}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitBetweenPredicate(BetweenPredicateNode node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
      * Visit a {@link UnaryExpressionNode} with passed in context.
      *
      * @param node A {@link UnaryExpressionNode}.

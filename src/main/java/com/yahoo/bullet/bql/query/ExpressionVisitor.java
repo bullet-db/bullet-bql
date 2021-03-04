@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.query;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -140,6 +141,26 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
         Operation op = node.isNot() ? Operation.IS_NOT_NULL : Operation.IS_NULL;
         UnaryExpression expression = new UnaryExpression(operand, op);
         setType(node, expression, errors);
+        mapping.put(node, expression);
+        return expression;
+    }
+
+    @Override
+    protected Expression visitBetweenPredicate(BetweenPredicateNode node, LayeredSchema layeredSchema) {
+        Expression value = process(node.getExpression(), layeredSchema);
+        Expression lower = process(node.getLower(), layeredSchema);
+        Expression upper = process(node.getUpper(), layeredSchema);
+        BinaryExpression expression;
+        if (node.isNot()) {
+            expression = new BinaryExpression(new BinaryExpression(value, lower, Operation.LESS_THAN),
+                                              new BinaryExpression(upper, value, Operation.LESS_THAN),
+                                              Operation.OR);
+        } else {
+            expression = new BinaryExpression(new BinaryExpression(lower, value, Operation.LESS_THAN_OR_EQUALS),
+                                              new BinaryExpression(value, upper, Operation.LESS_THAN_OR_EQUALS),
+                                              Operation.AND);
+        }
+        setType(node, expression, value, lower, upper, errors);
         mapping.put(node, expression);
         return expression;
     }

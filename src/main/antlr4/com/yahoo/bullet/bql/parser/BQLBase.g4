@@ -64,6 +64,7 @@ expression
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
     | expression IS NOT? NULL                                                                                           #nullPredicate
+    | value=expression NOT? BETWEEN lower=expression AND upper=expression                                               #betweenPredicate
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix

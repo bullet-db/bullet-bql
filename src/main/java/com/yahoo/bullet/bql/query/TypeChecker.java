@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.query;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -57,6 +58,27 @@ public class TypeChecker {
             return makeError(node, QueryError.LIST_HAS_INVALID_SUBTYPE, node, subType);
         }
         return Optional.empty();
+    }
+
+    static Optional<List<BulletError>> validateBetweenType(BetweenPredicateNode node, Expression value, Expression lower, Expression upper) {
+        Type valueType = value.getType();
+        Type lowerType = lower.getType();
+        Type upperType = upper.getType();
+        if (Type.isUnknown(valueType) || Type.isUnknown(lowerType) || Type.isUnknown(upperType)) {
+            return unknownError();
+        }
+        List<BulletError> errors = new ArrayList<>();
+        if (!Type.isNumeric(valueType)) {
+            errors.add(makeErrorOnly(node, QueryError.BETWEEN_VALUE_NOT_NUMERIC, node, valueType));
+        }
+        if (!Type.isNumeric(lowerType)) {
+            errors.add(makeErrorOnly(node, QueryError.BETWEEN_BEGIN_NOT_NUMERIC, node, lowerType));
+        }
+        if (!Type.isNumeric(upperType)) {
+            errors.add(makeErrorOnly(node, QueryError.BETWEEN_END_NOT_NUMERIC, node, upperType));
+        }
+        return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+
     }
 
     static Optional<List<BulletError>> validateUnaryType(ExpressionNode node, UnaryExpression unaryExpression) {

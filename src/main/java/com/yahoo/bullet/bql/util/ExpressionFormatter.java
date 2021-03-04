@@ -11,6 +11,7 @@
 package com.yahoo.bullet.bql.util;
 
 import com.yahoo.bullet.bql.tree.ASTVisitor;
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -168,6 +169,14 @@ public final class ExpressionFormatter {
         @Override
         protected String visitNullPredicate(NullPredicateNode node, Void context) {
             return process(node.getExpression()) + (node.isNot() ? " IS NOT NULL" : " IS NULL");
+        }
+
+        @Override
+        protected String visitBetweenPredicate(BetweenPredicateNode node, Void context) {
+            if (node.isNot()) {
+                return process(node.getExpression()) + " NOT BETWEEN " + process(node.getLower()) + " AND " + process(node.getUpper());
+            }
+            return process(node.getExpression()) + " BETWEEN " + process(node.getLower()) + " AND " + process(node.getUpper());
         }
 
         @Override
