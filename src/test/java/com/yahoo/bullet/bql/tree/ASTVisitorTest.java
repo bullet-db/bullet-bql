@@ -88,7 +88,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitSubFieldExpression() {
-        SubFieldExpressionNode subFieldExpression = new SubFieldExpressionNode(null, null, null, null, null);
+        SubFieldExpressionNode subFieldExpression = new SubFieldExpressionNode(null, null, null, null, null, null, null);
         visitor.process(subFieldExpression);
         Mockito.verify(visitor).visitSubFieldExpression(subFieldExpression, null);
     }

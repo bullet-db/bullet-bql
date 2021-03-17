@@ -155,8 +155,12 @@ public final class ExpressionFormatter {
         protected String visitSubFieldExpression(SubFieldExpressionNode node, Void context) {
             if (node.getIndex() != null) {
                 return process(node.getField()) + "[" + node.getIndex() + "]";
-            } else {
+            } else if (node.getKey() != null) {
                 return process(node.getField()) + "." + process(node.getKey());
+            } else if (node.getExpressionKey() != null) {
+                return process(node.getField()) + "[" + process(node.getExpressionKey()) + "]";
+            } else {
+                return process(node.getField()) + "['" + node.getStringKey() + "']";
             }
         }
 

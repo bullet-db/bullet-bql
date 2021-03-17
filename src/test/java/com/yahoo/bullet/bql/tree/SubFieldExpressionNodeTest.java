@@ -14,16 +14,18 @@ import static com.yahoo.bullet.bql.util.QueryUtil.identifier;
 public class SubFieldExpressionNodeTest {
     @Test
     public void testEqualsAndHashCode() {
-        NodeUtils.testEqualsAndHashCode(() -> new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), null, null),
-                                        new SubFieldExpressionNode(identifier("---"), 0, identifier("def"), null, null),
-                                        new SubFieldExpressionNode(identifier("abc"), 1, identifier("def"), null, null),
-                                        new SubFieldExpressionNode(identifier("abc"), 0, identifier("---"), null, null));
+        NodeUtils.testEqualsAndHashCode(() -> new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), "jkl", null, null),
+                                        new SubFieldExpressionNode(identifier("---"), 0, identifier("def"), identifier("ghi"), "jkl", null, null),
+                                        new SubFieldExpressionNode(identifier("abc"), 1, identifier("def"), identifier("ghi"), "jkl", null, null),
+                                        new SubFieldExpressionNode(identifier("abc"), 0, identifier("---"), identifier("ghi"), "jkl", null, null),
+                                        new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("---"), "jkl", null, null),
+                                        new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), identifier("ghi"), "---", null, null));
     }
 
     @Test
     public void testEqualsAndHashCodeTypeDoesntMatter() {
-        SubFieldExpressionNode a = new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), Type.STRING_MAP_LIST, null);
-        SubFieldExpressionNode b = new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), Type.BOOLEAN, null);
+        SubFieldExpressionNode a = new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), null, null, Type.STRING_MAP_LIST, null);
+        SubFieldExpressionNode b = new SubFieldExpressionNode(identifier("abc"), 0, identifier("def"), null, null, Type.BOOLEAN, null);
         Assert.assertEquals(a, b);
         Assert.assertEquals(a.hashCode(), b.hashCode());
     }
