@@ -58,6 +58,30 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
+    public void testFieldExpressionWithIndexAndStringSubKey() {
+        build("SELECT aaa[0]['def'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "aaa[0]['def']");
+        Assert.assertEquals(field.getValue(), field("aaa", 0, "def", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithIndexAndExpressionSubKey() {
+        build("SELECT aaa[0][c] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "aaa[0][c]");
+        Assert.assertEquals(field.getValue(), field("aaa", 0, field("c", Type.STRING), Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
     public void testFieldExpressionWithKey() {
         build("SELECT bbb.def FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -70,6 +94,30 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
+    public void testFieldExpressionWithStringKey() {
+        build("SELECT bbb['def'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb['def']");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", Type.STRING_MAP));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING_MAP);
+    }
+
+    @Test
+    public void testFieldExpressionWithExpressionKey() {
+        build("SELECT bbb[c] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb[c]");
+        Assert.assertEquals(field.getValue(), field("bbb", field("c", Type.STRING), Type.STRING_MAP));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING_MAP);
+    }
+
+    @Test
     public void testFieldExpressionWithKeyAndSubKey() {
         build("SELECT bbb.def.one FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -77,6 +125,42 @@ public class ExpressionTest extends IntegrationTest {
         Field field = query.getProjection().getFields().get(0);
 
         Assert.assertEquals(field.getName(), "bbb.def.one");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithKeyAndBracketSubKey() {
+        build("SELECT bbb.def['one'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb.def['one']");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithBracketKeyAndSubKey() {
+        build("SELECT bbb['def'].one FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb['def'].one");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithBracketKeyAndBracketSubKey() {
+        build("SELECT bbb['def']['one'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb['def']['one']");
         Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
         Assert.assertEquals(field.getValue().getType(), Type.STRING);
     }

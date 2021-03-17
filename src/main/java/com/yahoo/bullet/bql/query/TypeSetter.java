@@ -43,12 +43,13 @@ public class TypeSetter {
     }
 
     static void setType(SubFieldExpressionNode node, FieldExpression subFieldExpression, FieldExpression fieldExpression, List<BulletError> bulletErrors) {
-        Optional<List<BulletError>> errors = TypeChecker.validateSubFieldType(node, fieldExpression);
+        Optional<List<BulletError>> errors = TypeChecker.validateSubFieldType(node, subFieldExpression, fieldExpression);
         errors.ifPresent(bulletErrors::addAll);
-        if (errors.isPresent()) {
+        Type type = fieldExpression.getType();
+        if (!Type.isList(type) && !Type.isMap(type)) {
             subFieldExpression.setType(Type.UNKNOWN);
         } else {
-            subFieldExpression.setType(fieldExpression.getType().getSubType());
+            subFieldExpression.setType(type.getSubType());
         }
     }
 

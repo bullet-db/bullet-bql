@@ -59,7 +59,9 @@ include
 
 expression
     : valueExpression                                                                                                   #value
-    | fieldExpression                                                                                                   #field
+    | fieldExpression (':' fieldType)?                                                                                  #field
+    | subFieldExpression (':' fieldType)?                                                                               #subField
+    | subSubFieldExpression (':' fieldType)?                                                                            #subSubField
     | listExpression                                                                                                    #list
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
@@ -89,11 +91,20 @@ valueExpression
     ;
 
 fieldExpression
-    : field=identifier (':' fieldType)?
-    | field=identifier '[' index=INTEGER_VALUE ']' (':' fieldType)?
-    | field=identifier '[' index=INTEGER_VALUE ']' '.' subKey=identifier (':' fieldType)?
-    | field=identifier '.' key=identifier (':' fieldType)?
-    | field=identifier '.' key=identifier '.' subKey=identifier (':' fieldType)?
+    : field=identifier
+    ;
+
+subFieldExpression
+    : field=fieldExpression '[' index=INTEGER_VALUE ']'
+    | field=fieldExpression '[' stringKey=STRING ']'
+    | field=fieldExpression '[' expressionKey=expression ']'
+    | field=fieldExpression '.' key=identifier
+    ;
+
+subSubFieldExpression
+    : subField=subFieldExpression '[' stringKey=STRING ']'
+    | subField=subFieldExpression '[' expressionKey=expression ']'
+    | subField=subFieldExpression '.' key=identifier
     ;
 
 listExpression

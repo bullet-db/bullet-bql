@@ -50,6 +50,9 @@ public enum QueryError {
 
     // Type checking
     SUBFIELD_INVALID_DUE_TO_FIELD_TYPE("The subfield %s is invalid since the field %s has type: %s."),
+    SUBFIELD_INDEX_INVALID_TYPE("The type of the index in the subfield %s must be INTEGER or LONG. Type given: %s."),
+    SUBFIELD_KEY_INVALID_TYPE("The type of the key in the subfield %s must be STRING. Type given: %s."),
+    SUBFIELD_SUB_KEY_INVALID_TYPE("The type of the subkey in the subfield %s must be STRING. Type given: %s."),
     EMPTY_LISTS_NOT_SUPPORTED("Empty lists are currently not supported."),
     LIST_HAS_MULTIPLE_TYPES("The list %s consists of objects of multiple types: %s."),
     LIST_HAS_INVALID_SUBTYPE("The list %s must consist of objects of a single primitive or primitive map type. Subtype given: %s."),

@@ -111,19 +111,19 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
     @Override
     protected Expression visitSubFieldExpression(SubFieldExpressionNode node, LayeredSchema layeredSchema) {
         FieldExpression fieldExpression = (FieldExpression) process(node.getField(), layeredSchema);
-        FieldExpression expression;
-        if (fieldExpression.getIndex() != null) {
-            expression = new FieldExpression(fieldExpression.getField(), fieldExpression.getIndex(), node.getKey().getValue());
-        } else if (fieldExpression.getKey() != null) {
-            expression = new FieldExpression(fieldExpression.getField(), fieldExpression.getKey(), node.getKey().getValue());
-        } else if (node.getIndex() != null) {
-            expression = new FieldExpression(fieldExpression.getField(), node.getIndex());
+        FieldExpression subFieldExpression;
+        if (node.getIndex() != null) {
+            subFieldExpression = new FieldExpression(fieldExpression, node.getIndex());
+        } else if (node.getKey() != null) {
+            subFieldExpression = new FieldExpression(fieldExpression, node.getKey().getValue());
+        } else if (node.getExpressionKey() != null) {
+            subFieldExpression = new FieldExpression(fieldExpression, process(node.getExpressionKey(), layeredSchema));
         } else {
-            expression = new FieldExpression(fieldExpression.getField(), node.getKey().getValue());
+            subFieldExpression = new FieldExpression(fieldExpression, node.getStringKey());
         }
-        setType(node, expression, fieldExpression, errors);
-        mapping.put(node, expression);
-        return expression;
+        setType(node, subFieldExpression, fieldExpression, errors);
+        mapping.put(node, subFieldExpression);
+        return subFieldExpression;
     }
 
     @Override

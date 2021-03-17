@@ -7,7 +7,9 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
+import lombok.Setter;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -17,14 +19,20 @@ public class SubFieldExpressionNode extends ExpressionNode {
     private final ExpressionNode field;
     private final Integer index;
     private final IdentifierNode key;
+    private final ExpressionNode expressionKey;
+    private final String stringKey;
     // Types ignored for equals() and hashCode()
-    private final Type type;
+    @Setter
+    private Type type;
 
-    public SubFieldExpressionNode(ExpressionNode field, Integer index, IdentifierNode key, Type type, NodeLocation nodeLocation) {
+    public SubFieldExpressionNode(ExpressionNode field, Integer index, IdentifierNode key, ExpressionNode expressionKey,
+                                  String stringKey, Type type, NodeLocation nodeLocation) {
         super(nodeLocation);
         this.field = field;
         this.index = index;
         this.key = key;
+        this.expressionKey = expressionKey;
+        this.stringKey = stringKey;
         this.type = type;
     }
 
@@ -35,6 +43,9 @@ public class SubFieldExpressionNode extends ExpressionNode {
 
     @Override
     public List<ExpressionNode> getChildren() {
+        if (expressionKey != null) {
+            return Arrays.asList(field, expressionKey);
+        }
         return Collections.singletonList(field);
     }
 
@@ -49,11 +60,13 @@ public class SubFieldExpressionNode extends ExpressionNode {
         SubFieldExpressionNode other = (SubFieldExpressionNode) obj;
         return Objects.equals(field, other.field) &&
                Objects.equals(index, other.index) &&
-               Objects.equals(key, other.key);
+               Objects.equals(key, other.key) &&
+               Objects.equals(expressionKey, other.expressionKey) &&
+               Objects.equals(stringKey, other.stringKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, index, key);
+        return Objects.hash(field, index, key, expressionKey, stringKey);
     }
 }

@@ -32,12 +32,32 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TypeChecker {
-    static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression fieldExpression) {
+    static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression subFieldExpression, FieldExpression fieldExpression) {
         Type type = fieldExpression.getType();
         if (Type.isUnknown(type)) {
             return unknownError();
-        } else if (!isCollection(type)) {
+        } else if (!isCollection(type) || (Type.isList(type) && node.getIndex() == null && node.getExpressionKey() == null) || (Type.isMap(type) && node.getIndex() != null)) {
             return makeError(node, QueryError.SUBFIELD_INVALID_DUE_TO_FIELD_TYPE, node, node.getField(), type);
+        }
+        if (node.getExpressionKey() != null) {
+            if (subFieldExpression.getVariableSubKey() != null) {
+                Type keyType = subFieldExpression.getVariableSubKey().getType();
+                if (!Type.isUnknown(keyType) && keyType != Type.STRING) {
+                    return makeError(node, QueryError.SUBFIELD_SUB_KEY_INVALID_TYPE, node, keyType);
+                }
+            } else {
+                Type keyType = subFieldExpression.getVariableKey().getType();
+                if (Type.isUnknown(keyType)) {
+                    return Optional.empty();
+                }
+                if (Type.isList(type)) {
+                    if (keyType != Type.INTEGER && keyType != Type.LONG) {
+                        return makeError(node, QueryError.SUBFIELD_INDEX_INVALID_TYPE, node, keyType);
+                    }
+                } else if (keyType != Type.STRING) {
+                    return makeError(node, QueryError.SUBFIELD_KEY_INVALID_TYPE, node, keyType);
+                }
+            }
         }
         return Optional.empty();
     }
