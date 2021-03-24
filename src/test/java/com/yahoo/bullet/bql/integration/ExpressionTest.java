@@ -541,9 +541,9 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
-    public void testNAryExpression() {
-        build("SELECT IF(b, 5, 10) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+    public void testNAryOperations() {
+        build("SELECT IF(b, 5, 10), BETWEEN(abc, 5, 10) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
 
         Field field = query.getProjection().getFields().get(0);
 
@@ -551,13 +551,13 @@ public class ExpressionTest extends IntegrationTest {
         Assert.assertEquals(field.getValue(), nary(Type.INTEGER, Operation.IF, field("b", Type.BOOLEAN),
                                                                                value(5),
                                                                                value(10)));
-    }
 
-    @Test
-    public void testNAryExpressionBadArguments() {
-        build("SELECT IF(c, 5, 10.0) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING.");
-        Assert.assertEquals(errors.get(1).getError(), "1:8: The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE.");
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "BETWEEN(abc, 5, 10)");
+        Assert.assertEquals(field.getValue(), nary(Type.BOOLEAN, Operation.BETWEEN, field("abc", Type.INTEGER),
+                                                                                    value(5),
+                                                                                    value(10)));
     }
 
     @Test

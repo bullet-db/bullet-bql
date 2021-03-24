@@ -14,9 +14,7 @@ import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
-import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
-import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
@@ -24,7 +22,6 @@ import com.yahoo.bullet.query.expressions.Expression;
 import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.query.expressions.ListExpression;
 import com.yahoo.bullet.query.expressions.NAryExpression;
-import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
@@ -63,12 +60,10 @@ public class TypeSetter {
         }
     }
 
-    static void setType(BetweenPredicateNode node, BinaryExpression binaryExpression, Expression value,  Expression lower, Expression upper, List<BulletError> bulletErrors) {
+    static void setType(BetweenPredicateNode node, NAryExpression nAryExpression, Expression value,  Expression lower, Expression upper, List<BulletError> bulletErrors) {
         Optional<List<BulletError>> errors = TypeChecker.validateBetweenType(node, value, lower, upper);
         errors.ifPresent(bulletErrors::addAll);
-        binaryExpression.setType(Type.BOOLEAN);
-        binaryExpression.getLeft().setType(Type.BOOLEAN);
-        binaryExpression.getRight().setType(Type.BOOLEAN);
+        nAryExpression.setType(Type.BOOLEAN);
     }
 
     // First argument is either UnaryExpressionNode or NullPredicateNode
@@ -145,13 +140,22 @@ public class TypeSetter {
     }
 
     static void setNAryType(NAryExpression nAryExpression) {
-        // only IF is supported at the moment
-        if (nAryExpression.getOp() == Operation.IF) {
-            nAryExpression.setType(nAryExpression.getOperands().get(1).getType());
-            return;
+        switch (nAryExpression.getOp()) {
+            case IF:
+                if (nAryExpression.getOperands().size() >= 2) {
+                    nAryExpression.setType(nAryExpression.getOperands().get(1).getType());
+                } else {
+                    nAryExpression.setType(Type.UNKNOWN);
+                }
+                break;
+            case BETWEEN:
+            case NOT_BETWEEN:
+                nAryExpression.setType(Type.BOOLEAN);
+                break;
+            default:
+                // Unreachable normally
+                throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
         }
-        // Unreachable normally
-        throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
     }
 
     static void setAggregateType(Expression expression, GroupOperation.GroupOperationType op, Expression operand) {

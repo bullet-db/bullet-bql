@@ -178,9 +178,9 @@ public final class ExpressionFormatter {
         @Override
         protected String visitBetweenPredicate(BetweenPredicateNode node, Void context) {
             if (node.isNot()) {
-                return process(node.getExpression()) + " NOT BETWEEN " + process(node.getLower()) + " AND " + process(node.getUpper());
+                return process(node.getExpression()) + " NOT BETWEEN (" + process(node.getLower()) + ", " + process(node.getUpper()) + ")";
             }
-            return process(node.getExpression()) + " BETWEEN " + process(node.getLower()) + " AND " + process(node.getUpper());
+            return process(node.getExpression()) + " BETWEEN (" + process(node.getLower()) + ", " + process(node.getUpper()) + ")";
         }
 
         @Override

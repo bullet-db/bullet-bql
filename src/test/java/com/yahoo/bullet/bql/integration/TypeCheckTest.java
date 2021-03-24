@@ -111,6 +111,18 @@ public class TypeCheckTest extends IntegrationTest {
     }
 
     @Test
+    public void testTypeCheckBetweenPredicate() {
+        build("SELECT aaa BETWEEN ('5', '10'), aaa NOT BETWEEN ('5', '10') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The value in aaa BETWEEN ('5', '10') must be numeric. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(1).getError(), "1:8: The start value in aaa BETWEEN ('5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(2).getError(), "1:8: The end value in aaa BETWEEN ('5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(3).getError(), "1:33: The value in aaa NOT BETWEEN ('5', '10') must be numeric. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(4).getError(), "1:33: The start value in aaa NOT BETWEEN ('5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(5).getError(), "1:33: The end value in aaa NOT BETWEEN ('5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 6);
+    }
+
+    @Test
     public void testTypeCheckBooleanComparison() {
         build("SELECT 5 AND true, false OR 5, 'foo' XOR 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 5 AND true must be BOOLEAN. Types given: INTEGER, BOOLEAN.");
@@ -125,6 +137,25 @@ public class TypeCheckTest extends IntegrationTest {
         Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the first argument in FILTER('foo', 5) must be some LIST. Type given: STRING.");
         Assert.assertEquals(errors.get(1).getError(), "1:8: The type of the second argument in FILTER('foo', 5) must be BOOLEAN_LIST. Type given: INTEGER.");
         Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckIf() {
+        build("SELECT IF(c, 5), IF(c, 5, 10.0) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: IF requires 3 arguments. The number of arguments given in IF(c, 5) was 2.");
+        Assert.assertEquals(errors.get(1).getError(), "1:18: The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING.");
+        Assert.assertEquals(errors.get(2).getError(), "1:18: The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE.");
+        Assert.assertEquals(errors.size(), 3);
+    }
+
+    @Test
+    public void testTypeCheckBetween() {
+        build("SELECT BETWEEN(abc, 5), BETWEEN(aaa, '5', '10') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: BETWEEN requires 3 arguments. The number of arguments given in BETWEEN(abc, 5) was 2.");
+        Assert.assertEquals(errors.get(1).getError(), "1:25: The value in BETWEEN(aaa, '5', '10') must be numeric. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(2).getError(), "1:25: The start value in BETWEEN(aaa, '5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(3).getError(), "1:25: The end value in BETWEEN(aaa, '5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test

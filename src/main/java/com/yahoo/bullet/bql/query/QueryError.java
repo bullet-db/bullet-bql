@@ -48,6 +48,10 @@ public enum QueryError {
     ORDER_BY_FIELD_NON_PRIMITIVE("ORDER BY contains a non-primitive field: %s.", "Please specify a primitive field."),
     DUPLICATE_FIELD_NAMES_ALIASES("The following field names/aliases are shared: %s.", "Please specify non-overlapping field names and aliases."),
 
+    // Incorrect number of arguments
+    IF_INCORRECT_NUMBER_OF_ARGUMENTS("IF requires 3 arguments. The number of arguments given in %s was %s."),
+    BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS("BETWEEN requires 3 arguments. The number of arguments given in %s was %s."),
+
     // Type checking
     SUBFIELD_INVALID_DUE_TO_FIELD_TYPE("The subfield %s is invalid since the field %s has type: %s."),
     SUBFIELD_INDEX_INVALID_TYPE("The type of the index in the subfield %s must be INTEGER or LONG. Type given: %s."),
@@ -58,7 +62,7 @@ public enum QueryError {
     LIST_HAS_INVALID_SUBTYPE("The list %s must consist of objects of a single primitive or primitive map type. Subtype given: %s."),
     NOT_HAS_WRONG_TYPE("The type of the argument in %s must be numeric or BOOLEAN. Type given: %s."),
     BETWEEN_VALUE_NOT_NUMERIC("The value in %s must be numeric. Type given: %s."),
-    BETWEEN_BEGIN_NOT_NUMERIC("The begin value in %s must be numeric. Type given: %s."),
+    BETWEEN_START_NOT_NUMERIC("The start value in %s must be numeric. Type given: %s."),
     BETWEEN_END_NOT_NUMERIC("The end value in %s must be numeric. Type given: %s."),
     SIZE_OF_HAS_WRONG_TYPE("The type of the argument in %s must be some LIST, MAP, or STRING. Type given: %s."),
     IF_FIRST_ARGUMENT_HAS_WRONG_TYPE("The type of the first argument in %s must be BOOLEAN. Type given: %s."),

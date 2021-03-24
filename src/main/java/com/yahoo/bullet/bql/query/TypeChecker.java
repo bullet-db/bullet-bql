@@ -20,7 +20,6 @@ import com.yahoo.bullet.query.expressions.Expression;
 import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.query.expressions.ListExpression;
 import com.yahoo.bullet.query.expressions.NAryExpression;
-import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
 import com.yahoo.bullet.typesystem.Type;
 
@@ -40,13 +39,13 @@ public class TypeChecker {
             return makeError(node, QueryError.SUBFIELD_INVALID_DUE_TO_FIELD_TYPE, node, node.getField(), type);
         }
         if (node.getExpressionKey() != null) {
-            if (subFieldExpression.getVariableSubKey() != null) {
-                Type keyType = subFieldExpression.getVariableSubKey().getType();
+            if (subFieldExpression.getSubKey() != null) {
+                Type keyType = ((Expression) subFieldExpression.getSubKey()).getType();
                 if (!Type.isUnknown(keyType) && keyType != Type.STRING) {
                     return makeError(node, QueryError.SUBFIELD_SUB_KEY_INVALID_TYPE, node, keyType);
                 }
             } else {
-                Type keyType = subFieldExpression.getVariableKey().getType();
+                Type keyType = ((Expression) subFieldExpression.getKey()).getType();
                 if (Type.isUnknown(keyType)) {
                     return Optional.empty();
                 }
@@ -92,7 +91,7 @@ public class TypeChecker {
             errors.add(makeErrorOnly(node, QueryError.BETWEEN_VALUE_NOT_NUMERIC, node, valueType));
         }
         if (!Type.isNumeric(lowerType)) {
-            errors.add(makeErrorOnly(node, QueryError.BETWEEN_BEGIN_NOT_NUMERIC, node, lowerType));
+            errors.add(makeErrorOnly(node, QueryError.BETWEEN_START_NOT_NUMERIC, node, lowerType));
         }
         if (!Type.isNumeric(upperType)) {
             errors.add(makeErrorOnly(node, QueryError.BETWEEN_END_NOT_NUMERIC, node, upperType));
@@ -130,16 +129,37 @@ public class TypeChecker {
         if (argTypes.contains(Type.UNKNOWN)) {
             return unknownError();
         }
-        // only IF is supported at the moment
-        if (nAryExpression.getOp() == Operation.IF) {
-            List<BulletError> errors = new ArrayList<>();
-            if (argTypes.get(0) != Type.BOOLEAN) {
-                errors.add(makeErrorOnly(node, QueryError.IF_FIRST_ARGUMENT_HAS_WRONG_TYPE, node, argTypes.get(0)));
-            }
-            if (argTypes.get(1) != argTypes.get(2)) {
-                errors.add(makeErrorOnly(node, QueryError.IF_ARGUMENT_TYPES_DO_NOT_MATCH, node, argTypes.get(1), argTypes.get(2)));
-            }
-            return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+        List<BulletError> errors = new ArrayList<>();
+        switch (nAryExpression.getOp()) {
+            case IF:
+                if (argTypes.size() != 3) {
+                    return makeError(node, QueryError.IF_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
+                }
+                if (argTypes.get(0) != Type.BOOLEAN) {
+                    errors.add(makeErrorOnly(node, QueryError.IF_FIRST_ARGUMENT_HAS_WRONG_TYPE, node, argTypes.get(0)));
+                }
+                if (argTypes.get(1) != argTypes.get(2)) {
+                    errors.add(makeErrorOnly(node, QueryError.IF_ARGUMENT_TYPES_DO_NOT_MATCH, node, argTypes.get(1), argTypes.get(2)));
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+            case BETWEEN:
+            case NOT_BETWEEN:
+                if (argTypes.size() != 3) {
+                    return makeError(node, QueryError.BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
+                }
+                Type valueType = argTypes.get(0);
+                Type lowerType = argTypes.get(1);
+                Type upperType = argTypes.get(2);
+                if (!Type.isNumeric(valueType)) {
+                    errors.add(makeErrorOnly(node, QueryError.BETWEEN_VALUE_NOT_NUMERIC, node, valueType));
+                }
+                if (!Type.isNumeric(lowerType)) {
+                    errors.add(makeErrorOnly(node, QueryError.BETWEEN_START_NOT_NUMERIC, node, lowerType));
+                }
+                if (!Type.isNumeric(upperType)) {
+                    errors.add(makeErrorOnly(node, QueryError.BETWEEN_END_NOT_NUMERIC, node, upperType));
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());

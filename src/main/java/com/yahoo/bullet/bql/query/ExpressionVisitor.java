@@ -38,6 +38,7 @@ import com.yahoo.bullet.typesystem.Type;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,15 +151,11 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
         Expression value = process(node.getExpression(), layeredSchema);
         Expression lower = process(node.getLower(), layeredSchema);
         Expression upper = process(node.getUpper(), layeredSchema);
-        BinaryExpression expression;
+        NAryExpression expression;
         if (node.isNot()) {
-            expression = new BinaryExpression(new BinaryExpression(value, lower, Operation.LESS_THAN),
-                                              new BinaryExpression(upper, value, Operation.LESS_THAN),
-                                              Operation.OR);
+            expression = new NAryExpression(Arrays.asList(value, lower, upper), Operation.NOT_BETWEEN);
         } else {
-            expression = new BinaryExpression(new BinaryExpression(lower, value, Operation.LESS_THAN_OR_EQUALS),
-                                              new BinaryExpression(value, upper, Operation.LESS_THAN_OR_EQUALS),
-                                              Operation.AND);
+            expression = new NAryExpression(Arrays.asList(value, lower, upper), Operation.BETWEEN);
         }
         setType(node, expression, value, lower, upper, errors);
         mapping.put(node, expression);

@@ -66,7 +66,7 @@ expression
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
     | expression IS NOT? NULL                                                                                           #nullPredicate
-    | value=expression NOT? BETWEEN lower=expression AND upper=expression                                               #betweenPredicate
+    | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
@@ -120,7 +120,7 @@ unaryExpression
 functionExpression
     : op=(SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
       '(' left=expression ',' right=expression ')'                                                                      #binary
-    | op=IF '(' expressions ')'                                                                                         #nAry
+    | op=(IF | BETWEEN) '(' expressions ')'                                                                             #nAry
     | aggregateExpression                                                                                               #aggregate
     | CAST '(' expression AS primitiveType ')'                                                                          #cast
     ;
