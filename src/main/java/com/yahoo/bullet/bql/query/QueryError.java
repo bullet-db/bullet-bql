@@ -51,6 +51,8 @@ public enum QueryError {
     // Incorrect number of arguments
     IF_INCORRECT_NUMBER_OF_ARGUMENTS("IF requires 3 arguments. The number of arguments given in %s was %s."),
     BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS("BETWEEN requires 3 arguments. The number of arguments given in %s was %s."),
+    SUBSTRING_INCORRECT_NUMBER_OF_ARGUMENTS("SUBSTRING requires 2 or 3 arguments. The number of arguments given in %s was %s."),
+    UNIX_TIMESTAMP_INCORRECT_NUMBER_OF_ARGUMENTS("UNIX_TIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in %s was %s."),
 
     // Type checking
     SUBFIELD_INVALID_DUE_TO_FIELD_TYPE("The subfield %s is invalid since the field %s has type: %s."),
@@ -64,6 +66,7 @@ public enum QueryError {
     BETWEEN_VALUE_NOT_NUMERIC("The value in %s must be numeric. Type given: %s."),
     BETWEEN_START_NOT_NUMERIC("The start value in %s must be numeric. Type given: %s."),
     BETWEEN_END_NOT_NUMERIC("The end value in %s must be numeric. Type given: %s."),
+    BETWEEN_WRONG_TYPES("The types of the arguments in %s must be numeric. Types given: %s"),
     SIZE_OF_HAS_WRONG_TYPE("The type of the argument in %s must be some LIST, MAP, or STRING. Type given: %s."),
     IF_FIRST_ARGUMENT_HAS_WRONG_TYPE("The type of the first argument in %s must be BOOLEAN. Type given: %s."),
     IF_ARGUMENT_TYPES_DO_NOT_MATCH("The types of the second and third arguments in %s must match. Types given: %s, %s."),
@@ -93,6 +96,14 @@ public enum QueryError {
     EXPECTED_BOOLEAN_TYPES("The types of the arguments in %s must be BOOLEAN. Types given: %s, %s."),
     FILTER_NOT_LIST("The type of the first argument in %s must be some LIST. Type given: %s."),
     FILTER_NOT_BOOLEAN_LIST("The type of the second argument in %s must be BOOLEAN_LIST. Type given: %s."),
+    ABS_HAS_WRONG_TYPE("The type of the argument in %s must be numeric. Type given: %s."),
+    TRIM_HAS_WRONG_TYPE("The type of the argument in %s must be STRING. Type given: %s."),
+    SUBSTRING_VALUE_NOT_STRING("The type of the first argument in %s must be STRING. Type given: %s."),
+    SUBSTRING_START_NOT_NUMERIC("The type of the second argument (the start parameter) in %s must be numeric. Type given: %s."),
+    SUBSTRING_LENGTH_NOT_NUMERIC("The type of the third argument (the length parameter) in %s must be numeric. Type given: %s."),
+    UNIX_TIMESTAMP_VALUE_NOT_STRING("The type of the first argument in %s must be STRING. Type given: %s."),
+    UNIX_TIMESTAMP_VALUE_NOT_STRING_OR_NUMERIC("The type of the first argument in %s must be STRING or numeric. Type given: %s."),
+    UNIX_TIMESTAMP_PATTERN_NOT_STRING("The type of the second argument (the pattern parameter) in %s must be STRING. Type given: %s."),
 
     FIELD_NOT_IN_SCHEMA("The field %s does not exist in the schema.");
 

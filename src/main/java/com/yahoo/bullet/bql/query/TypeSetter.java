@@ -70,17 +70,13 @@ public class TypeSetter {
     static void setType(ExpressionNode node, UnaryExpression unaryExpression, List<BulletError> bulletErrors) {
         Optional<List<BulletError>> errors = TypeChecker.validateUnaryType(node, unaryExpression);
         errors.ifPresent(bulletErrors::addAll);
-        setUnaryType(unaryExpression);
+        setUnaryType(unaryExpression, errors.isPresent());
     }
 
     static void setType(NAryExpressionNode node, NAryExpression nAryExpression, List<BulletError> bulletErrors) {
         Optional<List<BulletError>> errors = TypeChecker.validateNAryType(node, nAryExpression);
         errors.ifPresent(bulletErrors::addAll);
-        if (errors.isPresent()) {
-            nAryExpression.setType(Type.UNKNOWN);
-        } else {
-            setNAryType(nAryExpression);
-        }
+        setNAryType(nAryExpression, errors.isPresent());
     }
 
     static void setType(GroupOperationNode node, Expression expression, Expression operand, List<BulletError> bulletErrors) {
@@ -123,7 +119,7 @@ public class TypeSetter {
         listExpression.setType(listType);
     }
 
-    static void setUnaryType(UnaryExpression unaryExpression) {
+    static void setUnaryType(UnaryExpression unaryExpression, boolean hasErrors) {
         switch (unaryExpression.getOp()) {
             case NOT:
             case IS_NULL:
@@ -133,24 +129,40 @@ public class TypeSetter {
             case SIZE_OF:
                 unaryExpression.setType(Type.INTEGER);
                 break;
+            case ABS:
+                if (hasErrors) {
+                    unaryExpression.setType(Type.DOUBLE);
+                } else {
+                    unaryExpression.setType(unaryExpression.getOperand().getType());
+                }
+                break;
+            case TRIM:
+                unaryExpression.setType(Type.STRING);
+                break;
             default:
                 // Unreachable normally
                 throw new IllegalArgumentException("This is not a supported unary operation: " + unaryExpression.getOp());
         }
     }
 
-    static void setNAryType(NAryExpression nAryExpression) {
+    static void setNAryType(NAryExpression nAryExpression, boolean hasErrors) {
         switch (nAryExpression.getOp()) {
             case IF:
-                if (nAryExpression.getOperands().size() >= 2) {
-                    nAryExpression.setType(nAryExpression.getOperands().get(1).getType());
-                } else {
+                if (hasErrors) {
                     nAryExpression.setType(Type.UNKNOWN);
+                } else {
+                    nAryExpression.setType(nAryExpression.getOperands().get(1).getType());
                 }
                 break;
             case BETWEEN:
             case NOT_BETWEEN:
                 nAryExpression.setType(Type.BOOLEAN);
+                break;
+            case SUBSTRING:
+                nAryExpression.setType(Type.STRING);
+                break;
+            case UNIX_TIMESTAMP:
+                nAryExpression.setType(Type.LONG);
                 break;
             default:
                 // Unreachable normally

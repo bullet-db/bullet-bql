@@ -113,14 +113,14 @@ listExpression
     ;
 
 unaryExpression
-    : op=(NOT | SIZEOF) parens='(' operand=expression ')'
+    : op=(NOT | SIZEOF | ABS | TRIM) parens='(' operand=expression ')'
     | op=(NOT | SIZEOF) operand=expression
     ;
 
 functionExpression
     : op=(SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
       '(' left=expression ',' right=expression ')'                                                                      #binary
-    | op=(IF | BETWEEN) '(' expressions ')'                                                                             #nAry
+    | op=(IF | BETWEEN | SUBSTRING | UNIX_TIMESTAMP) '(' expressions? ')'                                               #nAry
     | aggregateExpression                                                                                               #aggregate
     | CAST '(' expression AS primitiveType ')'                                                                          #cast
     ;
@@ -236,6 +236,10 @@ RLIKE: 'RLIKE';
 SIZEIS: 'SIZEIS';
 FILTER: 'FILTER';
 IF: 'IF';
+ABS: 'ABS';
+TRIM: 'TRIM';
+SUBSTRING: 'SUBSTRING' | 'SUBSTR';
+UNIX_TIMESTAMP: 'UNIX_TIMESTAMP';
 
 INTEGER_TYPE: 'INTEGER';
 LONG_TYPE: 'LONG';

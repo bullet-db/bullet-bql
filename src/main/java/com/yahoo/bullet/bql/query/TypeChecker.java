@@ -119,6 +119,16 @@ public class TypeChecker {
             case IS_NULL:
             case IS_NOT_NULL:
                 return Optional.empty();
+            case ABS:
+                if (!Type.isNumeric(operandType)) {
+                    return makeError(node, QueryError.ABS_HAS_WRONG_TYPE, node, operandType);
+                }
+                return Optional.empty();
+            case TRIM:
+                if (operandType != Type.STRING) {
+                    return makeError(node, QueryError.TRIM_HAS_WRONG_TYPE, node, operandType);
+                }
+                return Optional.empty();
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported unary operation: " + unaryExpression.getOp());
@@ -147,17 +157,54 @@ public class TypeChecker {
                 if (argTypes.size() != 3) {
                     return makeError(node, QueryError.BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
                 }
-                Type valueType = argTypes.get(0);
-                Type lowerType = argTypes.get(1);
-                Type upperType = argTypes.get(2);
-                if (!Type.isNumeric(valueType)) {
-                    errors.add(makeErrorOnly(node, QueryError.BETWEEN_VALUE_NOT_NUMERIC, node, valueType));
+                if (!argTypes.stream().allMatch(Type::isNumeric)) {
+                    return makeError(node, QueryError.BETWEEN_WRONG_TYPES, node, argTypes);
                 }
-                if (!Type.isNumeric(lowerType)) {
-                    errors.add(makeErrorOnly(node, QueryError.BETWEEN_START_NOT_NUMERIC, node, lowerType));
+                return Optional.empty();
+            case SUBSTRING:
+                switch (argTypes.size()) {
+                    case 2:
+                        if (argTypes.get(0) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_VALUE_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        if (!Type.isNumeric(argTypes.get(1))) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_START_NOT_NUMERIC, node, argTypes.get(1)));
+                        }
+                        break;
+                    case 3:
+                        if (argTypes.get(0) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_VALUE_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        if (!Type.isNumeric(argTypes.get(1))) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_START_NOT_NUMERIC, node, argTypes.get(1)));
+                        }
+                        if (!Type.isNumeric(argTypes.get(2))) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_LENGTH_NOT_NUMERIC, node, argTypes.get(2)));
+                        }
+                        break;
+                    default:
+                        return makeError(node, QueryError.SUBSTRING_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
                 }
-                if (!Type.isNumeric(upperType)) {
-                    errors.add(makeErrorOnly(node, QueryError.BETWEEN_END_NOT_NUMERIC, node, upperType));
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+            case UNIX_TIMESTAMP:
+                switch (argTypes.size()) {
+                    case 0:
+                        break;
+                    case 1:
+                        if (argTypes.get(0) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_VALUE_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        break;
+                    case 2:
+                        if (argTypes.get(0) != Type.STRING && !Type.isNumeric(argTypes.get(0))) {
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_VALUE_NOT_STRING_OR_NUMERIC, node, argTypes.get(0)));
+                        }
+                        if (argTypes.get(1) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_PATTERN_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        break;
+                    default:
+                        return makeError(node, QueryError.UNIX_TIMESTAMP_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }

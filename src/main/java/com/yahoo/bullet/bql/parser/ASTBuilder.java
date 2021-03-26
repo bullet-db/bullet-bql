@@ -440,10 +440,18 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.NOT;
             case BQLBaseLexer.SIZEOF:
                 return Operation.SIZE_OF;
+            case BQLBaseLexer.TRIM:
+                return Operation.TRIM;
+            case BQLBaseLexer.ABS:
+                return Operation.ABS;
             case BQLBaseLexer.IF:
                 return Operation.IF;
             case BQLBaseLexer.BETWEEN:
                 return Operation.BETWEEN;
+            case BQLBaseLexer.SUBSTRING:
+                return Operation.SUBSTRING;
+            case BQLBaseLexer.UNIX_TIMESTAMP:
+                return Operation.UNIX_TIMESTAMP;
         }
         return null;
     }
