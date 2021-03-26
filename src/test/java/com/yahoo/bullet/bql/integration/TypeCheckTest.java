@@ -123,6 +123,34 @@ public class TypeCheckTest extends IntegrationTest {
     }
 
     @Test
+    public void testTypeCheckSizeOf() {
+        build("SELECT SIZEOF(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in SIZEOF(5) must be some LIST, MAP, or STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckNot() {
+        build("SELECT NOT 'foo' FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in NOT 'foo' must be numeric or BOOLEAN. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckTrim() {
+        build("SELECT TRIM(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in TRIM(5) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckAbs() {
+        build("SELECT ABS('foo') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in ABS('foo') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testTypeCheckBooleanComparison() {
         build("SELECT 5 AND true, false OR 5, 'foo' XOR 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 5 AND true must be BOOLEAN. Types given: INTEGER, BOOLEAN.");
@@ -152,9 +180,29 @@ public class TypeCheckTest extends IntegrationTest {
     public void testTypeCheckBetween() {
         build("SELECT BETWEEN(abc, 5), BETWEEN(aaa, '5', '10') FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: BETWEEN requires 3 arguments. The number of arguments given in BETWEEN(abc, 5) was 2.");
-        Assert.assertEquals(errors.get(1).getError(), "1:25: The value in BETWEEN(aaa, '5', '10') must be numeric. Type given: STRING_MAP_LIST.");
-        Assert.assertEquals(errors.get(2).getError(), "1:25: The start value in BETWEEN(aaa, '5', '10') must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(3).getError(), "1:25: The end value in BETWEEN(aaa, '5', '10') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(1).getError(), "1:25: The types of the arguments in BETWEEN(aaa, '5', '10') must be numeric. Types given: [STRING_MAP_LIST, STRING, STRING]");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckSubstring() {
+        build("SELECT SUBSTRING(c), SUBSTRING(5, 'abc'), SUBSTRING(5, 'abc', 'def') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: SUBSTRING requires 2 or 3 arguments. The number of arguments given in SUBSTRING(c) was 1.");
+        Assert.assertEquals(errors.get(1).getError(), "1:22: The type of the first argument in SUBSTRING(5, 'abc') must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(2).getError(), "1:22: The type of the second argument (the start parameter) in SUBSTRING(5, 'abc') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(3).getError(), "1:43: The type of the first argument in SUBSTRING(5, 'abc', 'def') must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(4).getError(), "1:43: The type of the second argument (the start parameter) in SUBSTRING(5, 'abc', 'def') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(5).getError(), "1:43: The type of the third argument (the length parameter) in SUBSTRING(5, 'abc', 'def') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 6);
+    }
+
+    @Test
+    public void testTypeCheckUnixTimestamp() {
+        build("SELECT UNIX_TIMESTAMP(0, 1, 2, 3), UNIX_TIMESTAMP(4), UNIX_TIMESTAMP(true, 5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: UNIX_TIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in UNIX_TIMESTAMP(0, 1, 2, 3) was 4.");
+        Assert.assertEquals(errors.get(1).getError(), "1:36: The type of the first argument in UNIX_TIMESTAMP(4) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(2).getError(), "1:55: The type of the first argument in UNIX_TIMESTAMP(true, 5) must be STRING or numeric. Type given: BOOLEAN.");
+        Assert.assertEquals(errors.get(3).getError(), "1:55: The type of the second argument (the pattern parameter) in UNIX_TIMESTAMP(true, 5) must be STRING. Type given: INTEGER.");
         Assert.assertEquals(errors.size(), 4);
     }
 

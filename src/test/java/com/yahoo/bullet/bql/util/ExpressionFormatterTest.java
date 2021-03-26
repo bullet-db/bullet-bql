@@ -51,12 +51,6 @@ public class ExpressionFormatterTest {
     }
 
     @Test
-    public void testBetween() {
-        QueryNode queryNode = bqlParser.createQueryNode("select a between (b, c), d not between (e, f), between(g, h, i), not between(j, k, l) from stream()");
-        Assert.assertEquals(ExpressionFormatter.format(queryNode, true), "SELECT a BETWEEN (b, c), d NOT BETWEEN (e, f), BETWEEN(g, h, i), NOT BETWEEN(j, k, l) FROM STREAM()");
-    }
-
-    @Test
     public void testVisitQuotedIdentifier() {
         // coverage
         Assert.assertEquals(ExpressionFormatter.format(QueryUtil.quotedIdentifier("abc"), true), "\"abc\"");

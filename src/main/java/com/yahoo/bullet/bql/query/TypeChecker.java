@@ -200,7 +200,7 @@ public class TypeChecker {
                             errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_VALUE_NOT_STRING_OR_NUMERIC, node, argTypes.get(0)));
                         }
                         if (argTypes.get(1) != Type.STRING) {
-                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_PATTERN_NOT_STRING, node, argTypes.get(0)));
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_PATTERN_NOT_STRING, node, argTypes.get(1)));
                         }
                         break;
                     default:
