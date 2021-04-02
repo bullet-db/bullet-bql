@@ -10,8 +10,10 @@ import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.common.BulletError;
@@ -35,6 +37,7 @@ public class ProcessedQuery {
     public enum QueryType {
         SELECT,
         SELECT_ALL,
+        SELECT_FUNCTION,
         SELECT_DISTINCT,
         GROUP,
         COUNT_DISTINCT,
@@ -55,6 +58,8 @@ public class ProcessedQuery {
     private Long duration;
     @Setter
     private Integer limit;
+    @Setter
+    private LateralViewNode lateralView;
 
     private Map<ExpressionNode, String> aliases = new HashMap<>();
 
@@ -69,6 +74,9 @@ public class ProcessedQuery {
     private CountDistinctNode countDistinct;
     private DistributionNode distribution;
     private TopKNode topK;
+
+    // SELECT'd table function node - currently assumed to be EXPLODE
+    private TableFunctionNode selectTableFunction;
 
     // Record-keeping
     private Set<ExpressionNode> aggregateNodes = new HashSet<>();
@@ -111,6 +119,22 @@ public class ProcessedQuery {
                 queryErrors.add(QueryError.TOP_K_WITH_LIMIT);
             }
         }
+        if (lateralView != null) {
+            if (isSuperAggregate(lateralView.getTableFunction())) {
+                queryErrors.add(QueryError.TABLE_FUNCTION_WITH_AGGREGATE);
+            }
+        }
+        if (selectTableFunction != null) {
+            if (lateralView != null) {
+                queryErrors.add(QueryError.SELECT_TABLE_FUNCTION_WITH_LATERAL_VIEW);
+            }
+            if (!queryTypes.isEmpty()) {
+                queryErrors.add(QueryError.SELECT_TABLE_FUNCTION_WITH_AGGREGATION);
+            }
+            if (isSuperAggregate(selectTableFunction)) {
+                queryErrors.add(QueryError.TABLE_FUNCTION_WITH_AGGREGATE);
+            }
+        }
         if (duration != null && duration <= 0) {
             queryErrors.add(QueryError.NON_POSITIVE_DURATION);
         }
@@ -138,14 +162,26 @@ public class ProcessedQuery {
         if (node instanceof DistributionNode || node instanceof TopKNode) {
             return;
         }
+        if (node instanceof TableFunctionNode) {
+            if (selectTableFunction != null && !selectTableFunction.equals(node)) {
+                queryErrors.add(QueryError.MULTIPLE_SELECT_TABLE_FUNCTIONS);
+                return;
+            }
+            selectTableFunction = (TableFunctionNode) node;
+            return;
+        }
         selectNodes.add(node);
     }
 
     public void addAlias(ExpressionNode node, String alias) {
+        // TODO allow empty alias since we don't disallow empty identifiers?
+        /*
         if (alias.isEmpty()) {
             queryErrors.add(QueryError.EMPTY_ALIAS);
             return;
         }
+        */
+        // TODO add error if trying to re-alias a node?
         aliases.put(node, alias);
     }
 
@@ -213,44 +249,48 @@ public class ProcessedQuery {
      * @return A {@link QueryType}.
      */
     public QueryType getQueryType() {
-        return queryTypes.isEmpty() ? QueryType.SELECT : queryTypes.iterator().next();
+        if (queryTypes.isEmpty()) {
+            return selectTableFunction != null ? QueryType.SELECT_FUNCTION : QueryType.SELECT;
+        }
+        return queryTypes.iterator().next();
     }
 
     /**
-     * Returns whether or not the given {@link ExpressionNode} has an field.
+     *
+     * @return
+     */
+    public TableFunctionNode getTableFunction() {
+        if (lateralView != null) {
+            return lateralView.getTableFunction();
+        }
+        return selectTableFunction;
+    }
+
+    /**
+     * Returns whether or not the given {@link ExpressionNode} has an alias.
      *
      * @param node An {@link ExpressionNode}.
-     * @return True if the node has an field and false otherwise.
+     * @return True if the node has an alias and false otherwise.
      */
     public boolean hasAlias(ExpressionNode node) {
         return aliases.containsKey(node);
     }
 
     /**
-     * Returns whether or not the given string is an field.
-     *
-     * @param name A string.
-     * @return True if the given string is an field and false otherwise.
-     */
-    public boolean isAlias(String name) {
-        return aliases.values().contains(name);
-    }
-
-    /**
-     * Returns the field of the given {@link ExpressionNode}.
+     * Returns the alias of the given {@link ExpressionNode}.
      *
      * @param node An {@link ExpressionNode}.
-     * @return The field of the given node if it exists and null otherwise.
+     * @return The alias of the given node if it exists and null otherwise.
      */
     public String getAlias(ExpressionNode node) {
         return aliases.get(node);
     }
 
     /**
-     * Returns the field or name of the given {@link ExpressionNode}.
+     * Returns the alias or name of the given {@link ExpressionNode}.
      *
      * @param node An {@link ExpressionNode}.
-     * @return The field of the given node if it exists and its name otherwise.
+     * @return The alias of the given node if it exists and its name otherwise.
      */
     public String getAliasOrName(ExpressionNode node) {
         String alias = aliases.get(node);

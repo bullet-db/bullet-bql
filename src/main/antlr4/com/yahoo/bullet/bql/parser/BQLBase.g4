@@ -12,6 +12,7 @@ grammar BQLBase;
 
 query
     : SELECT select FROM stream
+      (LATERAL VIEW lateralView)?
       (WHERE where=expression)?
       (GROUP BY groupBy)?
       (HAVING having=expression)?
@@ -28,11 +29,16 @@ select
 
 selectItem
     : expression (AS? identifier)?
+    | tableFunction
     | ASTERISK
     ;
 
 stream
     : STREAM '(' (timeDuration=(INTEGER_VALUE | MAX) ',' TIME)? ')'
+    ;
+
+lateralView
+    : OUTER? tableFunction
     ;
 
 groupBy
@@ -143,6 +149,11 @@ inputMode
     | iMode=MANUAL ',' number (',' number)*
     ;
 
+tableFunction
+    : op=(EXPLODE | EXPLODE_OUTER) '(' expression ')'  AS keyAlias=identifier
+    | op=(EXPLODE | EXPLODE_OUTER) '(' expression ')' AS '(' keyAlias=identifier ',' valueAlias=identifier ')'
+    ;
+
 identifier
     : IDENTIFIER                                                                                                        #unquotedIdentifier
     | nonReserved                                                                                                       #unquotedIdentifier
@@ -211,6 +222,9 @@ SELECT: 'SELECT';
 WHERE: 'WHERE';
 STREAM: 'STREAM';
 TIME: 'TIME';
+LATERAL: 'LATERAL';
+VIEW: 'VIEW';
+OUTER: 'OUTER';
 TRUE: 'TRUE';
 FALSE: 'FALSE';
 QUANTILE: 'QUANTILE';
@@ -227,6 +241,8 @@ EMPTY: 'EMPTY';
 TUMBLING: 'TUMBLING';
 MAX: 'MAX';
 XOR: 'XOR';
+EXPLODE: 'EXPLODE';
+EXPLODE_OUTER: 'EXPLODE_OUTER';
 
 COUNT: 'COUNT';
 SUM: 'SUM';

@@ -21,7 +21,7 @@ public enum QueryError {
     GENERIC_ERROR("%s", "This is an application error and not a user error."),
 
     MULTIPLE_QUERY_TYPES("Query consists of multiple aggregation types.", "Please specify a valid query with only one aggregation type."),
-    EMPTY_ALIAS("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."),
+    //EMPTY_ALIAS("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."),
     NESTED_AGGREGATE("Aggregates cannot be nested.", "Please remove any nested aggregates."),
     WHERE_WITH_AGGREGATE("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."),
     GROUP_BY_WITH_AGGREGATE("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause."),
@@ -34,12 +34,16 @@ public enum QueryError {
                                                                                                "For FREQ and CUMFREQ distributions, the output fields are: [\"Probability\", \"Count\", \"Quantile\"].")),
     MULTIPLE_TOP_K("Cannot have multiple TOP functions.", "Please specify only one TOP function."),
     TOP_K_AS_VALUE("TOP function cannot be treated as a value.", Arrays.asList("Please consider using the TOP function's output field instead. The default name is \"Count\".",
-                                                                               "The output field can also be renamed by selecting TOP with an field.")),
+                                                                               "The output field can also be renamed by selecting TOP with an alias.")),
     TOP_K_WITH_ORDER_BY("ORDER BY clause is not supported for queries with a TOP function.", "Please remove the ORDER BY clause."),
     TOP_K_WITH_LIMIT("LIMIT clause is not supported for queries with a TOP function.", "Please remove the LIMIT clause."),
     HAVING_WITHOUT_GROUP_BY("HAVING clause is only supported with GROUP BY clause.", "Please remove the HAVING clause, and consider using a WHERE clause instead."),
     NON_POSITIVE_DURATION("Query duration must be positive.", "Please specify a positive duration."),
     NON_POSITIVE_LIMIT("LIMIT clause must be positive.", "Please specify a positive LIMIT clause."),
+    SELECT_TABLE_FUNCTION_WITH_LATERAL_VIEW("Selecting a table function is not supported in queries with a LATERAL VIEW clause.", "Please remove either the table function or the LATERAL VIEW clause."),
+    SELECT_TABLE_FUNCTION_WITH_AGGREGATION("Selecting a table function is not supported with other aggregation types.", "Please consider moving the selected table function to a LATERAL VIEW clause."),
+    TABLE_FUNCTION_WITH_AGGREGATE("Table functions cannot contain aggregates.", "Please consider a non-aggregate argument."),
+    MULTIPLE_SELECT_TABLE_FUNCTIONS("Cannot select multiple table functions.", "Please select only one table function."),
 
     WHERE_CANNOT_CAST_TO_BOOLEAN("WHERE clause cannot be casted to BOOLEAN: %s.", "Please specify a valid WHERE clause."),
     HAVING_CANNOT_CAST_TO_BOOLEAN("HAVING clause cannot be casted to BOOLEAN: %s.", "Please specify a valid HAVING clause."),
@@ -47,6 +51,7 @@ public enum QueryError {
     GROUP_BY_FIELD_NON_PRIMITIVE("The GROUP BY field %s is non-primitive. Type given: %s.", "Please specify primitive fields only for GROUP BY."),
     ORDER_BY_FIELD_NON_PRIMITIVE("ORDER BY contains a non-primitive field: %s.", "Please specify a primitive field."),
     DUPLICATE_FIELD_NAMES_ALIASES("The following field names/aliases are shared: %s.", "Please specify non-overlapping field names and aliases."),
+    EXPLODE_SAME_KEY_AND_VALUE_ALIASES("The key and value aliases in %s are the same.", "Please specify different aliases for the key and value."),
 
     // Incorrect number of arguments
     IF_INCORRECT_NUMBER_OF_ARGUMENTS("IF requires 3 arguments. The number of arguments given in %s was %s."),
@@ -104,6 +109,8 @@ public enum QueryError {
     UNIX_TIMESTAMP_VALUE_NOT_STRING("The type of the first argument in %s must be STRING. Type given: %s."),
     UNIX_TIMESTAMP_VALUE_NOT_STRING_OR_NUMERIC("The type of the first argument in %s must be STRING or numeric. Type given: %s."),
     UNIX_TIMESTAMP_PATTERN_NOT_STRING("The type of the second argument (the pattern parameter) in %s must be STRING. Type given: %s."),
+    EXPLODE_FIELD_NOT_MAP("The type of the argument in %s must be some MAP. Type given: %s"),
+    EXPLODE_FIELD_NOT_LIST("The type of the argument in %s must be some LIST. Type given: %s"),
 
     FIELD_NOT_IN_SCHEMA("The field %s does not exist in the schema.");
 

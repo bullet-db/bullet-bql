@@ -562,7 +562,7 @@ public class ExpressionTest extends IntegrationTest {
 
     @Test
     public void testNAryOperationsSubstring() {
-        build("SELECT SUBSTRING('abc', 5), SUBSTRING('abc', 5, 10) FROM STREAM()");
+        build("SELECT SUBSTRING('abc', 5), SUBSTR('abc', 5, 10) FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 2);
 
         Field field = query.getProjection().getFields().get(0);
@@ -570,6 +570,7 @@ public class ExpressionTest extends IntegrationTest {
         Assert.assertEquals(field.getName(), "SUBSTRING('abc', 5)");
         Assert.assertEquals(field.getValue(), nary(Type.STRING, Operation.SUBSTRING, value("abc"), value(5)));
 
+        // SUBSTR -> SUBSTRING
         field = query.getProjection().getFields().get(1);
 
         Assert.assertEquals(field.getName(), "SUBSTRING('abc', 5, 10)");

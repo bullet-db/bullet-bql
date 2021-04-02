@@ -19,6 +19,7 @@ import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.LinearDistributionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
@@ -36,6 +37,7 @@ import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -43,6 +45,7 @@ import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.query.Window.Unit;
 import com.yahoo.bullet.query.aggregations.DistributionType;
 import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -62,6 +65,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitQuery(BQLBaseParser.QueryContext context) {
         return new QueryNode((SelectNode) visit(context.select()),
                              (StreamNode) visit(context.stream()),
+                             (LateralViewNode) visitIfPresent(context.lateralView()),
                              stripParentheses((ExpressionNode) visitIfPresent(context.where)),
                              (GroupByNode) visitIfPresent(context.groupBy()),
                              stripParentheses((ExpressionNode) visitIfPresent(context.having)),
@@ -89,6 +93,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitStream(BQLBaseParser.StreamContext context) {
         return new StreamNode(getTextIfPresent(context.timeDuration), getLocation(context));
+    }
+
+    @Override
+    public Node visitLateralView(BQLBaseParser.LateralViewContext context) {
+        return new LateralViewNode((TableFunctionNode) visit(context.tableFunction()),
+                                   context.OUTER() != null,
+                                   getLocation(context));
+
     }
 
     @Override
@@ -282,6 +294,28 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitTableFunction(BQLBaseParser.TableFunctionContext context) {
+        switch (context.op.getType()) {
+            case BQLBaseLexer.EXPLODE:
+                return new TableFunctionNode(TableFunctionType.EXPLODE,
+                                             (ExpressionNode) visit(context.expression()),
+                                             (IdentifierNode) visit(context.keyAlias),
+                                             (IdentifierNode) visit(context.valueAlias),
+                                             false,
+                                             getLocation(context));
+            case BQLBaseLexer.EXPLODE_OUTER:
+                return new TableFunctionNode(TableFunctionType.EXPLODE,
+                                             (ExpressionNode) visit(context.expression()),
+                                             (IdentifierNode) visit(context.keyAlias),
+                                             (IdentifierNode) visit(context.valueAlias),
+                                             true,
+                                             getLocation(context));
+
+        }
+        throw new ParsingException("Unknown table function");
+    }
+
+    @Override
     public Node visitInfix(BQLBaseParser.InfixContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                         (ExpressionNode) visit(context.right),
@@ -313,7 +347,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
         BQLBaseParser.ExpressionContext expressionContext = context.expression();
         ExpressionNode expression = (ExpressionNode) visit(expressionContext);
-        if (expressionContext instanceof BQLBaseParser.InfixContext || expressionContext instanceof BQLBaseParser.NullPredicateContext) {
+        // TODO add another parser rule so we only use one instanceof
+        if (expressionContext instanceof BQLBaseParser.InfixContext ||
+            expressionContext instanceof BQLBaseParser.NullPredicateContext ||
+            expressionContext instanceof BQLBaseParser.BetweenPredicateContext) {
             return new ParenthesesExpressionNode(expression, getLocation(context));
         }
         return expression;

@@ -11,6 +11,7 @@ import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.QueryNode;
 import com.yahoo.bullet.bql.tree.SelectItemNode;
@@ -76,6 +77,13 @@ public class QueryProcessor extends DefaultTraversalVisitor<Void, ProcessedQuery
         if (timeDuration != null) {
             processedQuery.setDuration(timeDuration.equalsIgnoreCase(MAX) ? Long.MAX_VALUE : Long.parseLong(timeDuration));
         }
+        return null;
+    }
+
+    @Override
+    protected Void visitLateralView(LateralViewNode node, ProcessedQuery processedQuery) {
+        super.visitLateralView(node, processedQuery);
+        processedQuery.setLateralView(node);
         return null;
     }
 

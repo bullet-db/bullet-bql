@@ -39,6 +39,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     }
 
     @Override
+    protected R visitLateralView(LateralViewNode node, C context) {
+        process(node.getTableFunction(), context);
+        return null;
+    }
+
+    @Override
     protected R visitGroupBy(GroupByNode node, C context) {
         node.getExpressions().forEach(process(context));
         return null;
@@ -134,6 +140,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     protected R visitBinaryExpression(BinaryExpressionNode node, C context) {
         process(node.getLeft(), context);
         process(node.getRight(), context);
+        return null;
+    }
+
+    @Override
+    protected R visitTableFunction(TableFunctionNode node, C context) {
+        process(node.getExpression(), context);
         return null;
     }
 

@@ -21,6 +21,7 @@ import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
@@ -219,6 +220,13 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
         setType(node, expression, errors);
         mapping.put(node, expression);
         return expression;
+    }
+
+    @Override
+    protected Expression visitTableFunction(TableFunctionNode node, LayeredSchema layeredSchema) {
+        Expression expression = process(node.getExpression(), layeredSchema);
+        TypeChecker.validateTableFunctionType(node, expression).ifPresent(errors::addAll);
+        return null;
     }
 
     @Override

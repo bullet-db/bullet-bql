@@ -13,6 +13,7 @@ import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
@@ -21,6 +22,7 @@ import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.query.expressions.ListExpression;
 import com.yahoo.bullet.query.expressions.NAryExpression;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
+import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
@@ -385,6 +387,21 @@ public class TypeChecker {
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported binary operation: " + binaryExpression.getOp());
+    }
+
+    static Optional<List<BulletError>> validateTableFunctionType(TableFunctionNode node, Expression expression) {
+        if (node.getType() != TableFunctionType.EXPLODE) {
+            throw new IllegalArgumentException("This is not a supported table function: " + node.getType());
+        }
+        Type type = expression.getType();
+        if (Type.isUnknown(type)) {
+            return unknownError();
+        } else if (node.getValueAlias() != null && !Type.isMap(type)) {
+            return makeError(node, QueryError.EXPLODE_FIELD_NOT_MAP, node, type);
+        } else if (node.getValueAlias() == null && !Type.isList(type)) {
+            return makeError(node, QueryError.EXPLODE_FIELD_NOT_LIST, node, type);
+        }
+        return Optional.empty();
     }
 
     // This is a static method and not a constant because a static final Optional is semantically inappropriate

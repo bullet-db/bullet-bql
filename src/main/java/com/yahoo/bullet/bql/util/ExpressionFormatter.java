@@ -21,6 +21,7 @@ import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
@@ -34,11 +35,13 @@ import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.query.Window;
+import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import lombok.AllArgsConstructor;
 
@@ -68,6 +71,10 @@ public final class ExpressionFormatter {
             builder.append(process(node.getSelect()))
                    .append(" FROM ")
                    .append(process(node.getStream()));
+            if (node.getLateralView() != null) {
+                builder.append(" ")
+                       .append(process(node.getLateralView()));
+            }
             if (node.getWhere() != null) {
                 builder.append(" WHERE ")
                        .append(process(node.getWhere()));
@@ -114,6 +121,14 @@ public final class ExpressionFormatter {
                 return "STREAM()";
             }
             return "STREAM(" + node.getTimeDuration() + ", TIME)";
+        }
+
+        @Override
+        protected String visitLateralView(LateralViewNode node, Void context) {
+            if (node.isOuter()) {
+                return "LATERAL VIEW OUTER " + process(node.getTableFunction());
+            }
+            return "LATERAL VIEW " + process(node.getTableFunction());
         }
 
         @Override
@@ -232,6 +247,31 @@ public final class ExpressionFormatter {
         @Override
         protected String visitCastExpression(CastExpressionNode node, Void context) {
             return "CAST(" + process(node.getExpression()) + " AS " + node.getCastType() + ")";
+        }
+
+        @Override
+        protected String visitTableFunction(TableFunctionNode node, Void context) {
+            if (node.getType() != TableFunctionType.EXPLODE) {
+                throw new IllegalArgumentException("This is not a supported table function: " + node.getType());
+            }
+            StringBuilder builder = new StringBuilder();
+            if (node.isOuter()) {
+                builder.append("EXPLODE_OUTER(");
+            } else {
+                builder.append("EXPLODE(");
+            }
+            builder.append(process(node.getExpression()))
+                   .append(") AS ");
+            if (node.getValueAlias() != null) {
+                builder.append("(")
+                       .append(process(node.getKeyAlias()))
+                       .append(", ")
+                       .append(process(node.getValueAlias()))
+                       .append(")");
+            } else {
+                builder.append(process(node.getKeyAlias()));
+            }
+            return builder.toString();
         }
 
         @Override
