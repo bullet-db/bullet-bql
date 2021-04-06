@@ -224,7 +224,6 @@ public class QueryBuilder {
     }
 
     private void doSelectFunction() {
-        // basically doSelectAll but no transient. maybe move a "doTableFunction" here instead
         tableFunction = getTableFunction(processedQuery.getSelectTableFunction());
 
         addSchemaLayer(true);

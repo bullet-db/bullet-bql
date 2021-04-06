@@ -25,7 +25,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitQuery() {
-        QueryNode query = new QueryNode(null, null, null, null, null, null, null, null, null);
+        QueryNode query = new QueryNode(null, null, null, null, null, null, null, null, null, null);
         visitor.process(query);
         Mockito.verify(visitor).visitQuery(query, null);
     }

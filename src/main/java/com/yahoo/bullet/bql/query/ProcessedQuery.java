@@ -174,14 +174,7 @@ public class ProcessedQuery {
     }
 
     public void addAlias(ExpressionNode node, String alias) {
-        // TODO allow empty alias since we don't disallow empty identifiers?
-        /*
-        if (alias.isEmpty()) {
-            queryErrors.add(QueryError.EMPTY_ALIAS);
-            return;
-        }
-        */
-        // TODO add error if trying to re-alias a node?
+        // TODO add error if trying to re-alias a node
         aliases.put(node, alias);
     }
 
@@ -256,8 +249,9 @@ public class ProcessedQuery {
     }
 
     /**
+     * Returns the unique table function.
      *
-     * @return
+     * @return The lateral view's table function or the selected table function - at most one exists.
      */
     public TableFunctionNode getTableFunction() {
         if (lateralView != null) {

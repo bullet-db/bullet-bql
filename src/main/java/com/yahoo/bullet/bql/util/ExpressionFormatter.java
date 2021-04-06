@@ -251,14 +251,18 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitTableFunction(TableFunctionNode node, Void context) {
-            if (node.getType() != TableFunctionType.EXPLODE) {
-                throw new IllegalArgumentException("This is not a supported table function: " + node.getType());
-            }
             StringBuilder builder = new StringBuilder();
-            if (node.isOuter()) {
-                builder.append("EXPLODE_OUTER(");
-            } else {
-                builder.append("EXPLODE(");
+            switch (node.getType()) {
+                case EXPLODE:
+                    if (node.isOuter()) {
+                        builder.append("EXPLODE_OUTER(");
+                    } else {
+                        builder.append("EXPLODE(");
+                    }
+                    break;
+                default:
+                    builder.append(node.getType())
+                           .append("(");
             }
             builder.append(process(node.getExpression()))
                    .append(") AS ");

@@ -98,13 +98,6 @@ public class RawTest extends IntegrationTest {
     }
 
     @Test
-    public void testEmptyRawAliasNotAllowed() {
-        build("SELECT abc AS \"\" FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an alias.");
-        Assert.assertEquals(errors.size(), 1);
-    }
-
-    @Test
     public void testRawAliasesClash() {
         build("SELECT abc, def AS abc, aaa, bbb AS aaa, ccc FROM STREAM()");
         Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa].") ||

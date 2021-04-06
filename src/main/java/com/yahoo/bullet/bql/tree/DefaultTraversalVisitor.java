@@ -18,6 +18,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     protected R visitQuery(QueryNode node, C context) {
         process(node.getSelect(), context);
         process(node.getStream(), context);
+        process(node.getLateralView(), context);
         process(node.getWhere(), context);
         process(node.getGroupBy(), context);
         process(node.getHaving(), context);

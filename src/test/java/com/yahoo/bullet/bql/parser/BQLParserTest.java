@@ -22,6 +22,11 @@ public class BQLParserTest {
         parser.createQueryNode("SELECT 0abc FROM STREAM()");
     }
 
+    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = ".*Identifiers must not be empty strings\\.")
+    public void testQuotedIdentifier() {
+        parser.createQueryNode("SELECT \"\" FROM STREAM()");
+    }
+
     @Test
     public void testNonReserved() {
         QueryNode node = parser.createQueryNode("SELECT all FROM STREAM()");

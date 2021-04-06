@@ -21,7 +21,6 @@ public enum QueryError {
     GENERIC_ERROR("%s", "This is an application error and not a user error."),
 
     MULTIPLE_QUERY_TYPES("Query consists of multiple aggregation types.", "Please specify a valid query with only one aggregation type."),
-    //EMPTY_ALIAS("Cannot have an empty string as an alias.", "Please specify a non-empty string instead."),
     NESTED_AGGREGATE("Aggregates cannot be nested.", "Please remove any nested aggregates."),
     WHERE_WITH_AGGREGATE("WHERE clause cannot contain aggregates.", "If you wish to filter on an aggregate, please specify it in the HAVING clause."),
     GROUP_BY_WITH_AGGREGATE("GROUP BY clause cannot contain aggregates.", "Please remove any aggregates from the GROUP BY clause."),
