@@ -45,6 +45,20 @@ public class ASTVisitorTest {
     }
 
     @Test
+    public void testVisitStream() {
+        StreamNode stream = new StreamNode(null, null);
+        visitor.process(stream);
+        Mockito.verify(visitor).visitStream(stream, null);
+    }
+
+    @Test
+    public void testVisitLateralView() {
+        LateralViewNode lateralView = new LateralViewNode(null, false, null);
+        visitor.process(lateralView);
+        Mockito.verify(visitor).visitLateralView(lateralView, null);
+    }
+
+    @Test
     public void testVisitGroupBy() {
         GroupByNode groupBy = new GroupByNode(null, null);
         visitor.process(groupBy);
@@ -108,6 +122,13 @@ public class ASTVisitorTest {
     }
 
     @Test
+    public void testVisitBetweenPredicate() {
+        BetweenPredicateNode betweenPredicate = new BetweenPredicateNode(null, null, null, false, null);
+        visitor.process(betweenPredicate);
+        Mockito.verify(visitor).visitBetweenPredicate(betweenPredicate, null);
+    }
+
+    @Test
     public void testVisitUnaryExpression() {
         UnaryExpressionNode unaryExpression = new UnaryExpressionNode(null, null, false, null);
         visitor.process(unaryExpression);
@@ -161,6 +182,13 @@ public class ASTVisitorTest {
         BinaryExpressionNode binaryExpression = new BinaryExpressionNode(null, null, null, null);
         visitor.process(binaryExpression);
         Mockito.verify(visitor).visitBinaryExpression(binaryExpression, null);
+    }
+
+    @Test
+    public void testVisitTableFunction() {
+        TableFunctionNode tableFunction = new TableFunctionNode(null, null, null, null, false, null);
+        visitor.process(tableFunction);
+        Mockito.verify(visitor).visitTableFunction(tableFunction, null);
     }
 
     @Test

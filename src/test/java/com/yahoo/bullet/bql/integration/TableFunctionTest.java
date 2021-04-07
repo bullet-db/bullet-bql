@@ -130,6 +130,13 @@ public class TableFunctionTest extends IntegrationTest {
     }
 
     @Test
+    public void testExplodeSameKeyAndValueAliasInvalid() {
+        build("SELECT EXPLODE(bbb) AS (foo, foo) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The key and value aliases in EXPLODE(bbb) AS (foo, foo) are the same.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testSelectTableFunctionWithAggregationInvalid() {
         build("SELECT DISTINCT EXPLODE(abc) AS foo FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "Selecting a table function is not supported with other aggregation types.");
