@@ -118,7 +118,6 @@ public class SelectTest extends IntegrationTest {
     @Test
     public void testTooManyQueryTypes() {
         build("SELECT * FROM STREAM() GROUP BY abc");
-        //Assert.assertTrue(errors.get(0).getError().startsWith("Query does not match exactly one query type: "));
         Assert.assertEquals(errors.get(0).getError(), "Query consists of multiple aggregation types.");
         Assert.assertEquals(errors.size(), 1);
     }

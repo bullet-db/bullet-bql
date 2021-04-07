@@ -123,8 +123,8 @@ public class QueryBuilder {
             case SELECT_ALL:
                 doSelectAll();
                 break;
-            case SELECT_FUNCTION:
-                doSelectFunction();
+            case SELECT_TABLE_FUNCTION:
+                doSelectTableFunction();
                 break;
             case SELECT_DISTINCT:
                 doSelectDistinct();
@@ -157,10 +157,14 @@ public class QueryBuilder {
         duration = processedQuery.getDuration();
         limit = processedQuery.getLimit();
 
+        // We can have at most one LATERAL VIEW clause or one SELECT table function but not both
         LateralViewNode lateralViewNode = processedQuery.getLateralView();
         if (lateralViewNode != null) {
             tableFunction = new LateralView(getTableFunction(lateralViewNode.getTableFunction()), lateralViewNode.isOuter());
             addSchemaLayer(false);
+        } else if (processedQuery.getSelectTableFunction() != null) {
+            tableFunction = getTableFunction(processedQuery.getSelectTableFunction());
+            addSchemaLayer(true);
         }
 
         ExpressionNode whereNode = processedQuery.getWhere();
@@ -207,8 +211,7 @@ public class QueryBuilder {
 
         doProjection();
 
-        // TODO should be always false? check tests
-        addSchemaLayer(requiresCopyFlag);
+        addSchemaLayer(false);
 
         aggregation = new Raw(limit);
 
@@ -223,20 +226,15 @@ public class QueryBuilder {
         }
     }
 
-    private void doSelectFunction() {
-        tableFunction = getTableFunction(processedQuery.getSelectTableFunction());
-
-        addSchemaLayer(true);
-
+    // Functionally the same as doSelectAll() but without transient/renamed fields
+    private void doSelectTableFunction() {
         doSelectFields();
 
-        requiresCopyFlag = !processedQuery.getSelectNodes().isEmpty();
+        // TODO doProjection (ONTO) ? maybe later. for now just copy if necessary
+        requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
 
         doProjection();
 
-        // TODO doProjection (ONTO) ? maybe later. for now just copy if necessary
-
-        // TODO ?
         addSchemaLayer(false);
 
         aggregation = new Raw(limit);
@@ -405,6 +403,7 @@ public class QueryBuilder {
 
         doProjection();
 
+        // Visit to type-check
         visit(distributionNode);
 
         schema = DISTRIBUTION_SCHEMAS.get(distributionNode.getType());
@@ -440,6 +439,7 @@ public class QueryBuilder {
 
         doProjection();
 
+        // Visit to type-check
         visit(topKNode);
         String topKAlias = processedQuery.getAlias(topKNode);
         addSchemaField(topKAlias, Type.LONG);
@@ -586,10 +586,6 @@ public class QueryBuilder {
     }
 
     private void addAlias(String name, String alias) {
-        // TODO only add alias if not same ?
-        if (name.equals(alias)) {
-            return;
-        }
         aliases.put(name, alias);
     }
 
@@ -619,6 +615,8 @@ public class QueryBuilder {
         if (type != TableFunctionType.EXPLODE) {
             throw new IllegalArgumentException("This is not a supported table function: " + type);
         }
+        // Visit to type-check
+        visit(tableFunctionNode);
         Expression field = visit(tableFunctionNode.getExpression());
         Type subType = field.getType().getSubType();
         String keyAlias = tableFunctionNode.getKeyAlias().getValue();

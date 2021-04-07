@@ -94,10 +94,10 @@ public class BQLParser {
 
         @Override
         public void exitQuotedIdentifier(BQLBaseParser.QuotedIdentifierContext context) {
-             Token token = context.QUOTED_IDENTIFIER().getSymbol();
-             if (token.getText().equals("\"\"")) {
-                 throw new ParsingException("Identifiers must not be empty strings.", null, token.getLine(), token.getCharPositionInLine());
-             }
+            Token token = context.QUOTED_IDENTIFIER().getSymbol();
+            if (token.getText().equals("\"\"")) {
+                throw new ParsingException("Identifiers must not be empty strings.", null, token.getLine(), token.getCharPositionInLine());
+            }
         }
 
         @Override

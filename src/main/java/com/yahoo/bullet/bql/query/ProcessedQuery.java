@@ -37,7 +37,7 @@ public class ProcessedQuery {
     public enum QueryType {
         SELECT,
         SELECT_ALL,
-        SELECT_FUNCTION,
+        SELECT_TABLE_FUNCTION,
         SELECT_DISTINCT,
         GROUP,
         COUNT_DISTINCT,
@@ -174,7 +174,10 @@ public class ProcessedQuery {
     }
 
     public void addAlias(ExpressionNode node, String alias) {
-        // TODO add error if trying to re-alias a node
+        if (!(node instanceof TopKNode) && node.getName().equals(alias)) {
+            return;
+        }
+        // TODO add error for trying to add multiple different aliases to an expression node
         aliases.put(node, alias);
     }
 
@@ -243,21 +246,9 @@ public class ProcessedQuery {
      */
     public QueryType getQueryType() {
         if (queryTypes.isEmpty()) {
-            return selectTableFunction != null ? QueryType.SELECT_FUNCTION : QueryType.SELECT;
+            return selectTableFunction != null ? QueryType.SELECT_TABLE_FUNCTION : QueryType.SELECT;
         }
         return queryTypes.iterator().next();
-    }
-
-    /**
-     * Returns the unique table function.
-     *
-     * @return The lateral view's table function or the selected table function - at most one exists.
-     */
-    public TableFunctionNode getTableFunction() {
-        if (lateralView != null) {
-            return lateralView.getTableFunction();
-        }
-        return selectTableFunction;
     }
 
     /**

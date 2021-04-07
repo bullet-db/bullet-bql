@@ -233,4 +233,15 @@ public class TypeCheckTest extends IntegrationTest {
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in TOP(10, aaa) must be primitive. Types given: [STRING_MAP_LIST].");
         Assert.assertEquals(errors.size(), 1);
     }
+
+    @Test
+    public void testTypeCheckExplode() {
+        build("SELECT EXPLODE(abc) AS def FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in EXPLODE(abc) AS def must be some LIST. Type given: INTEGER");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT EXPLODE(abc) AS (def, ghi) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in EXPLODE(abc) AS (def, ghi) must be some MAP. Type given: INTEGER");
+        Assert.assertEquals(errors.size(), 1);
+    }
 }

@@ -84,10 +84,18 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSelectItem(BQLBaseParser.SelectItemContext context) {
-        return new SelectItemNode(context.ASTERISK() != null,
-                                  stripParentheses((ExpressionNode) visitIfPresent(context.expression())),
-                                  (IdentifierNode) visitIfPresent(context.identifier()),
-                                  getLocation(context));
+        if (context.expression() != null) {
+            return new SelectItemNode(false,
+                                      stripParentheses((ExpressionNode) visit(context.expression())),
+                                      (IdentifierNode) visitIfPresent(context.identifier()),
+                                      getLocation(context));
+        } else if (context.tableFunction() != null) {
+            return new SelectItemNode(false,
+                                      (ExpressionNode) visit(context.tableFunction()),
+                                      null,
+                                      getLocation(context));
+        }
+        return new SelectItemNode(true, null, null, getLocation(context));
     }
 
     @Override
@@ -300,14 +308,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return new TableFunctionNode(TableFunctionType.EXPLODE,
                                              (ExpressionNode) visit(context.expression()),
                                              (IdentifierNode) visit(context.keyAlias),
-                                             (IdentifierNode) visit(context.valueAlias),
+                                             (IdentifierNode) visitIfPresent(context.valueAlias),
                                              false,
                                              getLocation(context));
             case BQLBaseLexer.EXPLODE_OUTER:
                 return new TableFunctionNode(TableFunctionType.EXPLODE,
                                              (ExpressionNode) visit(context.expression()),
                                              (IdentifierNode) visit(context.keyAlias),
-                                             (IdentifierNode) visit(context.valueAlias),
+                                             (IdentifierNode) visitIfPresent(context.valueAlias),
                                              true,
                                              getLocation(context));
 
