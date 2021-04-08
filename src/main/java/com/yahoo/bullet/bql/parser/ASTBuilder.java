@@ -190,8 +190,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         Type type = getType(context.fieldType());
         if (type != null) {
             FieldExpressionNode field = (FieldExpressionNode) subField.getField();
-            subField.setType(type);
-            field.setType(Type.UNKNOWN);
+            field.setType(type);
         }
         return subField;
     }
@@ -203,9 +202,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         if (type != null) {
             SubFieldExpressionNode subField = (SubFieldExpressionNode) subSubField.getField();
             FieldExpressionNode field = (FieldExpressionNode) subField.getField();
-            subSubField.setType(type);
-            subField.setType(Type.UNKNOWN);
-            field.setType(Type.UNKNOWN);
+            field.setType(type);
         }
         return subSubField;
     }

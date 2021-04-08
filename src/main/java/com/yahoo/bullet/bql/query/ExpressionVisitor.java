@@ -67,14 +67,9 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
             return expression;
         }
         String name = ((ExpressionNode) node).getName();
-        // Type override
+        // Type hint/override
         if (node instanceof FieldExpressionNode) {
             Type type = ((FieldExpressionNode) node).getType();
-            if (type != null) {
-                return field(name, type);
-            }
-        } else if (node instanceof SubFieldExpressionNode) {
-            Type type = ((SubFieldExpressionNode) node).getType();
             if (type != null) {
                 return field(name, type);
             }
