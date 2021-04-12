@@ -124,9 +124,6 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitLateralView(LateralViewNode node, Void context) {
-            if (node.isOuter()) {
-                return "LATERAL VIEW OUTER " + process(node.getTableFunction());
-            }
             return "LATERAL VIEW " + process(node.getTableFunction());
         }
 
@@ -251,13 +248,12 @@ public final class ExpressionFormatter {
         @Override
         protected String visitTableFunction(TableFunctionNode node, Void context) {
             StringBuilder builder = new StringBuilder();
+            if (node.isOuter()) {
+                builder.append("OUTER ");
+            }
             switch (node.getType()) {
                 case EXPLODE:
-                    if (node.isOuter()) {
-                        builder.append("EXPLODE_OUTER(");
-                    } else {
-                        builder.append("EXPLODE(");
-                    }
+                    builder.append("EXPLODE(");
                     break;
                 default:
                     builder.append(node.getType())

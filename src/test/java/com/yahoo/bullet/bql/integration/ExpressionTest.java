@@ -579,27 +579,27 @@ public class ExpressionTest extends IntegrationTest {
 
     @Test
     public void testNAryOperationsUnixTimestamp() {
-        build("SELECT UNIX_TIMESTAMP(), UNIX_TIMESTAMP('abc'), UNIX_TIMESTAMP('abc', 'def'), UNIX_TIMESTAMP(123, 'def') FROM STREAM()");
+        build("SELECT UNIXTIMESTAMP(), UNIXTIMESTAMP('abc'), UNIXTIMESTAMP('abc', 'def'), UNIXTIMESTAMP(123, 'def') FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 4);
 
         Field field = query.getProjection().getFields().get(0);
 
-        Assert.assertEquals(field.getName(), "UNIX_TIMESTAMP()");
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP()");
         Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP));
 
         field = query.getProjection().getFields().get(1);
 
-        Assert.assertEquals(field.getName(), "UNIX_TIMESTAMP('abc')");
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP('abc')");
         Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP, value("abc")));
 
         field = query.getProjection().getFields().get(2);
 
-        Assert.assertEquals(field.getName(), "UNIX_TIMESTAMP('abc', 'def')");
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP('abc', 'def')");
         Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP, value("abc"), value("def")));
 
         field = query.getProjection().getFields().get(3);
 
-        Assert.assertEquals(field.getName(), "UNIX_TIMESTAMP(123, 'def')");
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP(123, 'def')");
         Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP, value(123), value("def")));
     }
 

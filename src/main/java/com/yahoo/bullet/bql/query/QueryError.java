@@ -56,7 +56,7 @@ public enum QueryError {
     IF_INCORRECT_NUMBER_OF_ARGUMENTS("IF requires 3 arguments. The number of arguments given in %s was %s."),
     BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS("BETWEEN requires 3 arguments. The number of arguments given in %s was %s."),
     SUBSTRING_INCORRECT_NUMBER_OF_ARGUMENTS("SUBSTRING requires 2 or 3 arguments. The number of arguments given in %s was %s."),
-    UNIX_TIMESTAMP_INCORRECT_NUMBER_OF_ARGUMENTS("UNIX_TIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in %s was %s."),
+    UNIX_TIMESTAMP_INCORRECT_NUMBER_OF_ARGUMENTS("UNIXTIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in %s was %s."),
 
     // Type checking
     SUBFIELD_INVALID_DUE_TO_FIELD_TYPE("The subfield %s is invalid since the field %s has type: %s."),

@@ -105,9 +105,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitLateralView(BQLBaseParser.LateralViewContext context) {
-        return new LateralViewNode((TableFunctionNode) visit(context.tableFunction()),
-                                   context.OUTER() != null,
-                                   getLocation(context));
+        return new LateralViewNode((TableFunctionNode) visit(context.tableFunction()), getLocation(context));
 
     }
 
@@ -300,22 +298,13 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTableFunction(BQLBaseParser.TableFunctionContext context) {
-        switch (context.op.getType()) {
-            case BQLBaseLexer.EXPLODE:
-                return new TableFunctionNode(TableFunctionType.EXPLODE,
-                                             (ExpressionNode) visit(context.expression()),
-                                             (IdentifierNode) visit(context.keyAlias),
-                                             (IdentifierNode) visitIfPresent(context.valueAlias),
-                                             false,
-                                             getLocation(context));
-            case BQLBaseLexer.EXPLODE_OUTER:
-                return new TableFunctionNode(TableFunctionType.EXPLODE,
-                                             (ExpressionNode) visit(context.expression()),
-                                             (IdentifierNode) visit(context.keyAlias),
-                                             (IdentifierNode) visitIfPresent(context.valueAlias),
-                                             true,
-                                             getLocation(context));
-
+        if (context.op.getType() == BQLBaseLexer.EXPLODE) {
+            return new TableFunctionNode(TableFunctionType.EXPLODE,
+                                         (ExpressionNode) visit(context.expression()),
+                                         (IdentifierNode) visit(context.keyAlias),
+                                         (IdentifierNode) visitIfPresent(context.valueAlias),
+                                         context.OUTER() != null,
+                                         getLocation(context));
         }
         throw new ParsingException("Unknown table function");
     }
@@ -492,7 +481,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.BETWEEN;
             case BQLBaseLexer.SUBSTRING:
                 return Operation.SUBSTRING;
-            case BQLBaseLexer.UNIX_TIMESTAMP:
+            case BQLBaseLexer.UNIXTIMESTAMP:
                 return Operation.UNIX_TIMESTAMP;
         }
         return null;

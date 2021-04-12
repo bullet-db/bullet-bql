@@ -12,12 +12,10 @@ import java.util.Objects;
 @Getter
 public class LateralViewNode extends Node {
     private final TableFunctionNode tableFunction;
-    private final boolean outer;
 
-    public LateralViewNode(TableFunctionNode tableFunction, boolean outer, NodeLocation nodeLocation) {
+    public LateralViewNode(TableFunctionNode tableFunction, NodeLocation nodeLocation) {
         super(nodeLocation);
         this.tableFunction = tableFunction;
-        this.outer = outer;
     }
 
     @Override
@@ -34,11 +32,11 @@ public class LateralViewNode extends Node {
             return false;
         }
         LateralViewNode other = (LateralViewNode) obj;
-        return Objects.equals(tableFunction, other.tableFunction) && outer == other.outer;
+        return Objects.equals(tableFunction, other.tableFunction);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tableFunction, outer);
+        return Objects.hash(tableFunction);
     }
 }

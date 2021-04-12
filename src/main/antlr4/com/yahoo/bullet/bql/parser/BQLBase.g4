@@ -38,7 +38,7 @@ stream
     ;
 
 lateralView
-    : OUTER? tableFunction
+    : tableFunction
     ;
 
 groupBy
@@ -126,7 +126,7 @@ unaryExpression
 functionExpression
     : op=(SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
       '(' left=expression ',' right=expression ')'                                                                      #binary
-    | op=(IF | BETWEEN | SUBSTRING | UNIX_TIMESTAMP) '(' expressions? ')'                                               #nAry
+    | op=(IF | BETWEEN | SUBSTRING | UNIXTIMESTAMP) '(' expressions? ')'                                                #nAry
     | aggregateExpression                                                                                               #aggregate
     | CAST '(' expression AS primitiveType ')'                                                                          #cast
     ;
@@ -150,8 +150,8 @@ inputMode
     ;
 
 tableFunction
-    : op=(EXPLODE | EXPLODE_OUTER) '(' expression ')'  AS keyAlias=identifier
-    | op=(EXPLODE | EXPLODE_OUTER) '(' expression ')' AS '(' keyAlias=identifier ',' valueAlias=identifier ')'
+    : OUTER? op=EXPLODE '(' expression ')'  AS keyAlias=identifier
+    | OUTER? op=EXPLODE '(' expression ')' AS '(' keyAlias=identifier ',' valueAlias=identifier ')'
     ;
 
 identifier
@@ -242,7 +242,6 @@ TUMBLING: 'TUMBLING';
 MAX: 'MAX';
 XOR: 'XOR';
 EXPLODE: 'EXPLODE';
-EXPLODE_OUTER: 'EXPLODE_OUTER';
 
 COUNT: 'COUNT';
 SUM: 'SUM';
@@ -255,7 +254,7 @@ IF: 'IF';
 ABS: 'ABS';
 TRIM: 'TRIM';
 SUBSTRING: 'SUBSTRING' | 'SUBSTR';
-UNIX_TIMESTAMP: 'UNIX_TIMESTAMP';
+UNIXTIMESTAMP: 'UNIXTIMESTAMP';
 
 INTEGER_TYPE: 'INTEGER';
 LONG_TYPE: 'LONG';

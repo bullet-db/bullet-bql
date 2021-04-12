@@ -51,12 +51,9 @@ public class ExpressionFormatterTest {
     }
 
     @Test
-    public void testLateralViewExplode() {
+    public void testLateralViewOuterExplode() {
         QueryNode queryNode = bqlParser.createQueryNode("select * from stream() lateral view outer explode(a) as b");
         Assert.assertEquals(ExpressionFormatter.format(queryNode, true), "SELECT * FROM STREAM() LATERAL VIEW OUTER EXPLODE(a) AS b");
-
-        queryNode = bqlParser.createQueryNode("select * from stream() lateral view explode_outer(a) as (b, c)");
-        Assert.assertEquals(ExpressionFormatter.format(queryNode, true), "SELECT * FROM STREAM() LATERAL VIEW EXPLODE_OUTER(a) AS (b, c)");
     }
 
     @Test

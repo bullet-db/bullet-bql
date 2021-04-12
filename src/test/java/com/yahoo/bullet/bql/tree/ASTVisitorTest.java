@@ -53,7 +53,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitLateralView() {
-        LateralViewNode lateralView = new LateralViewNode(null, false, null);
+        LateralViewNode lateralView = new LateralViewNode(null, null);
         visitor.process(lateralView);
         Mockito.verify(visitor).visitLateralView(lateralView, null);
     }

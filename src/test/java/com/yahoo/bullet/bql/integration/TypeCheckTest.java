@@ -198,11 +198,11 @@ public class TypeCheckTest extends IntegrationTest {
 
     @Test
     public void testTypeCheckUnixTimestamp() {
-        build("SELECT UNIX_TIMESTAMP(0, 1, 2, 3), UNIX_TIMESTAMP(4), UNIX_TIMESTAMP(true, 5) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: UNIX_TIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in UNIX_TIMESTAMP(0, 1, 2, 3) was 4.");
-        Assert.assertEquals(errors.get(1).getError(), "1:36: The type of the first argument in UNIX_TIMESTAMP(4) must be STRING. Type given: INTEGER.");
-        Assert.assertEquals(errors.get(2).getError(), "1:55: The type of the first argument in UNIX_TIMESTAMP(true, 5) must be STRING or numeric. Type given: BOOLEAN.");
-        Assert.assertEquals(errors.get(3).getError(), "1:55: The type of the second argument (the pattern parameter) in UNIX_TIMESTAMP(true, 5) must be STRING. Type given: INTEGER.");
+        build("SELECT UNIXTIMESTAMP(0, 1, 2, 3), UNIXTIMESTAMP(4), UNIXTIMESTAMP(true, 5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: UNIXTIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in UNIXTIMESTAMP(0, 1, 2, 3) was 4.");
+        Assert.assertEquals(errors.get(1).getError(), "1:35: The type of the first argument in UNIXTIMESTAMP(4) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(2).getError(), "1:53: The type of the first argument in UNIXTIMESTAMP(true, 5) must be STRING or numeric. Type given: BOOLEAN.");
+        Assert.assertEquals(errors.get(3).getError(), "1:53: The type of the second argument (the pattern parameter) in UNIXTIMESTAMP(true, 5) must be STRING. Type given: INTEGER.");
         Assert.assertEquals(errors.size(), 4);
     }
 

@@ -12,7 +12,6 @@ import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.tablefunctions.Explode;
-import com.yahoo.bullet.query.tablefunctions.LateralView;
 import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
@@ -114,7 +113,7 @@ public class TableFunctionTest extends IntegrationTest {
 
     @Test
     public void testExplodeOuter() {
-        build("SELECT EXPLODE_OUTER(ccc) AS c FROM STREAM()");
+        build("SELECT OUTER EXPLODE(ccc) AS c FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
         Assert.assertTrue(query.getTableFunction().isOuter());
 
@@ -233,13 +232,11 @@ public class TableFunctionTest extends IntegrationTest {
     public void testLateralViewExplode() {
         build("SELECT foo FROM STREAM() LATERAL VIEW OUTER EXPLODE(eee) AS foo");
 
-        LateralView lateralView = (LateralView) query.getTableFunction();
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) query.getTableFunction();
 
-        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
-        Assert.assertTrue(lateralView.isOuter());
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(explode.isOuter());
+        Assert.assertTrue(explode.isLateralView());
+        Assert.assertTrue(explode.isOuter());
         Assert.assertEquals(explode.getField(), field("eee", Type.STRING_LIST));
         Assert.assertEquals(explode.getKeyAlias(), "foo");
         Assert.assertNull(explode.getValueAlias());
@@ -269,12 +266,10 @@ public class TableFunctionTest extends IntegrationTest {
     public void testLateralViewWithAggregationValid() {
         build("SELECT DISTINCT foo FROM STREAM() LATERAL VIEW EXPLODE(ccc) AS foo");
 
-        LateralView lateralView = (LateralView) query.getTableFunction();
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) query.getTableFunction();
 
-        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
-        Assert.assertFalse(lateralView.isOuter());
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
+        Assert.assertTrue(explode.isLateralView());
         Assert.assertFalse(explode.isOuter());
         Assert.assertEquals(explode.getField(), field("ccc", Type.INTEGER_LIST));
         Assert.assertEquals(explode.getKeyAlias(), "foo");
@@ -297,12 +292,10 @@ public class TableFunctionTest extends IntegrationTest {
     public void testLateralViewExplodeWhere() {
         build("SELECT foo FROM STREAM() LATERAL VIEW EXPLODE(eee) AS foo WHERE eee IS NOT NULL");
 
-        LateralView lateralView = (LateralView) query.getTableFunction();
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) query.getTableFunction();
 
-        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
-        Assert.assertFalse(lateralView.isOuter());
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
+        Assert.assertTrue(explode.isLateralView());
         Assert.assertFalse(explode.isOuter());
         Assert.assertEquals(explode.getField(), field("eee", Type.STRING_LIST));
         Assert.assertEquals(explode.getKeyAlias(), "foo");
