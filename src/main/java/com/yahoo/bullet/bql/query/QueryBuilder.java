@@ -229,7 +229,8 @@ public class QueryBuilder {
     private void doSelectTableFunction() {
         doSelectFields();
 
-        // TODO doProjection (ONTO) ? maybe later. for now just copy if necessary
+        // Technically, we could write directly onto the virtual record like a computation, but there's no projection
+        // type for that behavior yet so we have to settle for copying the record and then writing (for now).
         requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
 
         doProjection();
