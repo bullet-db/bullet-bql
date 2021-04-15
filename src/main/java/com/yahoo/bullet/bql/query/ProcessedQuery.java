@@ -177,7 +177,11 @@ public class ProcessedQuery {
         if (!(node instanceof TopKNode) && node.getName().equals(alias)) {
             return;
         }
-        // TODO add error for trying to add multiple different aliases to an expression node
+        String existingAlias = aliases.get(node);
+        if (existingAlias != null && !existingAlias.equals(alias)) {
+            queryErrors.add(QueryError.MULTIPLE_ALIASES);
+            return;
+        }
         aliases.put(node, alias);
     }
 

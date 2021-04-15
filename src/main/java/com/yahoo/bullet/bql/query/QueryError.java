@@ -43,6 +43,7 @@ public enum QueryError {
     SELECT_TABLE_FUNCTION_WITH_AGGREGATION("Selecting a table function is not supported with other aggregation types.", "Please consider moving the selected table function to a LATERAL VIEW clause."),
     TABLE_FUNCTION_WITH_AGGREGATE("Table functions cannot contain aggregates.", "Please consider a non-aggregate argument."),
     MULTIPLE_SELECT_TABLE_FUNCTIONS("Cannot select multiple table functions.", "Please select only one table function."),
+    MULTIPLE_ALIASES("Cannot alias a field with multiple different aliases.", "Please specify only one alias."),
 
     WHERE_CANNOT_CAST_TO_BOOLEAN("WHERE clause cannot be casted to BOOLEAN: %s.", "Please specify a valid WHERE clause."),
     HAVING_CANNOT_CAST_TO_BOOLEAN("HAVING clause cannot be casted to BOOLEAN: %s.", "Please specify a valid HAVING clause."),

@@ -106,6 +106,13 @@ public class RawTest extends IntegrationTest {
     }
 
     @Test
+    public void testRawFieldWithMultipleAliases() {
+        build("SELECT abc AS def, abc AS ghi FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot alias a field with multiple different aliases.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testRawAllWithField() {
         build("SELECT *, abc FROM STREAM()");
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
