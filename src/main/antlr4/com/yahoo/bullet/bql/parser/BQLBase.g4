@@ -150,7 +150,7 @@ inputMode
     ;
 
 tableFunction
-    : OUTER? op=EXPLODE '(' expression ')'  AS keyAlias=identifier
+    : OUTER? op=EXPLODE '(' expression ')' AS keyAlias=identifier
     | OUTER? op=EXPLODE '(' expression ')' AS '(' keyAlias=identifier ',' valueAlias=identifier ')'
     ;
 
