@@ -1,6 +1,8 @@
 # Bullet-BQL
 
-[![Build Status](https://travis-ci.org/bullet-db/bullet-bql.svg?branch=master)](https://travis-ci.com/bullet-db/bullet-bql) [![Coverage Status](https://coveralls.io/repos/github/bullet-db/bullet-bql/badge.svg?branch=master)](https://coveralls.io/github/bullet-db/bullet-bql?branch=master) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.yahoo.bullet/bullet-bql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.yahoo.bullet/bullet-bql/)
+[![Build Status](https://cd.screwdriver.cd/pipelines/7222/badge)](https://cd.screwdriver.cd/pipelines/7222)
+[![Coverage Status](https://coveralls.io/repos/github/bullet-db/bullet-bql/badge.svg?branch=master)](https://coveralls.io/github/bullet-db/bullet-bql?branch=master) 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.yahoo.bullet/bullet-bql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.yahoo.bullet/bullet-bql/)
 
 >BQL is a SQL-like query language specifically designed for the [Bullet](https://bullet-db.github.io/) query engine, which provides an easy-to-use yet powerful interactive SQL-like interface. 
 
