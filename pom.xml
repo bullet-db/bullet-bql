@@ -36,7 +36,7 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <bullet.core.version>1.2.1-SNAPSHOT</bullet.core.version>
+        <bullet.core.version>1.2.2-SNAPSHOT</bullet.core.version>
         <air.main.basedir>${project.basedir}</air.main.basedir>
     </properties>
 

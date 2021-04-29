@@ -38,6 +38,7 @@ import com.yahoo.bullet.query.postaggregations.Having;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.postaggregations.PostAggregation;
 import com.yahoo.bullet.query.tablefunctions.Explode;
+import com.yahoo.bullet.query.tablefunctions.LateralView;
 import com.yahoo.bullet.query.tablefunctions.TableFunction;
 import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
@@ -159,10 +160,10 @@ public class QueryBuilder {
         // We can have at most one LATERAL VIEW clause or one SELECT table function but not both
         LateralViewNode lateralViewNode = processedQuery.getLateralView();
         if (lateralViewNode != null) {
-            tableFunction = getTableFunction(lateralViewNode.getTableFunction(), true);
+            tableFunction = new LateralView(getTableFunction(lateralViewNode.getTableFunction()));
             addSchemaLayer(false);
         } else if (processedQuery.getSelectTableFunction() != null) {
-            tableFunction = getTableFunction(processedQuery.getSelectTableFunction(), false);
+            tableFunction = getTableFunction(processedQuery.getSelectTableFunction());
             addSchemaLayer(true);
         }
 
@@ -610,13 +611,14 @@ public class QueryBuilder {
         return new Window(windowNode.getEmitEvery(), windowNode.getEmitType(), windowInclude.getIncludeUnit(), windowInclude.getFirst());
     }
 
-    private TableFunction getTableFunction(TableFunctionNode tableFunctionNode, boolean lateralView) {
+    private TableFunction getTableFunction(TableFunctionNode tableFunctionNode) {
         TableFunctionType type = tableFunctionNode.getType();
         if (type != TableFunctionType.EXPLODE) {
             throw new IllegalArgumentException("This is not a supported table function: " + type);
         }
         // Visit to type-check
         visit(tableFunctionNode);
+
         Expression field = visit(tableFunctionNode.getExpression());
         Type subType = field.getType().getSubType();
         String keyAlias = tableFunctionNode.getKeyAlias().getValue();
@@ -627,10 +629,10 @@ public class QueryBuilder {
             if (keyAlias.equals(valueAlias)) {
                 addError(tableFunctionNode, QueryError.EXPLODE_SAME_KEY_AND_VALUE_ALIASES, tableFunctionNode);
             }
-            return new Explode(field, keyAlias, valueAlias, lateralView, tableFunctionNode.isOuter());
+            return new Explode(field, keyAlias, valueAlias, tableFunctionNode.isOuter());
         } else {
             addSchemaField(keyAlias, subType != null ? subType : Type.UNKNOWN);
-            return new Explode(field, keyAlias, lateralView, tableFunctionNode.isOuter());
+            return new Explode(field, keyAlias, null, tableFunctionNode.isOuter());
         }
     }
 

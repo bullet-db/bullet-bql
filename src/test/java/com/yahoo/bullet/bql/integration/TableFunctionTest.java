@@ -12,6 +12,8 @@ import com.yahoo.bullet.query.aggregations.GroupBy;
 import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.tablefunctions.Explode;
+import com.yahoo.bullet.query.tablefunctions.LateralView;
+import com.yahoo.bullet.query.tablefunctions.OuterableTableFunction;
 import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.typesystem.Type;
 import org.testng.Assert;
@@ -29,7 +31,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeList() {
         build("SELECT EXPLODE(ccc) AS c FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -46,7 +48,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeMap() {
         build("SELECT EXPLODE(ddd) AS (key, d) FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -63,7 +65,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeListWithAdditionalFields() {
         build("SELECT EXPLODE(ccc) AS c, c + 5, c * 10 FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -90,7 +92,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeMapWithAdditionalFields() {
         build("SELECT EXPLODE(ddd) AS (key, d), SIZEOF(key), TRIM(d) FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -115,7 +117,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeOuter() {
         build("SELECT OUTER EXPLODE(ccc) AS c FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertTrue(query.getTableFunction().isOuter());
+        Assert.assertTrue(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -161,7 +163,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testSelectSameTableFunctionValid() {
         build("SELECT EXPLODE(ccc) AS c, EXPLODE(ccc) AS c FROM STREAM()");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -185,7 +187,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeWhereExplodedFieldAccessible() {
         build("SELECT EXPLODE(eee) AS foo FROM STREAM() WHERE SIZEOF(foo) > 0");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -208,7 +210,7 @@ public class TableFunctionTest extends IntegrationTest {
     public void testExplodeWithOrderBy() {
         build("SELECT EXPLODE(eee) AS foo FROM STREAM() ORDER BY SIZEOF(foo)");
         Assert.assertEquals(query.getTableFunction().getType(), TableFunctionType.EXPLODE);
-        Assert.assertFalse(query.getTableFunction().isOuter());
+        Assert.assertFalse(((OuterableTableFunction) query.getTableFunction()).isOuter());
 
         Explode explode = (Explode) query.getTableFunction();
 
@@ -232,10 +234,13 @@ public class TableFunctionTest extends IntegrationTest {
     public void testLateralViewExplode() {
         build("SELECT foo FROM STREAM() LATERAL VIEW OUTER EXPLODE(eee) AS foo");
 
-        Explode explode = (Explode) query.getTableFunction();
+        LateralView lateralView = (LateralView) query.getTableFunction();
+
+        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
+
+        Explode explode = (Explode) lateralView.getTableFunction();
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
-        Assert.assertTrue(explode.isLateralView());
         Assert.assertTrue(explode.isOuter());
         Assert.assertEquals(explode.getField(), field("eee", Type.STRING_LIST));
         Assert.assertEquals(explode.getKeyAlias(), "foo");
@@ -266,10 +271,13 @@ public class TableFunctionTest extends IntegrationTest {
     public void testLateralViewWithAggregationValid() {
         build("SELECT DISTINCT foo FROM STREAM() LATERAL VIEW EXPLODE(ccc) AS foo");
 
-        Explode explode = (Explode) query.getTableFunction();
+        LateralView lateralView = (LateralView) query.getTableFunction();
+
+        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
+
+        Explode explode = (Explode) lateralView.getTableFunction();
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
-        Assert.assertTrue(explode.isLateralView());
         Assert.assertFalse(explode.isOuter());
         Assert.assertEquals(explode.getField(), field("ccc", Type.INTEGER_LIST));
         Assert.assertEquals(explode.getKeyAlias(), "foo");
@@ -292,10 +300,13 @@ public class TableFunctionTest extends IntegrationTest {
     public void testLateralViewExplodeWhere() {
         build("SELECT foo FROM STREAM() LATERAL VIEW EXPLODE(eee) AS foo WHERE eee IS NOT NULL");
 
-        Explode explode = (Explode) query.getTableFunction();
+        LateralView lateralView = (LateralView) query.getTableFunction();
+
+        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
+
+        Explode explode = (Explode) lateralView.getTableFunction();
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
-        Assert.assertTrue(explode.isLateralView());
         Assert.assertFalse(explode.isOuter());
         Assert.assertEquals(explode.getField(), field("eee", Type.STRING_LIST));
         Assert.assertEquals(explode.getKeyAlias(), "foo");
