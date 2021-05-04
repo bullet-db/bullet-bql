@@ -513,7 +513,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ANY;
                 case BQLBaseLexer.RLIKE:
-                    return !not ? Operation.REGEX_LIKE_ANY : Operation.NOT_REGEX_LIKE_ANY;
+                    return not ? Operation.NOT_REGEX_LIKE_ANY : Operation.REGEX_LIKE_ANY;
             }
         } else if (modifier.getType() == BQLBaseLexer.ALL) {
             switch (op.getType()) {
