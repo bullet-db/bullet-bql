@@ -113,13 +113,9 @@ public class TypeCheckTest extends IntegrationTest {
     @Test
     public void testTypeCheckBetweenPredicate() {
         build("SELECT aaa BETWEEN ('5', '10'), aaa NOT BETWEEN ('5', '10') FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The value in aaa BETWEEN ('5', '10') must be numeric. Type given: STRING_MAP_LIST.");
-        Assert.assertEquals(errors.get(1).getError(), "1:8: The start value in aaa BETWEEN ('5', '10') must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(2).getError(), "1:8: The end value in aaa BETWEEN ('5', '10') must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(3).getError(), "1:33: The value in aaa NOT BETWEEN ('5', '10') must be numeric. Type given: STRING_MAP_LIST.");
-        Assert.assertEquals(errors.get(4).getError(), "1:33: The start value in aaa NOT BETWEEN ('5', '10') must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(5).getError(), "1:33: The end value in aaa NOT BETWEEN ('5', '10') must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.size(), 6);
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the values in aaa BETWEEN ('5', '10') must be all numeric or all STRING. Types given: [STRING_MAP_LIST, STRING, STRING]");
+        Assert.assertEquals(errors.get(1).getError(), "1:33: The types of the values in aaa NOT BETWEEN ('5', '10') must be all numeric or all STRING. Types given: [STRING_MAP_LIST, STRING, STRING]");
+        Assert.assertEquals(errors.size(), 2);
     }
 
     @Test
@@ -178,9 +174,9 @@ public class TypeCheckTest extends IntegrationTest {
 
     @Test
     public void testTypeCheckBetween() {
-        build("SELECT BETWEEN(abc, 5), BETWEEN(aaa, '5', '10') FROM STREAM()");
+        build("SELECT BETWEEN(abc, 5), BETWEEN(7, '5', '10') FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: BETWEEN requires 3 arguments. The number of arguments given in BETWEEN(abc, 5) was 2.");
-        Assert.assertEquals(errors.get(1).getError(), "1:25: The types of the arguments in BETWEEN(aaa, '5', '10') must be numeric. Types given: [STRING_MAP_LIST, STRING, STRING]");
+        Assert.assertEquals(errors.get(1).getError(), "1:25: The types of the arguments in BETWEEN(7, '5', '10') must be all numeric or all STRING. Types given: [INTEGER, STRING, STRING]");
         Assert.assertEquals(errors.size(), 2);
     }
 

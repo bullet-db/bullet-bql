@@ -26,6 +26,7 @@ import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -82,23 +83,14 @@ public class TypeChecker {
     }
 
     static Optional<List<BulletError>> validateBetweenType(BetweenPredicateNode node, Expression value, Expression lower, Expression upper) {
-        Type valueType = value.getType();
-        Type lowerType = lower.getType();
-        Type upperType = upper.getType();
-        if (Type.isUnknown(valueType) || Type.isUnknown(lowerType) || Type.isUnknown(upperType)) {
+        List<Type> types = Arrays.asList(value.getType(), lower.getType(), upper.getType());
+        if (types.contains(Type.UNKNOWN)) {
             return unknownError();
         }
-        List<BulletError> errors = new ArrayList<>();
-        if (!Type.isNumeric(valueType)) {
-            errors.add(makeErrorOnly(node, QueryError.BETWEEN_VALUE_NOT_NUMERIC, node, valueType));
+        if (!types.stream().allMatch(Type::isNumeric) && !types.stream().allMatch(type -> type == Type.STRING)) {
+            return makeError(node, QueryError.BETWEEN_VALUES_WRONG_TYPES, node, types);
         }
-        if (!Type.isNumeric(lowerType)) {
-            errors.add(makeErrorOnly(node, QueryError.BETWEEN_START_NOT_NUMERIC, node, lowerType));
-        }
-        if (!Type.isNumeric(upperType)) {
-            errors.add(makeErrorOnly(node, QueryError.BETWEEN_END_NOT_NUMERIC, node, upperType));
-        }
-        return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+        return Optional.empty();
 
     }
 
@@ -159,8 +151,8 @@ public class TypeChecker {
                 if (argTypes.size() != 3) {
                     return makeError(node, QueryError.BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
                 }
-                if (!argTypes.stream().allMatch(Type::isNumeric)) {
-                    return makeError(node, QueryError.BETWEEN_WRONG_TYPES, node, argTypes);
+                if (!argTypes.stream().allMatch(Type::isNumeric) && !argTypes.stream().allMatch(type -> type == Type.STRING)) {
+                    return makeError(node, QueryError.BETWEEN_ARGS_WRONG_TYPES, node, argTypes);
                 }
                 return Optional.empty();
             case SUBSTRING:
