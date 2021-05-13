@@ -105,6 +105,37 @@ public class SelectTest extends IntegrationTest {
     }
 
     @Test
+    public void testSelectSubFieldWithType() {
+        // Previously, type-overriding on subfields did not work as expected. Now, type-overriding applies to the base
+        // field in any subfield expressions. For example, in abc[0] : LIST[MAP[STRING]], abc is LIST[MAP[STRING]]
+        build("SELECT abc[0] : LIST[MAP[STRING]] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0).getName(), "abc[0]");
+
+        FieldExpression field = (FieldExpression) query.getProjection().getFields().get(0).getValue();
+        Assert.assertEquals(field.getType(), Type.STRING_MAP);
+    }
+
+    @Test
+    public void testSelectSubSubFieldWithType() {
+        // Previously, type-overriding on subfields did not work as expected. Now, type-overriding applies to the base
+        // field in any subfield expressions.
+        build("SELECT abc[0]['foo'] : LIST[MAP[STRING]] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getFields().get(0).getName(), "abc[0]['foo']");
+
+        FieldExpression field = (FieldExpression) query.getProjection().getFields().get(0).getValue();
+        Assert.assertEquals(field.getType(), Type.STRING);
+    }
+
+    @Test
+    public void testTypeOverride() {
+        build("SELECT aaa[0] : MAP[MAP[STRING]] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield aaa[0] is invalid since the field aaa has type: STRING_MAP_MAP.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testSelectStringValue() {
         build("SELECT 'abc' FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -118,7 +149,6 @@ public class SelectTest extends IntegrationTest {
     @Test
     public void testTooManyQueryTypes() {
         build("SELECT * FROM STREAM() GROUP BY abc");
-        //Assert.assertTrue(errors.get(0).getError().startsWith("Query does not match exactly one query type: "));
         Assert.assertEquals(errors.get(0).getError(), "Query consists of multiple aggregation types.");
         Assert.assertEquals(errors.size(), 1);
     }

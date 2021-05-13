@@ -6,7 +6,7 @@
 
 >BQL is a SQL-like query language specifically designed for the [Bullet](https://bullet-db.github.io/) query engine, which provides an easy-to-use yet powerful interactive SQL-like interface. 
 
-This project contains a BQL parser built in [ANTLR 4](http://www.antlr.org/). A BQL query will be parsed, classified, validated and extracted to a [Bullet](https://bullet-db.github.io/) Query or [Bullet JSON](https://bullet-db.github.io/ws/api/).
+This project contains a BQL parser built in [ANTLR 4](http://www.antlr.org/). A BQL query will be parsed, classified, validated and extracted to a [Bullet](https://bullet-db.github.io/) Query.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ This project contains a BQL parser built in [ANTLR 4](http://www.antlr.org/). A 
     
 ## Background
 
-Bullet-BQL is created to provide users with a friendly SQL-like layer to manipulate the power of [Bullet](https://bullet-db.github.io/) query engine. Users can write a simple BQL query instead of [Bullet JSON](https://bullet-db.github.io/ws/api/), which saves time and eases the learning curve for people familiar with SQL.
+Bullet-BQL is created to provide users with a friendly SQL-like layer to manipulate the power of [Bullet](https://bullet-db.github.io/) query engine.
 
 ## Install
 
@@ -67,8 +67,8 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 ## Statement Syntax
 
-    SELECT select
-    FROM stream
+    SELECT select FROM stream
+    ( LATERAL VIEW tableFunction )?
     ( WHERE expression )?
     ( GROUP BY expression ( , expression )* )?
     ( HAVING expression )?
@@ -84,12 +84,15 @@ where `select` is
 and `selectItem` is one of
 
     expression ( AS? identifier )?
+    tableFunction
     *
 
 and `expression` is one of
 
     valueExpression                                                                         
-    fieldExpression                                                                         
+    fieldExpression ( : fieldType )?
+    subFieldExpression ( : fieldType )?
+    subSubFieldExpression ( : fieldType )?                                                                         
     listExpression                                                                          
     expression IS NULL                                                                      
     expression IS NOT NULL                                                                  
@@ -108,13 +111,22 @@ and `expression` is one of
 
 where `valueExpression` is one of Null, Boolean, Integer, Long, Float, Double, or String
 
-and `fieldExpression` is one of
+and `fieldExpression` is
 
-    identifier ( : fieldType )?
-    identifier [ Integer ] ( : fieldType )?
-    identifier [ Integer ] . identifier ( : fieldType )?
-    identifier . identifier ( : fieldType )?
-    identifier . identifier . identifier ( : fieldType )?
+    identifier
+    
+and `subFieldExpression` is one of
+
+    fieldExpression [ Integer ]
+    fieldExpression [ String ]
+    fieldExpression [ expression ]
+    fieldExpression . identifier
+    
+and `subSubFieldExpression` is one of
+
+    subFieldExpression [ String ]
+    subFieldExpression [ expression ]
+    subFieldExpression . identifier
     
 `fieldType` is one of
 
@@ -158,6 +170,11 @@ and `inputMode` is one of
     REGION, Number, Number, Number                                                  evenly spaced in a region
     MANUAL, Number ( , Number )*                                                    defined points
 
+
+and `tableFunction` is one of
+
+    OUTER? EXPLODE ( expression ) AS identifier                                     explode a list to one column
+    OUTER? EXPLODE ( expression ) AS ( identifier , identifier )                    explode a map to a key and a value column
 
 and `stream` is one of
 

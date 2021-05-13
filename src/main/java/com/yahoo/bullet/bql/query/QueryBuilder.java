@@ -11,8 +11,10 @@ import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
 import com.yahoo.bullet.bql.tree.FieldExpressionNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
 import com.yahoo.bullet.bql.tree.WindowNode;
@@ -35,6 +37,10 @@ import com.yahoo.bullet.query.postaggregations.Culling;
 import com.yahoo.bullet.query.postaggregations.Having;
 import com.yahoo.bullet.query.postaggregations.OrderBy;
 import com.yahoo.bullet.query.postaggregations.PostAggregation;
+import com.yahoo.bullet.query.tablefunctions.Explode;
+import com.yahoo.bullet.query.tablefunctions.LateralView;
+import com.yahoo.bullet.query.tablefunctions.TableFunction;
+import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.querying.aggregations.sketches.QuantileSketch;
 import com.yahoo.bullet.typesystem.Schema;
@@ -73,6 +79,7 @@ public class QueryBuilder {
     }
 
     private ProcessedQuery processedQuery;
+    private TableFunction tableFunction;
     private Projection projection;
     private Expression filter;
     private Aggregation aggregation;
@@ -116,6 +123,9 @@ public class QueryBuilder {
             case SELECT_ALL:
                 doSelectAll();
                 break;
+            case SELECT_TABLE_FUNCTION:
+                doSelectTableFunction();
+                break;
             case SELECT_DISTINCT:
                 doSelectDistinct();
                 break;
@@ -139,13 +149,23 @@ public class QueryBuilder {
         if (hasErrors()) {
             return;
         }
-        query = new Query(projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, window, duration);
+        query = new Query(tableFunction, projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, window, duration);
     }
 
     private void doCommon() {
         window = getWindow(processedQuery.getWindow());
         duration = processedQuery.getDuration();
         limit = processedQuery.getLimit();
+
+        // We can have at most one LATERAL VIEW clause or one SELECT table function but not both
+        LateralViewNode lateralViewNode = processedQuery.getLateralView();
+        if (lateralViewNode != null) {
+            tableFunction = new LateralView(getTableFunction(lateralViewNode.getTableFunction()));
+            addSchemaLayer(false);
+        } else if (processedQuery.getSelectTableFunction() != null) {
+            tableFunction = getTableFunction(processedQuery.getSelectTableFunction());
+            addSchemaLayer(true);
+        }
 
         ExpressionNode whereNode = processedQuery.getWhere();
         if (whereNode != null) {
@@ -191,7 +211,7 @@ public class QueryBuilder {
 
         doProjection();
 
-        addSchemaLayer(requiresCopyFlag);
+        addSchemaLayer(false);
 
         aggregation = new Raw(limit);
 
@@ -204,6 +224,23 @@ public class QueryBuilder {
                 postAggregations.add(new Culling(transientFields));
             }
         }
+    }
+
+    // Functionally the same as doSelectAll() but without transient/renamed fields
+    private void doSelectTableFunction() {
+        doSelectFields();
+
+        // Technically, we could write directly onto the virtual record like a computation, but there's no projection
+        // type for that behavior yet so we have to settle for copying the record and then writing (for now).
+        requiresCopyFlag = processedQuery.getSelectNodes().stream().anyMatch(node -> !(node instanceof FieldExpressionNode) || processedQuery.hasAlias(node));
+
+        doProjection();
+
+        addSchemaLayer(false);
+
+        aggregation = new Raw(limit);
+
+        doOrderBy();
     }
 
     private void doSelectDistinct() {
@@ -283,7 +320,6 @@ public class QueryBuilder {
 
             ExpressionNode expressionNode = node.getExpression();
             if (expressionNode != null) {
-                //addProjectionField(expressionNode.getName(), ExpressionVisitor.visit(expressionNode, querySchema));
                 addProjectionField(expressionNode.getName(), visit(expressionNode));
                 operations.add(new GroupOperation(node.getOp(), expressionNode.getName(), newName));
                 if (!(expressionNode instanceof FieldExpressionNode)) {
@@ -368,6 +404,7 @@ public class QueryBuilder {
 
         doProjection();
 
+        // Visit to type-check
         visit(distributionNode);
 
         schema = DISTRIBUTION_SCHEMAS.get(distributionNode.getType());
@@ -403,6 +440,7 @@ public class QueryBuilder {
 
         doProjection();
 
+        // Visit to type-check
         visit(topKNode);
         String topKAlias = processedQuery.getAlias(topKNode);
         addSchemaField(topKAlias, Type.LONG);
@@ -562,7 +600,7 @@ public class QueryBuilder {
         }
     }
 
-    private static Window getWindow(WindowNode windowNode) {
+    private Window getWindow(WindowNode windowNode) {
         if (windowNode == null) {
             return new Window();
         }
@@ -571,6 +609,31 @@ public class QueryBuilder {
             return new Window(windowNode.getEmitEvery(), windowNode.getEmitType());
         }
         return new Window(windowNode.getEmitEvery(), windowNode.getEmitType(), windowInclude.getIncludeUnit(), windowInclude.getFirst());
+    }
+
+    private TableFunction getTableFunction(TableFunctionNode tableFunctionNode) {
+        TableFunctionType type = tableFunctionNode.getType();
+        if (type != TableFunctionType.EXPLODE) {
+            throw new IllegalArgumentException("This is not a supported table function: " + type);
+        }
+        // Visit to type-check
+        visit(tableFunctionNode);
+
+        Expression field = visit(tableFunctionNode.getExpression());
+        Type subType = field.getType().getSubType();
+        String keyAlias = tableFunctionNode.getKeyAlias().getValue();
+        String valueAlias = tableFunctionNode.getValueAlias() != null ? tableFunctionNode.getValueAlias().getValue() : null;
+        if (valueAlias != null) {
+            addSchemaField(keyAlias, Type.STRING);
+            addSchemaField(valueAlias, subType != null ? subType : Type.UNKNOWN);
+            if (keyAlias.equals(valueAlias)) {
+                addError(tableFunctionNode, QueryError.EXPLODE_SAME_KEY_AND_VALUE_ALIASES, tableFunctionNode);
+            }
+            return new Explode(field, keyAlias, valueAlias, tableFunctionNode.isOuter());
+        } else {
+            addSchemaField(keyAlias, subType != null ? subType : Type.UNKNOWN);
+            return new Explode(field, keyAlias, null, tableFunctionNode.isOuter());
+        }
     }
 
     private static Optional<List<String>> duplicates(Collection<String> fields) {

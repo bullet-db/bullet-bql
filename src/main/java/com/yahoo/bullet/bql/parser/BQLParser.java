@@ -93,6 +93,14 @@ public class BQLParser {
         }
 
         @Override
+        public void exitQuotedIdentifier(BQLBaseParser.QuotedIdentifierContext context) {
+            Token token = context.QUOTED_IDENTIFIER().getSymbol();
+            if (token.getText().equals("\"\"")) {
+                throw new ParsingException("Identifiers must not be empty strings.", null, token.getLine(), token.getCharPositionInLine());
+            }
+        }
+
+        @Override
         public void exitNonReserved(BQLBaseParser.NonReservedContext context) {
             // We can't modify the tree during rule enter/exit event handling unless we're dealing with a terminal.
             // Otherwise, ANTLR gets confused and fires spurious notifications.

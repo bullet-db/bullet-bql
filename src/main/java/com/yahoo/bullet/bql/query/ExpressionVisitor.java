@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.query;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
@@ -20,6 +21,7 @@ import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.NullPredicateNode;
 import com.yahoo.bullet.bql.tree.ParenthesesExpressionNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.common.BulletError;
@@ -37,6 +39,7 @@ import com.yahoo.bullet.typesystem.Type;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,14 +67,9 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
             return expression;
         }
         String name = ((ExpressionNode) node).getName();
-        // Type override
+        // Type hint/override
         if (node instanceof FieldExpressionNode) {
             Type type = ((FieldExpressionNode) node).getType();
-            if (type != null) {
-                return field(name, type);
-            }
-        } else if (node instanceof SubFieldExpressionNode) {
-            Type type = ((SubFieldExpressionNode) node).getType();
             if (type != null) {
                 return field(name, type);
             }
@@ -110,19 +108,19 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
     @Override
     protected Expression visitSubFieldExpression(SubFieldExpressionNode node, LayeredSchema layeredSchema) {
         FieldExpression fieldExpression = (FieldExpression) process(node.getField(), layeredSchema);
-        FieldExpression expression;
-        if (fieldExpression.getIndex() != null) {
-            expression = new FieldExpression(fieldExpression.getField(), fieldExpression.getIndex(), node.getKey().getValue());
-        } else if (fieldExpression.getKey() != null) {
-            expression = new FieldExpression(fieldExpression.getField(), fieldExpression.getKey(), node.getKey().getValue());
-        } else if (node.getIndex() != null) {
-            expression = new FieldExpression(fieldExpression.getField(), node.getIndex());
+        FieldExpression subFieldExpression;
+        if (node.getIndex() != null) {
+            subFieldExpression = new FieldExpression(fieldExpression, node.getIndex());
+        } else if (node.getKey() != null) {
+            subFieldExpression = new FieldExpression(fieldExpression, node.getKey().getValue());
+        } else if (node.getExpressionKey() != null) {
+            subFieldExpression = new FieldExpression(fieldExpression, process(node.getExpressionKey(), layeredSchema));
         } else {
-            expression = new FieldExpression(fieldExpression.getField(), node.getKey().getValue());
+            subFieldExpression = new FieldExpression(fieldExpression, node.getStringKey());
         }
-        setType(node, expression, fieldExpression, errors);
-        mapping.put(node, expression);
-        return expression;
+        setType(node, subFieldExpression, fieldExpression, errors);
+        mapping.put(node, subFieldExpression);
+        return subFieldExpression;
     }
 
     @Override
@@ -140,6 +138,22 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
         Operation op = node.isNot() ? Operation.IS_NOT_NULL : Operation.IS_NULL;
         UnaryExpression expression = new UnaryExpression(operand, op);
         setType(node, expression, errors);
+        mapping.put(node, expression);
+        return expression;
+    }
+
+    @Override
+    protected Expression visitBetweenPredicate(BetweenPredicateNode node, LayeredSchema layeredSchema) {
+        Expression value = process(node.getExpression(), layeredSchema);
+        Expression lower = process(node.getLower(), layeredSchema);
+        Expression upper = process(node.getUpper(), layeredSchema);
+        NAryExpression expression;
+        if (node.isNot()) {
+            expression = new NAryExpression(Arrays.asList(value, lower, upper), Operation.NOT_BETWEEN);
+        } else {
+            expression = new NAryExpression(Arrays.asList(value, lower, upper), Operation.BETWEEN);
+        }
+        setType(node, expression, value, lower, upper, errors);
         mapping.put(node, expression);
         return expression;
     }
@@ -201,6 +215,13 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
         setType(node, expression, errors);
         mapping.put(node, expression);
         return expression;
+    }
+
+    @Override
+    protected Expression visitTableFunction(TableFunctionNode node, LayeredSchema layeredSchema) {
+        Expression expression = process(node.getExpression(), layeredSchema);
+        TypeChecker.validateTableFunctionType(node, expression).ifPresent(errors::addAll);
+        return null;
     }
 
     @Override

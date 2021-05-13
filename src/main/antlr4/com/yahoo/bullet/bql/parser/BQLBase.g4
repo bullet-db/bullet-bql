@@ -12,6 +12,7 @@ grammar BQLBase;
 
 query
     : SELECT select FROM stream
+      (LATERAL VIEW lateralView)?
       (WHERE where=expression)?
       (GROUP BY groupBy)?
       (HAVING having=expression)?
@@ -28,11 +29,16 @@ select
 
 selectItem
     : expression (AS? identifier)?
+    | tableFunction
     | ASTERISK
     ;
 
 stream
     : STREAM '(' (timeDuration=(INTEGER_VALUE | MAX) ',' TIME)? ')'
+    ;
+
+lateralView
+    : tableFunction
     ;
 
 groupBy
@@ -59,14 +65,14 @@ include
 
 expression
     : valueExpression                                                                                                   #value
-    | fieldExpression                                                                                                   #field
+    | fieldExpression (':' fieldType)?                                                                                  #field
+    | subFieldExpression (':' fieldType)?                                                                               #subField
+    | subSubFieldExpression (':' fieldType)?                                                                            #subSubField
     | listExpression                                                                                                    #list
-    | expression IS NULL                                                                                                #nullPredicate
-    | expression IS NOT NULL                                                                                            #nullPredicate
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
-    | left=expression modifier=NOT? op=IN right=expression                                                              #infix
-    | left=expression op=RLIKE modifier=ANY? right=expression                                                           #infix
+    | expression IS NOT? NULL                                                                                           #nullPredicate
+    | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
     | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
@@ -74,6 +80,8 @@ expression
     | left=expression op=AND right=expression                                                                           #infix
     | left=expression op=XOR right=expression                                                                           #infix
     | left=expression op=OR right=expression                                                                            #infix
+    | left=expression NOT? op=RLIKE modifier=ANY? right=expression                                                      #infix
+    | left=expression NOT? op=IN (right=expression | '(' expressions ')')                                               #infixIn
     | '(' expression ')'                                                                                                #parentheses
     ;
 
@@ -89,11 +97,20 @@ valueExpression
     ;
 
 fieldExpression
-    : field=identifier (':' fieldType)?
-    | field=identifier '[' index=INTEGER_VALUE ']' (':' fieldType)?
-    | field=identifier '[' index=INTEGER_VALUE ']' '.' subKey=identifier (':' fieldType)?
-    | field=identifier '.' key=identifier (':' fieldType)?
-    | field=identifier '.' key=identifier '.' subKey=identifier (':' fieldType)?
+    : field=identifier
+    ;
+
+subFieldExpression
+    : field=fieldExpression '[' index=INTEGER_VALUE ']'
+    | field=fieldExpression '[' stringKey=STRING ']'
+    | field=fieldExpression '[' expressionKey=expression ']'
+    | field=fieldExpression '.' key=identifier
+    ;
+
+subSubFieldExpression
+    : subField=subFieldExpression '[' stringKey=STRING ']'
+    | subField=subFieldExpression '[' expressionKey=expression ']'
+    | subField=subFieldExpression '.' key=identifier
     ;
 
 listExpression
@@ -102,14 +119,14 @@ listExpression
     ;
 
 unaryExpression
-    : op=(NOT | SIZEOF) parens='(' operand=expression ')'
+    : op=(NOT | SIZEOF | ABS | TRIM) parens='(' operand=expression ')'
     | op=(NOT | SIZEOF) operand=expression
     ;
 
 functionExpression
     : op=(SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER)
       '(' left=expression ',' right=expression ')'                                                                      #binary
-    | op=IF '(' expressions ')'                                                                                         #nAry
+    | op=(IF | BETWEEN | SUBSTRING | UNIXTIMESTAMP) '(' expressions? ')'                                                #nAry
     | aggregateExpression                                                                                               #aggregate
     | CAST '(' expression AS primitiveType ')'                                                                          #cast
     ;
@@ -130,6 +147,11 @@ inputMode
     : iMode=LINEAR ',' numberOfPoints=INTEGER_VALUE
     | iMode=REGION ',' start=number ',' end=number ',' increment=number
     | iMode=MANUAL ',' number (',' number)*
+    ;
+
+tableFunction
+    : OUTER? op=EXPLODE '(' expression ')' AS keyAlias=identifier
+    | OUTER? op=EXPLODE '(' expression ')' AS '(' keyAlias=identifier ',' valueAlias=identifier ')'
     ;
 
 identifier
@@ -200,6 +222,9 @@ SELECT: 'SELECT';
 WHERE: 'WHERE';
 STREAM: 'STREAM';
 TIME: 'TIME';
+LATERAL: 'LATERAL';
+VIEW: 'VIEW';
+OUTER: 'OUTER';
 TRUE: 'TRUE';
 FALSE: 'FALSE';
 QUANTILE: 'QUANTILE';
@@ -216,6 +241,7 @@ EMPTY: 'EMPTY';
 TUMBLING: 'TUMBLING';
 MAX: 'MAX';
 XOR: 'XOR';
+EXPLODE: 'EXPLODE';
 
 COUNT: 'COUNT';
 SUM: 'SUM';
@@ -225,6 +251,10 @@ RLIKE: 'RLIKE';
 SIZEIS: 'SIZEIS';
 FILTER: 'FILTER';
 IF: 'IF';
+ABS: 'ABS';
+TRIM: 'TRIM';
+SUBSTRING: 'SUBSTRING' | 'SUBSTR';
+UNIXTIMESTAMP: 'UNIXTIMESTAMP';
 
 INTEGER_TYPE: 'INTEGER';
 LONG_TYPE: 'LONG';
@@ -235,7 +265,7 @@ STRING_TYPE: 'STRING';
 LIST_TYPE: 'LIST';
 MAP_TYPE: 'MAP';
 
-EQ  : '=';
+EQ  : '=' | '==';
 NEQ : '<>' | '!=';
 LT  : '<';
 LTE : '<=';

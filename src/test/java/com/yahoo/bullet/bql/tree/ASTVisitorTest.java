@@ -25,7 +25,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitQuery() {
-        QueryNode query = new QueryNode(null, null, null, null, null, null, null, null, null);
+        QueryNode query = new QueryNode(null, null, null, null, null, null, null, null, null, null);
         visitor.process(query);
         Mockito.verify(visitor).visitQuery(query, null);
     }
@@ -42,6 +42,20 @@ public class ASTVisitorTest {
         SelectItemNode selectItem = new SelectItemNode(false, null, null, null);
         visitor.process(selectItem);
         Mockito.verify(visitor).visitSelectItem(selectItem, null);
+    }
+
+    @Test
+    public void testVisitStream() {
+        StreamNode stream = new StreamNode(null, null);
+        visitor.process(stream);
+        Mockito.verify(visitor).visitStream(stream, null);
+    }
+
+    @Test
+    public void testVisitLateralView() {
+        LateralViewNode lateralView = new LateralViewNode(null, null);
+        visitor.process(lateralView);
+        Mockito.verify(visitor).visitLateralView(lateralView, null);
     }
 
     @Test
@@ -88,7 +102,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitSubFieldExpression() {
-        SubFieldExpressionNode subFieldExpression = new SubFieldExpressionNode(null, null, null, null, null);
+        SubFieldExpressionNode subFieldExpression = new SubFieldExpressionNode(null, null, null, null, null, null, null);
         visitor.process(subFieldExpression);
         Mockito.verify(visitor).visitSubFieldExpression(subFieldExpression, null);
     }
@@ -105,6 +119,13 @@ public class ASTVisitorTest {
         NullPredicateNode nullPredicate = new NullPredicateNode(null, false, null);
         visitor.process(nullPredicate);
         Mockito.verify(visitor).visitNullPredicate(nullPredicate, null);
+    }
+
+    @Test
+    public void testVisitBetweenPredicate() {
+        BetweenPredicateNode betweenPredicate = new BetweenPredicateNode(null, null, null, false, null);
+        visitor.process(betweenPredicate);
+        Mockito.verify(visitor).visitBetweenPredicate(betweenPredicate, null);
     }
 
     @Test
@@ -161,6 +182,13 @@ public class ASTVisitorTest {
         BinaryExpressionNode binaryExpression = new BinaryExpressionNode(null, null, null, null);
         visitor.process(binaryExpression);
         Mockito.verify(visitor).visitBinaryExpression(binaryExpression, null);
+    }
+
+    @Test
+    public void testVisitTableFunction() {
+        TableFunctionNode tableFunction = new TableFunctionNode(null, null, null, null, false, null);
+        visitor.process(tableFunction);
+        Mockito.verify(visitor).visitTableFunction(tableFunction, null);
     }
 
     @Test

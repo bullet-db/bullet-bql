@@ -18,6 +18,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     protected R visitQuery(QueryNode node, C context) {
         process(node.getSelect(), context);
         process(node.getStream(), context);
+        process(node.getLateralView(), context);
         process(node.getWhere(), context);
         process(node.getGroupBy(), context);
         process(node.getHaving(), context);
@@ -35,6 +36,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     @Override
     protected R visitSelectItem(SelectItemNode node, C context) {
         process(node.getExpression(), context);
+        return null;
+    }
+
+    @Override
+    protected R visitLateralView(LateralViewNode node, C context) {
+        process(node.getTableFunction(), context);
         return null;
     }
 
@@ -77,6 +84,14 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     @Override
     protected R visitNullPredicate(NullPredicateNode node, C context) {
         process(node.getExpression(), context);
+        return null;
+    }
+
+    @Override
+    protected R visitBetweenPredicate(BetweenPredicateNode node, C context) {
+        process(node.getExpression(), context);
+        process(node.getLower(), context);
+        process(node.getUpper(), context);
         return null;
     }
 
@@ -126,6 +141,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
     protected R visitBinaryExpression(BinaryExpressionNode node, C context) {
         process(node.getLeft(), context);
         process(node.getRight(), context);
+        return null;
+    }
+
+    @Override
+    protected R visitTableFunction(TableFunctionNode node, C context) {
+        process(node.getExpression(), context);
         return null;
     }
 

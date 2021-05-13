@@ -10,6 +10,7 @@
  */
 package com.yahoo.bullet.bql.parser;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -18,6 +19,7 @@ import com.yahoo.bullet.bql.tree.GroupByNode;
 import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.LinearDistributionNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
@@ -35,6 +37,7 @@ import com.yahoo.bullet.bql.tree.SelectItemNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -42,6 +45,7 @@ import com.yahoo.bullet.bql.tree.WindowNode;
 import com.yahoo.bullet.query.Window.Unit;
 import com.yahoo.bullet.query.aggregations.DistributionType;
 import com.yahoo.bullet.query.expressions.Operation;
+import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.querying.aggregations.grouping.GroupOperation;
 import com.yahoo.bullet.typesystem.Type;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -61,6 +65,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     public Node visitQuery(BQLBaseParser.QueryContext context) {
         return new QueryNode((SelectNode) visit(context.select()),
                              (StreamNode) visit(context.stream()),
+                             (LateralViewNode) visitIfPresent(context.lateralView()),
                              stripParentheses((ExpressionNode) visitIfPresent(context.where)),
                              (GroupByNode) visitIfPresent(context.groupBy()),
                              stripParentheses((ExpressionNode) visitIfPresent(context.having)),
@@ -79,15 +84,29 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSelectItem(BQLBaseParser.SelectItemContext context) {
-        return new SelectItemNode(context.ASTERISK() != null,
-                                  stripParentheses((ExpressionNode) visitIfPresent(context.expression())),
-                                  (IdentifierNode) visitIfPresent(context.identifier()),
-                                  getLocation(context));
+        if (context.expression() != null) {
+            return new SelectItemNode(false,
+                                      stripParentheses((ExpressionNode) visit(context.expression())),
+                                      (IdentifierNode) visitIfPresent(context.identifier()),
+                                      getLocation(context));
+        } else if (context.tableFunction() != null) {
+            return new SelectItemNode(false,
+                                      (ExpressionNode) visit(context.tableFunction()),
+                                      null,
+                                      getLocation(context));
+        }
+        return new SelectItemNode(true, null, null, getLocation(context));
     }
 
     @Override
     public Node visitStream(BQLBaseParser.StreamContext context) {
         return new StreamNode(getTextIfPresent(context.timeDuration), getLocation(context));
+    }
+
+    @Override
+    public Node visitLateralView(BQLBaseParser.LateralViewContext context) {
+        return new LateralViewNode((TableFunctionNode) visit(context.tableFunction()), getLocation(context));
+
     }
 
     @Override
@@ -128,26 +147,62 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitFieldExpression(BQLBaseParser.FieldExpressionContext context) {
         IdentifierNode field = (IdentifierNode) visit(context.field);
+        NodeLocation location = getLocation(context);
+        return new FieldExpressionNode(field, null, location);
+    }
+
+    @Override
+    public Node visitSubFieldExpression(BQLBaseParser.SubFieldExpressionContext context) {
+        FieldExpressionNode field = (FieldExpressionNode) visit(context.field);
         Integer index = context.index != null ? Integer.valueOf(context.index.getText()) : null;
         IdentifierNode key = (IdentifierNode) visitIfPresent(context.key);
-        IdentifierNode subKey = (IdentifierNode) visitIfPresent(context.subKey);
-        Type type = getType(context.fieldType());
+        ExpressionNode expressionKey = (ExpressionNode) visitIfPresent(context.expressionKey);
+        String stringKey = getTextIfPresent(context.stringKey);
         NodeLocation location = getLocation(context);
-        Type superType = type != null ? Type.UNKNOWN : null;
-        /*
-        Builds a subfield or a field expression node
-        - abc[0].def has a subkey and is therefore a subfield of a subfield of a field
-        - abc.def has just a key and is therefore a subfield of a field
-        - abc[0] has just an index and is therefore a subfield of a field
-        - abc is just a field
-        */
-        if (subKey != null) {
-            return new SubFieldExpressionNode(new SubFieldExpressionNode(new FieldExpressionNode(field, superType, location), index, key, superType, location), null, subKey, type, location);
-        } else if (index != null || key != null) {
-            return new SubFieldExpressionNode(new FieldExpressionNode(field, superType, location), index, key, type, location);
-        } else {
-            return new FieldExpressionNode(field, type, location);
+        return new SubFieldExpressionNode(field, index, key, expressionKey, stringKey != null ? unquoteSingle(stringKey) : null, null, location);
+    }
+
+    @Override
+    public Node visitSubSubFieldExpression(BQLBaseParser.SubSubFieldExpressionContext context) {
+        SubFieldExpressionNode field = (SubFieldExpressionNode) visit(context.subField);
+        IdentifierNode key = (IdentifierNode) visitIfPresent(context.key);
+        ExpressionNode expressionKey = (ExpressionNode) visitIfPresent(context.expressionKey);
+        String stringKey = getTextIfPresent(context.stringKey);
+        NodeLocation location = getLocation(context);
+        return new SubFieldExpressionNode(field, null, key, expressionKey, stringKey != null ? unquoteSingle(stringKey) : null, null, location);
+    }
+
+    @Override
+    public Node visitField(BQLBaseParser.FieldContext context) {
+        FieldExpressionNode field = (FieldExpressionNode) visit(context.fieldExpression());
+        Type type = getType(context.fieldType());
+        if (type != null) {
+            field.setType(type);
         }
+        return field;
+    }
+
+    @Override
+    public Node visitSubField(BQLBaseParser.SubFieldContext context) {
+        SubFieldExpressionNode subField = (SubFieldExpressionNode) visit(context.subFieldExpression());
+        Type type = getType(context.fieldType());
+        if (type != null) {
+            FieldExpressionNode field = (FieldExpressionNode) subField.getField();
+            field.setType(type);
+        }
+        return subField;
+    }
+
+    @Override
+    public Node visitSubSubField(BQLBaseParser.SubSubFieldContext context) {
+        SubFieldExpressionNode subSubField = (SubFieldExpressionNode) visit(context.subSubFieldExpression());
+        Type type = getType(context.fieldType());
+        if (type != null) {
+            SubFieldExpressionNode subField = (SubFieldExpressionNode) subSubField.getField();
+            FieldExpressionNode field = (FieldExpressionNode) subField.getField();
+            field.setType(type);
+        }
+        return subSubField;
     }
 
     @Override
@@ -160,6 +215,15 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new NullPredicateNode((ExpressionNode) visit(context.expression()),
                                      context.NOT() != null,
                                      getLocation(context));
+    }
+
+    @Override
+    public Node visitBetweenPredicate(BQLBaseParser.BetweenPredicateContext context) {
+        return new BetweenPredicateNode((ExpressionNode) visit(context.value),
+                                        (ExpressionNode) visit(context.lower),
+                                        (ExpressionNode) visit(context.upper),
+                                        context.NOT() != null,
+                                        getLocation(context));
     }
 
     @Override
@@ -233,17 +297,54 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitTableFunction(BQLBaseParser.TableFunctionContext context) {
+        if (context.op.getType() == BQLBaseLexer.EXPLODE) {
+            return new TableFunctionNode(TableFunctionType.EXPLODE,
+                                         (ExpressionNode) visit(context.expression()),
+                                         (IdentifierNode) visit(context.keyAlias),
+                                         (IdentifierNode) visitIfPresent(context.valueAlias),
+                                         context.OUTER() != null,
+                                         getLocation(context));
+        }
+        throw new ParsingException("Unknown table function");
+    }
+
+    @Override
     public Node visitInfix(BQLBaseParser.InfixContext context) {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                         (ExpressionNode) visit(context.right),
-                                        getOperation(context.op, context.modifier),
+                                        getOperation(context.op, context.modifier, context.NOT() != null),
+                                        getLocation(context));
+    }
+
+    @Override
+    public Node visitInfixIn(BQLBaseParser.InfixInContext context) {
+        ExpressionNode rightNode;
+        if (context.right != null) {
+            // If the right operand is a parentheses-wrapped expression, treat it as a singleton list.
+            if (context.right instanceof BQLBaseParser.ParenthesesContext) {
+                ExpressionNode innerNode = (ExpressionNode) visit(((BQLBaseParser.ParenthesesContext) context.right).expression());
+                rightNode = new ListExpressionNode(Collections.singletonList(innerNode), true, getLocation(context.right));
+            } else {
+                rightNode = (ExpressionNode) visit(context.right);
+            }
+        } else {
+            rightNode = new ListExpressionNode(visitExpressionsList(context.expressions()), true, getLocation(context.expressions()));
+        }
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        rightNode,
+                                        getOperation(context.op, null, context.NOT() != null),
                                         getLocation(context));
     }
 
     @Override
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
-        ExpressionNode expression = (ExpressionNode) visit(context.expression());
-        if (expression instanceof BinaryExpressionNode) {
+        BQLBaseParser.ExpressionContext expressionContext = context.expression();
+        ExpressionNode expression = (ExpressionNode) visit(expressionContext);
+        // TODO add another parser rule so we only use one instanceof
+        if (expressionContext instanceof BQLBaseParser.InfixContext ||
+            expressionContext instanceof BQLBaseParser.NullPredicateContext ||
+            expressionContext instanceof BQLBaseParser.BetweenPredicateContext) {
             return new ParenthesesExpressionNode(expression, getLocation(context));
         }
         return expression;
@@ -313,12 +414,12 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     private static String unquoteSingle(String value) {
-        // "" -> "
+        // '' -> '
         return value.substring(1, value.length() - 1).replace("''", "'");
     }
 
     private static String unquoteDouble(String value) {
-        // '' -> '
+        // "" -> "
         return value.substring(1, value.length() - 1).replace("\"\"", "\"");
     }
 
@@ -370,14 +471,31 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.NOT;
             case BQLBaseLexer.SIZEOF:
                 return Operation.SIZE_OF;
+            case BQLBaseLexer.TRIM:
+                return Operation.TRIM;
+            case BQLBaseLexer.ABS:
+                return Operation.ABS;
             case BQLBaseLexer.IF:
                 return Operation.IF;
+            case BQLBaseLexer.BETWEEN:
+                return Operation.BETWEEN;
+            case BQLBaseLexer.SUBSTRING:
+                return Operation.SUBSTRING;
+            case BQLBaseLexer.UNIXTIMESTAMP:
+                return Operation.UNIX_TIMESTAMP;
         }
         return null;
     }
 
-    private static Operation getOperation(Token op, Token modifier) {
+    private static Operation getOperation(Token op, Token modifier, boolean not) {
         if (modifier == null) {
+            if (not) {
+                if (op.getType() == BQLBaseLexer.RLIKE) {
+                    return Operation.NOT_REGEX_LIKE;
+                } else if (op.getType() == BQLBaseLexer.IN) {
+                    return Operation.NOT_IN;
+                }
+            }
             return getOperation(op);
         }
         if (modifier.getType() == BQLBaseLexer.ANY) {
@@ -395,7 +513,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ANY;
                 case BQLBaseLexer.RLIKE:
-                    return Operation.REGEX_LIKE_ANY;
+                    return not ? Operation.NOT_REGEX_LIKE_ANY : Operation.REGEX_LIKE_ANY;
             }
         } else if (modifier.getType() == BQLBaseLexer.ALL) {
             switch (op.getType()) {
@@ -411,10 +529,6 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                     return Operation.GREATER_THAN_OR_EQUALS_ALL;
                 case BQLBaseLexer.LTE:
                     return Operation.LESS_THAN_OR_EQUALS_ALL;
-            }
-        } else if (modifier.getType() == BQLBaseLexer.NOT) {
-            if (op.getType() == BQLBaseLexer.IN) {
-                return Operation.NOT_IN;
             }
         }
         return getOperation(op);

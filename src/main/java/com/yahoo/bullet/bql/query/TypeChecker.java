@@ -5,6 +5,7 @@
  */
 package com.yahoo.bullet.bql.query;
 
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -12,6 +13,7 @@ import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
 import com.yahoo.bullet.bql.tree.Node;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.common.BulletError;
 import com.yahoo.bullet.query.expressions.BinaryExpression;
 import com.yahoo.bullet.query.expressions.CastExpression;
@@ -19,11 +21,12 @@ import com.yahoo.bullet.query.expressions.Expression;
 import com.yahoo.bullet.query.expressions.FieldExpression;
 import com.yahoo.bullet.query.expressions.ListExpression;
 import com.yahoo.bullet.query.expressions.NAryExpression;
-import com.yahoo.bullet.query.expressions.Operation;
 import com.yahoo.bullet.query.expressions.UnaryExpression;
+import com.yahoo.bullet.query.tablefunctions.TableFunctionType;
 import com.yahoo.bullet.typesystem.Type;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -31,12 +34,32 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TypeChecker {
-    static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression fieldExpression) {
+    static Optional<List<BulletError>> validateSubFieldType(SubFieldExpressionNode node, FieldExpression subFieldExpression, FieldExpression fieldExpression) {
         Type type = fieldExpression.getType();
         if (Type.isUnknown(type)) {
             return unknownError();
-        } else if (!isCollection(type)) {
+        } else if (!isCollection(type) || (Type.isList(type) && node.getIndex() == null && node.getExpressionKey() == null) || (Type.isMap(type) && node.getIndex() != null)) {
             return makeError(node, QueryError.SUBFIELD_INVALID_DUE_TO_FIELD_TYPE, node, node.getField(), type);
+        }
+        if (node.getExpressionKey() != null) {
+            if (subFieldExpression.getSubKey() != null) {
+                Type keyType = ((Expression) subFieldExpression.getSubKey()).getType();
+                if (!Type.isUnknown(keyType) && keyType != Type.STRING) {
+                    return makeError(node, QueryError.SUBFIELD_SUB_KEY_INVALID_TYPE, node, keyType);
+                }
+            } else {
+                Type keyType = ((Expression) subFieldExpression.getKey()).getType();
+                if (Type.isUnknown(keyType)) {
+                    return Optional.empty();
+                }
+                if (Type.isList(type)) {
+                    if (keyType != Type.INTEGER && keyType != Type.LONG) {
+                        return makeError(node, QueryError.SUBFIELD_INDEX_INVALID_TYPE, node, keyType);
+                    }
+                } else if (keyType != Type.STRING) {
+                    return makeError(node, QueryError.SUBFIELD_KEY_INVALID_TYPE, node, keyType);
+                }
+            }
         }
         return Optional.empty();
     }
@@ -59,6 +82,18 @@ public class TypeChecker {
         return Optional.empty();
     }
 
+    static Optional<List<BulletError>> validateBetweenType(BetweenPredicateNode node, Expression value, Expression lower, Expression upper) {
+        List<Type> types = Arrays.asList(value.getType(), lower.getType(), upper.getType());
+        if (types.contains(Type.UNKNOWN)) {
+            return unknownError();
+        }
+        if (!types.stream().allMatch(Type::isNumeric) && !types.stream().allMatch(type -> type == Type.STRING)) {
+            return makeError(node, QueryError.BETWEEN_VALUES_WRONG_TYPES, node, types);
+        }
+        return Optional.empty();
+
+    }
+
     static Optional<List<BulletError>> validateUnaryType(ExpressionNode node, UnaryExpression unaryExpression) {
         Type operandType = unaryExpression.getOperand().getType();
         if (Type.isUnknown(operandType)) {
@@ -78,6 +113,16 @@ public class TypeChecker {
             case IS_NULL:
             case IS_NOT_NULL:
                 return Optional.empty();
+            case ABS:
+                if (!Type.isNumeric(operandType)) {
+                    return makeError(node, QueryError.ABS_HAS_WRONG_TYPE, node, operandType);
+                }
+                return Optional.empty();
+            case TRIM:
+                if (operandType != Type.STRING) {
+                    return makeError(node, QueryError.TRIM_HAS_WRONG_TYPE, node, operandType);
+                }
+                return Optional.empty();
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported unary operation: " + unaryExpression.getOp());
@@ -88,16 +133,74 @@ public class TypeChecker {
         if (argTypes.contains(Type.UNKNOWN)) {
             return unknownError();
         }
-        // only IF is supported at the moment
-        if (nAryExpression.getOp() == Operation.IF) {
-            List<BulletError> errors = new ArrayList<>();
-            if (argTypes.get(0) != Type.BOOLEAN) {
-                errors.add(makeErrorOnly(node, QueryError.IF_FIRST_ARGUMENT_HAS_WRONG_TYPE, node, argTypes.get(0)));
-            }
-            if (argTypes.get(1) != argTypes.get(2)) {
-                errors.add(makeErrorOnly(node, QueryError.IF_ARGUMENT_TYPES_DO_NOT_MATCH, node, argTypes.get(1), argTypes.get(2)));
-            }
-            return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+        List<BulletError> errors = new ArrayList<>();
+        switch (nAryExpression.getOp()) {
+            case IF:
+                if (argTypes.size() != 3) {
+                    return makeError(node, QueryError.IF_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
+                }
+                if (argTypes.get(0) != Type.BOOLEAN) {
+                    errors.add(makeErrorOnly(node, QueryError.IF_FIRST_ARGUMENT_HAS_WRONG_TYPE, node, argTypes.get(0)));
+                }
+                if (argTypes.get(1) != argTypes.get(2)) {
+                    errors.add(makeErrorOnly(node, QueryError.IF_ARGUMENT_TYPES_DO_NOT_MATCH, node, argTypes.get(1), argTypes.get(2)));
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+            case BETWEEN:
+            case NOT_BETWEEN:
+                if (argTypes.size() != 3) {
+                    return makeError(node, QueryError.BETWEEN_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
+                }
+                if (!argTypes.stream().allMatch(Type::isNumeric) && !argTypes.stream().allMatch(type -> type == Type.STRING)) {
+                    return makeError(node, QueryError.BETWEEN_ARGS_WRONG_TYPES, node, argTypes);
+                }
+                return Optional.empty();
+            case SUBSTRING:
+                switch (argTypes.size()) {
+                    case 2:
+                        if (argTypes.get(0) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_VALUE_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        if (!Type.isNumeric(argTypes.get(1))) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_START_NOT_NUMERIC, node, argTypes.get(1)));
+                        }
+                        break;
+                    case 3:
+                        if (argTypes.get(0) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_VALUE_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        if (!Type.isNumeric(argTypes.get(1))) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_START_NOT_NUMERIC, node, argTypes.get(1)));
+                        }
+                        if (!Type.isNumeric(argTypes.get(2))) {
+                            errors.add(makeErrorOnly(node, QueryError.SUBSTRING_LENGTH_NOT_NUMERIC, node, argTypes.get(2)));
+                        }
+                        break;
+                    default:
+                        return makeError(node, QueryError.SUBSTRING_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+            case UNIX_TIMESTAMP:
+                switch (argTypes.size()) {
+                    case 0:
+                        break;
+                    case 1:
+                        if (argTypes.get(0) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_VALUE_NOT_STRING, node, argTypes.get(0)));
+                        }
+                        break;
+                    case 2:
+                        if (argTypes.get(0) != Type.STRING && !Type.isNumeric(argTypes.get(0))) {
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_VALUE_NOT_STRING_OR_NUMERIC, node, argTypes.get(0)));
+                        }
+                        if (argTypes.get(1) != Type.STRING) {
+                            errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_PATTERN_NOT_STRING, node, argTypes.get(1)));
+                        }
+                        break;
+                    default:
+                        return makeError(node, QueryError.UNIX_TIMESTAMP_INCORRECT_NUMBER_OF_ARGUMENTS, node, argTypes.size());
+                }
+                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
@@ -197,11 +300,13 @@ public class TypeChecker {
                 }
                 return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
             case REGEX_LIKE:
+            case NOT_REGEX_LIKE:
                 if (leftType != Type.STRING || rightType != Type.STRING) {
                     return makeError(node, QueryError.BINARY_TYPES_NOT_STRING, node, leftType, rightType);
                 }
                 return Optional.empty();
             case REGEX_LIKE_ANY:
+            case NOT_REGEX_LIKE_ANY:
                 if (leftType != Type.STRING) {
                     errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_STRING, node, leftType));
                 }
@@ -274,6 +379,21 @@ public class TypeChecker {
         }
         // Unreachable normally
         throw new IllegalArgumentException("This is not a supported binary operation: " + binaryExpression.getOp());
+    }
+
+    static Optional<List<BulletError>> validateTableFunctionType(TableFunctionNode node, Expression expression) {
+        if (node.getType() != TableFunctionType.EXPLODE) {
+            throw new IllegalArgumentException("This is not a supported table function: " + node.getType());
+        }
+        Type type = expression.getType();
+        if (Type.isUnknown(type)) {
+            return unknownError();
+        } else if (node.getValueAlias() != null && !Type.isMap(type)) {
+            return makeError(node, QueryError.EXPLODE_FIELD_NOT_MAP, node, type);
+        } else if (node.getValueAlias() == null && !Type.isList(type)) {
+            return makeError(node, QueryError.EXPLODE_FIELD_NOT_LIST, node, type);
+        }
+        return Optional.empty();
     }
 
     // This is a static method and not a constant because a static final Optional is semantically inappropriate

@@ -51,6 +51,12 @@ public class ExpressionFormatterTest {
     }
 
     @Test
+    public void testLateralViewOuterExplode() {
+        QueryNode queryNode = bqlParser.createQueryNode("select * from stream() lateral view outer explode(a) as b");
+        Assert.assertEquals(ExpressionFormatter.format(queryNode, true), "SELECT * FROM STREAM() LATERAL VIEW OUTER EXPLODE(a) AS b");
+    }
+
+    @Test
     public void testVisitQuotedIdentifier() {
         // coverage
         Assert.assertEquals(ExpressionFormatter.format(QueryUtil.quotedIdentifier("abc"), true), "\"abc\"");

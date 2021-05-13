@@ -52,8 +52,20 @@ public final class QueryUtil {
         return expression;
     }
 
+    public static FieldExpression field(String field, Integer index, Expression variableSubKey, Type type) {
+        FieldExpression expression = new FieldExpression(field, index, variableSubKey);
+        expression.setType(type);
+        return expression;
+    }
+
     public static FieldExpression field(String field, String key, Type type) {
         FieldExpression expression = new FieldExpression(field, key);
+        expression.setType(type);
+        return expression;
+    }
+
+    public static FieldExpression field(String field, Expression variableKey, Type type) {
+        FieldExpression expression = new FieldExpression(field, variableKey);
         expression.setType(type);
         return expression;
     }

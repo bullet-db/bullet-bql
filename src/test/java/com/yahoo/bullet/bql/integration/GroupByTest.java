@@ -163,13 +163,6 @@ public class GroupByTest extends IntegrationTest {
         OrderBy orderBy = (OrderBy) query.getPostAggregations().get(1);
 
         Assert.assertEquals(orderBy.getFields().size(), 1);
-        // TODO note: behavior changed
-        /*
-        Assert.assertEquals(orderBy.getFieldNames().get(0).getExpression(), binary(field("abc", Type.INTEGER),
-                                                                               value(5),
-                                                                               Operation.ADD,
-                                                                               Type.INTEGER));
-        */
         Assert.assertEquals(orderBy.getFields().get(0).getExpression(), field("abc + 5", Type.INTEGER));
 
         Culling culling = (Culling) query.getPostAggregations().get(2);

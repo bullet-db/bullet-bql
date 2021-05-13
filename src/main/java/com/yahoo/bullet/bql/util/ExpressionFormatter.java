@@ -11,6 +11,7 @@
 package com.yahoo.bullet.bql.util;
 
 import com.yahoo.bullet.bql.tree.ASTVisitor;
+import com.yahoo.bullet.bql.tree.BetweenPredicateNode;
 import com.yahoo.bullet.bql.tree.CountDistinctNode;
 import com.yahoo.bullet.bql.tree.DistributionNode;
 import com.yahoo.bullet.bql.tree.ExpressionNode;
@@ -20,6 +21,7 @@ import com.yahoo.bullet.bql.tree.GroupOperationNode;
 import com.yahoo.bullet.bql.tree.IdentifierNode;
 import com.yahoo.bullet.bql.tree.BinaryExpressionNode;
 import com.yahoo.bullet.bql.tree.CastExpressionNode;
+import com.yahoo.bullet.bql.tree.LateralViewNode;
 import com.yahoo.bullet.bql.tree.ListExpressionNode;
 import com.yahoo.bullet.bql.tree.LiteralNode;
 import com.yahoo.bullet.bql.tree.NAryExpressionNode;
@@ -33,6 +35,7 @@ import com.yahoo.bullet.bql.tree.SelectNode;
 import com.yahoo.bullet.bql.tree.SortItemNode;
 import com.yahoo.bullet.bql.tree.StreamNode;
 import com.yahoo.bullet.bql.tree.SubFieldExpressionNode;
+import com.yahoo.bullet.bql.tree.TableFunctionNode;
 import com.yahoo.bullet.bql.tree.TopKNode;
 import com.yahoo.bullet.bql.tree.UnaryExpressionNode;
 import com.yahoo.bullet.bql.tree.WindowIncludeNode;
@@ -67,6 +70,10 @@ public final class ExpressionFormatter {
             builder.append(process(node.getSelect()))
                    .append(" FROM ")
                    .append(process(node.getStream()));
+            if (node.getLateralView() != null) {
+                builder.append(" ")
+                       .append(process(node.getLateralView()));
+            }
             if (node.getWhere() != null) {
                 builder.append(" WHERE ")
                        .append(process(node.getWhere()));
@@ -116,6 +123,11 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        protected String visitLateralView(LateralViewNode node, Void context) {
+            return "LATERAL VIEW " + process(node.getTableFunction());
+        }
+
+        @Override
         protected String visitGroupBy(GroupByNode node, Void context) {
             return "GROUP BY " + join(node.getExpressions());
         }
@@ -155,19 +167,31 @@ public final class ExpressionFormatter {
         protected String visitSubFieldExpression(SubFieldExpressionNode node, Void context) {
             if (node.getIndex() != null) {
                 return process(node.getField()) + "[" + node.getIndex() + "]";
-            } else {
+            } else if (node.getKey() != null) {
                 return process(node.getField()) + "." + process(node.getKey());
+            } else if (node.getExpressionKey() != null) {
+                return process(node.getField()) + "[" + process(node.getExpressionKey()) + "]";
+            } else {
+                return process(node.getField()) + "['" + node.getStringKey() + "']";
             }
         }
 
         @Override
         protected String visitListExpression(ListExpressionNode node, Void context) {
-            return "[" + join(node.getExpressions()) + "]";
+            return node.isParenthesized() ? "(" + join(node.getExpressions()) + ")" : "[" + join(node.getExpressions()) + "]";
         }
 
         @Override
         protected String visitNullPredicate(NullPredicateNode node, Void context) {
             return process(node.getExpression()) + (node.isNot() ? " IS NOT NULL" : " IS NULL");
+        }
+
+        @Override
+        protected String visitBetweenPredicate(BetweenPredicateNode node, Void context) {
+            if (node.isNot()) {
+                return process(node.getExpression()) + " NOT BETWEEN (" + process(node.getLower()) + ", " + process(node.getUpper()) + ")";
+            }
+            return process(node.getExpression()) + " BETWEEN (" + process(node.getLower()) + ", " + process(node.getUpper()) + ")";
         }
 
         @Override
@@ -222,6 +246,34 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        protected String visitTableFunction(TableFunctionNode node, Void context) {
+            StringBuilder builder = new StringBuilder();
+            if (node.isOuter()) {
+                builder.append("OUTER ");
+            }
+            switch (node.getType()) {
+                case EXPLODE:
+                    builder.append("EXPLODE(");
+                    break;
+                default:
+                    builder.append(node.getType())
+                           .append("(");
+            }
+            builder.append(process(node.getExpression()))
+                   .append(") AS ");
+            if (node.getValueAlias() != null) {
+                builder.append("(")
+                       .append(process(node.getKeyAlias()))
+                       .append(", ")
+                       .append(process(node.getValueAlias()))
+                       .append(")");
+            } else {
+                builder.append(process(node.getKeyAlias()));
+            }
+            return builder.toString();
+        }
+
+        @Override
         protected String visitBinaryExpression(BinaryExpressionNode node, Void context) {
             switch (node.getOp()) {
                 case ADD:
@@ -248,6 +300,8 @@ public final class ExpressionFormatter {
                 case LESS_THAN_OR_EQUALS_ALL:
                 case REGEX_LIKE:
                 case REGEX_LIKE_ANY:
+                case NOT_REGEX_LIKE:
+                case NOT_REGEX_LIKE_ANY:
                 case IN:
                 case NOT_IN:
                 case AND:

@@ -15,6 +15,7 @@ import java.util.Objects;
 public class QueryNode extends Node {
     private final SelectNode select;
     private final StreamNode stream;
+    private final LateralViewNode lateralView;
     private final ExpressionNode where;
     private final GroupByNode groupBy;
     private final ExpressionNode having;
@@ -22,11 +23,12 @@ public class QueryNode extends Node {
     private final WindowNode window;
     private final String limit;
 
-    public QueryNode(SelectNode select, StreamNode stream, ExpressionNode where, GroupByNode groupBy, ExpressionNode having,
-                     OrderByNode orderBy, WindowNode window, String limit, NodeLocation nodeLocation) {
+    public QueryNode(SelectNode select, StreamNode stream, LateralViewNode lateralView, ExpressionNode where, GroupByNode groupBy,
+                     ExpressionNode having, OrderByNode orderBy, WindowNode window, String limit, NodeLocation nodeLocation) {
         super(nodeLocation);
         this.select = select;
         this.stream = stream;
+        this.lateralView = lateralView;
         this.where = where;
         this.groupBy = groupBy;
         this.having = having;
@@ -51,6 +53,7 @@ public class QueryNode extends Node {
         QueryNode other = (QueryNode) obj;
         return Objects.equals(select, other.select) &&
                Objects.equals(stream, other.stream) &&
+               Objects.equals(lateralView, other.lateralView) &&
                Objects.equals(where, other.where) &&
                Objects.equals(groupBy, other.groupBy) &&
                Objects.equals(having, other.having) &&
@@ -61,6 +64,6 @@ public class QueryNode extends Node {
 
     @Override
     public int hashCode() {
-        return Objects.hash(select, stream, where, groupBy, having, orderBy, window, limit);
+        return Objects.hash(select, stream, lateralView, where, groupBy, having, orderBy, window, limit);
     }
 }

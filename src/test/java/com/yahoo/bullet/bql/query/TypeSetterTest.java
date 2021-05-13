@@ -16,13 +16,19 @@ import org.testng.annotations.Test;
 import java.util.Collections;
 
 public class TypeSetterTest {
+    @Test
+    public void testConstructor() {
+        // coverage
+        new TypeSetter();
+    }
+
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported unary operation: \\+")
     public void testGetUnaryTypeNotUnary() {
         // coverage
         UnaryExpression expression = Mockito.mock(UnaryExpression.class);
         Mockito.when(expression.getOperand()).thenReturn(expression);
         Mockito.when(expression.getOp()).thenReturn(Operation.ADD);
-        TypeSetter.setUnaryType(expression);
+        TypeSetter.setUnaryType(expression, false);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported n-ary operation: \\+")
@@ -31,7 +37,7 @@ public class TypeSetterTest {
         NAryExpression expression = Mockito.mock(NAryExpression.class);
         Mockito.when(expression.getOperands()).thenReturn(Collections.emptyList());
         Mockito.when(expression.getOp()).thenReturn(Operation.ADD);
-        TypeSetter.setNAryType(expression);
+        TypeSetter.setNAryType(expression, false);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "This is not a supported group operation: COUNT")

@@ -31,6 +31,7 @@ public class DefaultTraversalVisitorTest {
     public void testVisitQuery() {
         QueryNode query = new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                         new StreamNode(null, null),
+                                        new LateralViewNode(null, null),
                                         new LiteralNode(true, null),
                                         new GroupByNode(Collections.emptyList(), null),
                                         new LiteralNode(false, null),
@@ -42,6 +43,7 @@ public class DefaultTraversalVisitorTest {
         Mockito.verify(visitor).visitQuery(query, null);
         Mockito.verify(visitor).visitSelect(query.getSelect(), null);
         Mockito.verify(visitor).visitStream(query.getStream(), null);
+        Mockito.verify(visitor).visitLateralView(query.getLateralView(), null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) query.getWhere(), null);
         Mockito.verify(visitor).visitGroupBy(query.getGroupBy(), null);
         Mockito.verify(visitor).visitLiteral((LiteralNode) query.getWhere(), null);

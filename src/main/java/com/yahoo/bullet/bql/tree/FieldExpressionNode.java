@@ -7,6 +7,7 @@ package com.yahoo.bullet.bql.tree;
 
 import com.yahoo.bullet.typesystem.Type;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Objects;
 
@@ -14,7 +15,8 @@ import java.util.Objects;
 public class FieldExpressionNode extends ExpressionNode {
     protected final IdentifierNode field;
     // Types ignored for equals() and hashCode()
-    private final Type type;
+    @Setter
+    private Type type;
 
     public FieldExpressionNode(IdentifierNode field, Type type, NodeLocation nodeLocation) {
         super(nodeLocation);

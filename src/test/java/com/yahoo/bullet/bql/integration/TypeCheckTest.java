@@ -42,18 +42,22 @@ public class TypeCheckTest extends IntegrationTest {
 
     @Test
     public void testTypeCheckRegexLike() {
-        build("SELECT 'foo' RLIKE 0, 0 RLIKE 'foo' FROM STREAM()");
+        build("SELECT 'foo' RLIKE 0, 0 RLIKE 'foo', 'foo' NOT RLIKE 0, 0 NOT RLIKE 'foo' FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 'foo' RLIKE 0 must be STRING. Types given: STRING, INTEGER.");
         Assert.assertEquals(errors.get(1).getError(), "1:23: The types of the arguments in 0 RLIKE 'foo' must be STRING. Types given: INTEGER, STRING.");
-        Assert.assertEquals(errors.size(), 2);
+        Assert.assertEquals(errors.get(2).getError(), "1:38: The types of the arguments in 'foo' NOT RLIKE 0 must be STRING. Types given: STRING, INTEGER.");
+        Assert.assertEquals(errors.get(3).getError(), "1:57: The types of the arguments in 0 NOT RLIKE 'foo' must be STRING. Types given: INTEGER, STRING.");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test
     public void testTypeCheckRegexLikeAny() {
-        build("SELECT 0 RLIKE ANY 'foo' FROM STREAM()");
+        build("SELECT 0 RLIKE ANY 'foo', 0 NOT RLIKE ANY 'foo' FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the left operand in 0 RLIKE ANY 'foo' must be STRING. Type given: INTEGER.");
         Assert.assertEquals(errors.get(1).getError(), "1:8: The type of the right operand in 0 RLIKE ANY 'foo' must be STRING_LIST. Type given: STRING.");
-        Assert.assertEquals(errors.size(), 2);
+        Assert.assertEquals(errors.get(2).getError(), "1:27: The type of the left operand in 0 NOT RLIKE ANY 'foo' must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(3).getError(), "1:27: The type of the right operand in 0 NOT RLIKE ANY 'foo' must be STRING_LIST. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test
@@ -98,6 +102,51 @@ public class TypeCheckTest extends IntegrationTest {
     }
 
     @Test
+    public void testTypeCheckInWithParentheses() {
+        // Checking formatting of parentheses
+        build("SELECT aaa IN ('foo', 'bar'), aaa IN (aaa, bbb, 'bar') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the left operand in aaa IN ('foo', 'bar') must be primitive. Type given: STRING_MAP_LIST.");
+        Assert.assertTrue(errors.get(1).getError().startsWith("1:39: The list (aaa, bbb, 'bar') consists of objects of multiple types:"));
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckBetweenPredicate() {
+        build("SELECT aaa BETWEEN ('5', '10'), aaa NOT BETWEEN ('5', '10') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the values in aaa BETWEEN ('5', '10') must be all numeric or all STRING. Types given: [STRING_MAP_LIST, STRING, STRING]");
+        Assert.assertEquals(errors.get(1).getError(), "1:33: The types of the values in aaa NOT BETWEEN ('5', '10') must be all numeric or all STRING. Types given: [STRING_MAP_LIST, STRING, STRING]");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckSizeOf() {
+        build("SELECT SIZEOF(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in SIZEOF(5) must be some LIST, MAP, or STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckNot() {
+        build("SELECT NOT 'foo' FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in NOT 'foo' must be numeric or BOOLEAN. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckTrim() {
+        build("SELECT TRIM(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in TRIM(5) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckAbs() {
+        build("SELECT ABS('foo') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in ABS('foo') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testTypeCheckBooleanComparison() {
         build("SELECT 5 AND true, false OR 5, 'foo' XOR 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 5 AND true must be BOOLEAN. Types given: INTEGER, BOOLEAN.");
@@ -112,6 +161,45 @@ public class TypeCheckTest extends IntegrationTest {
         Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the first argument in FILTER('foo', 5) must be some LIST. Type given: STRING.");
         Assert.assertEquals(errors.get(1).getError(), "1:8: The type of the second argument in FILTER('foo', 5) must be BOOLEAN_LIST. Type given: INTEGER.");
         Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckIf() {
+        build("SELECT IF(c, 5), IF(c, 5, 10.0) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: IF requires 3 arguments. The number of arguments given in IF(c, 5) was 2.");
+        Assert.assertEquals(errors.get(1).getError(), "1:18: The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING.");
+        Assert.assertEquals(errors.get(2).getError(), "1:18: The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE.");
+        Assert.assertEquals(errors.size(), 3);
+    }
+
+    @Test
+    public void testTypeCheckBetween() {
+        build("SELECT BETWEEN(abc, 5), BETWEEN(7, '5', '10') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: BETWEEN requires 3 arguments. The number of arguments given in BETWEEN(abc, 5) was 2.");
+        Assert.assertEquals(errors.get(1).getError(), "1:25: The types of the arguments in BETWEEN(7, '5', '10') must be all numeric or all STRING. Types given: [INTEGER, STRING, STRING]");
+        Assert.assertEquals(errors.size(), 2);
+    }
+
+    @Test
+    public void testTypeCheckSubstring() {
+        build("SELECT SUBSTRING(c), SUBSTRING(5, 'abc'), SUBSTRING(5, 'abc', 'def') FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: SUBSTRING requires 2 or 3 arguments. The number of arguments given in SUBSTRING(c) was 1.");
+        Assert.assertEquals(errors.get(1).getError(), "1:22: The type of the first argument in SUBSTRING(5, 'abc') must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(2).getError(), "1:22: The type of the second argument (the start parameter) in SUBSTRING(5, 'abc') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(3).getError(), "1:43: The type of the first argument in SUBSTRING(5, 'abc', 'def') must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(4).getError(), "1:43: The type of the second argument (the start parameter) in SUBSTRING(5, 'abc', 'def') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(5).getError(), "1:43: The type of the third argument (the length parameter) in SUBSTRING(5, 'abc', 'def') must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 6);
+    }
+
+    @Test
+    public void testTypeCheckUnixTimestamp() {
+        build("SELECT UNIXTIMESTAMP(0, 1, 2, 3), UNIXTIMESTAMP(4), UNIXTIMESTAMP(true, 5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: UNIXTIMESTAMP requires 0, 1, or 2 arguments. The number of arguments given in UNIXTIMESTAMP(0, 1, 2, 3) was 4.");
+        Assert.assertEquals(errors.get(1).getError(), "1:35: The type of the first argument in UNIXTIMESTAMP(4) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.get(2).getError(), "1:53: The type of the first argument in UNIXTIMESTAMP(true, 5) must be STRING or numeric. Type given: BOOLEAN.");
+        Assert.assertEquals(errors.get(3).getError(), "1:53: The type of the second argument (the pattern parameter) in UNIXTIMESTAMP(true, 5) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 4);
     }
 
     @Test
@@ -139,6 +227,17 @@ public class TypeCheckTest extends IntegrationTest {
     public void testTypeCheckTopK() {
         build("SELECT TOP(10, aaa) FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in TOP(10, aaa) must be primitive. Types given: [STRING_MAP_LIST].");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckExplode() {
+        build("SELECT EXPLODE(abc) AS def FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in EXPLODE(abc) AS def must be some LIST. Type given: INTEGER");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT EXPLODE(abc) AS (def, ghi) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in EXPLODE(abc) AS (def, ghi) must be some MAP. Type given: INTEGER");
         Assert.assertEquals(errors.size(), 1);
     }
 }

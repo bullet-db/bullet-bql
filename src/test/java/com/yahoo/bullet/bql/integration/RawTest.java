@@ -48,6 +48,26 @@ public class RawTest extends IntegrationTest {
         build("SELECT ccc[0].def FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield ccc[0].def is invalid since the field ccc[0] has type: INTEGER.");
         Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT aaa.\"0\" FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield aaa.0 is invalid since the field aaa has type: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT ddd[0] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The subfield ddd[0] is invalid since the field ddd has type: STRING_MAP.");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT ccc[c] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the index in the subfield ccc[c] must be INTEGER or LONG. Type given: STRING.");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT ddd[abc] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the key in the subfield ddd[abc] must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+
+        build("SELECT aaa[0][abc] FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the subkey in the subfield aaa[0][abc] must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
     }
 
     @Test
@@ -78,17 +98,17 @@ public class RawTest extends IntegrationTest {
     }
 
     @Test
-    public void testEmptyRawAliasNotAllowed() {
-        build("SELECT abc AS \"\" FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "Cannot have an empty string as an alias.");
-        Assert.assertEquals(errors.size(), 1);
-    }
-
-    @Test
     public void testRawAliasesClash() {
         build("SELECT abc, def AS abc, aaa, bbb AS aaa, ccc FROM STREAM()");
         Assert.assertTrue(errors.get(0).getError().equals("The following field names/aliases are shared: [abc, aaa].") ||
                           errors.get(0).getError().equals("The following field names/aliases are shared: [aaa, abc]."));
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testRawFieldWithMultipleAliases() {
+        build("SELECT abc AS def, abc AS ghi FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "Cannot alias a field with multiple different aliases.");
         Assert.assertEquals(errors.size(), 1);
     }
 

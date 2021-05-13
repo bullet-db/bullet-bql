@@ -58,6 +58,30 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
+    public void testFieldExpressionWithIndexAndStringSubKey() {
+        build("SELECT aaa[0]['def'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "aaa[0]['def']");
+        Assert.assertEquals(field.getValue(), field("aaa", 0, "def", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithIndexAndExpressionSubKey() {
+        build("SELECT aaa[0][c] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "aaa[0][c]");
+        Assert.assertEquals(field.getValue(), field("aaa", 0, field("c", Type.STRING), Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
     public void testFieldExpressionWithKey() {
         build("SELECT bbb.def FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -70,6 +94,30 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
+    public void testFieldExpressionWithStringKey() {
+        build("SELECT bbb['def'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb['def']");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", Type.STRING_MAP));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING_MAP);
+    }
+
+    @Test
+    public void testFieldExpressionWithExpressionKey() {
+        build("SELECT bbb[c] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb[c]");
+        Assert.assertEquals(field.getValue(), field("bbb", field("c", Type.STRING), Type.STRING_MAP));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING_MAP);
+    }
+
+    @Test
     public void testFieldExpressionWithKeyAndSubKey() {
         build("SELECT bbb.def.one FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
@@ -77,6 +125,42 @@ public class ExpressionTest extends IntegrationTest {
         Field field = query.getProjection().getFields().get(0);
 
         Assert.assertEquals(field.getName(), "bbb.def.one");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithKeyAndBracketSubKey() {
+        build("SELECT bbb.def['one'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb.def['one']");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithBracketKeyAndSubKey() {
+        build("SELECT bbb['def'].one FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb['def'].one");
+        Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
+        Assert.assertEquals(field.getValue().getType(), Type.STRING);
+    }
+
+    @Test
+    public void testFieldExpressionWithBracketKeyAndBracketSubKey() {
+        build("SELECT bbb['def']['one'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "bbb['def']['one']");
         Assert.assertEquals(field.getValue(), field("bbb", "def", "one", Type.STRING));
         Assert.assertEquals(field.getValue().getType(), Type.STRING);
     }
@@ -218,54 +302,122 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
-    public void testBinaryOperationsMisc() {
-        build("SELECT c RLIKE 'abc', c RLIKE ANY ['abc'], SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), " +
-              "'abc' IN aaa, 'abc' NOT IN aaa, FILTER(aaa, [true, false]), b AND true, b OR false, b XOR true FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 11);
-        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("c RLIKE 'abc'", binary(field("c", Type.STRING),
-                                                                                                        value("abc"),
-                                                                                                        Operation.REGEX_LIKE,
-                                                                                                        Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("c RLIKE ANY ['abc']", binary(field("c", Type.STRING),
-                                                                                                              list(Type.STRING_LIST, value("abc")),
-                                                                                                              Operation.REGEX_LIKE_ANY,
-                                                                                                              Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("SIZEIS(c, 5)", binary(field("c", Type.STRING),
+    public void testBinaryOperationsRegexLike() {
+        build("SELECT c RLIKE 'abc', c RLIKE ANY ['abc'], c NOT RLIKE 'abc', c NOT RLIKE ANY ['abc'] FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 4);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("c RLIKE 'abc'",
+                                                                                binary(field("c", Type.STRING),
+                                                                                       value("abc"),
+                                                                                       Operation.REGEX_LIKE,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("c RLIKE ANY ['abc']",
+                                                                                binary(field("c", Type.STRING),
+                                                                                       list(Type.STRING_LIST, value("abc")),
+                                                                                       Operation.REGEX_LIKE_ANY,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("c NOT RLIKE 'abc'",
+                                                                                binary(field("c", Type.STRING),
+                                                                                       value("abc"),
+                                                                                       Operation.NOT_REGEX_LIKE,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("c NOT RLIKE ANY ['abc']",
+                                                                                binary(field("c", Type.STRING),
+                                                                                       list(Type.STRING_LIST, value("abc")),
+                                                                                       Operation.NOT_REGEX_LIKE_ANY,
+                                                                                       Type.BOOLEAN)));
+    }
+
+    @Test
+    public void testBinaryOperationsIn() {
+        build("SELECT 'abc' IN aaa, 'abc' NOT IN aaa FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("'abc' IN aaa",
+                                                                                binary(value("abc"),
+                                                                                       field("aaa", Type.STRING_MAP_LIST),
+                                                                                       Operation.IN,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("'abc' NOT IN aaa",
+                                                                                binary(value("abc"),
+                                                                                       field("aaa", Type.STRING_MAP_LIST),
+                                                                                       Operation.NOT_IN,
+                                                                                       Type.BOOLEAN)));
+    }
+
+    @Test
+    public void testBinaryOperationsInWithParentheses() {
+        build("SELECT 'abc' IN ('abc'), 'abc' NOT IN ('abc'), 'abc' IN('abc', 'def'), 'abc' NOT IN('abc', 'def') FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 4);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("'abc' IN ('abc')",
+                                                                                binary(value("abc"),
+                                                                                       list(Type.STRING_LIST, value("abc")),
+                                                                                       Operation.IN,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("'abc' NOT IN ('abc')",
+                                                                                binary(value("abc"),
+                                                                                        list(Type.STRING_LIST, value("abc")),
+                                                                                       Operation.NOT_IN,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("'abc' IN ('abc', 'def')",
+                                                                                binary(value("abc"),
+                                                                                       list(Type.STRING_LIST, value("abc"), value("def")),
+                                                                                       Operation.IN,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("'abc' NOT IN ('abc', 'def')",
+                                                                                binary(value("abc"),
+                                                                                       list(Type.STRING_LIST, value("abc"), value("def")),
+                                                                                       Operation.NOT_IN,
+                                                                                       Type.BOOLEAN)));
+    }
+
+    @Test
+    public void testBinaryOperationsMiscellaneous() {
+        build("SELECT SIZEIS(c, 5), CONTAINSKEY(bbb, 'abc'), CONTAINSVALUE(aaa, 'abc'), FILTER(aaa, [true, false]), " +
+              "b AND true, b OR false, b XOR true FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 7);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("SIZEIS(c, 5)", binary(field("c", Type.STRING),
                                                                                                        value(5),
                                                                                                        Operation.SIZE_IS,
                                                                                                        Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("CONTAINSKEY(bbb, 'abc')", binary(field("bbb", Type.STRING_MAP_MAP),
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("CONTAINSKEY(bbb, 'abc')", binary(field("bbb", Type.STRING_MAP_MAP),
                                                                                                                   value("abc"),
                                                                                                                   Operation.CONTAINS_KEY,
                                                                                                                   Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("CONTAINSVALUE(aaa, 'abc')", binary(field("aaa", Type.STRING_MAP_LIST),
+        Assert.assertEquals(query.getProjection().getFields().get(2), new Field("CONTAINSVALUE(aaa, 'abc')", binary(field("aaa", Type.STRING_MAP_LIST),
                                                                                                                     value("abc"),
                                                                                                                     Operation.CONTAINS_VALUE,
                                                                                                                     Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(5), new Field("'abc' IN aaa", binary(value("abc"),
-                                                                                                       field("aaa", Type.STRING_MAP_LIST),
-                                                                                                       Operation.IN,
-                                                                                                       Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("'abc' NOT IN aaa", binary(value("abc"),
-                                                                                                           field("aaa", Type.STRING_MAP_LIST),
-                                                                                                           Operation.NOT_IN,
-                                                                                                           Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("FILTER(aaa, [true, false])", binary(field("aaa", Type.STRING_MAP_LIST),
+        Assert.assertEquals(query.getProjection().getFields().get(3), new Field("FILTER(aaa, [true, false])", binary(field("aaa", Type.STRING_MAP_LIST),
                                                                                                                      list(Type.BOOLEAN_LIST, value(true), value(false)),
                                                                                                                      Operation.FILTER,
                                                                                                                      Type.STRING_MAP_LIST)));
-        Assert.assertEquals(query.getProjection().getFields().get(8), new Field("b AND true", binary(field("b", Type.BOOLEAN),
+        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("b AND true", binary(field("b", Type.BOOLEAN),
                                                                                                      value(true),
                                                                                                      Operation.AND,
                                                                                                      Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(9), new Field("b OR false", binary(field("b", Type.BOOLEAN),
+        Assert.assertEquals(query.getProjection().getFields().get(5), new Field("b OR false", binary(field("b", Type.BOOLEAN),
                                                                                                      value(false),
                                                                                                      Operation.OR,
                                                                                                      Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(10), new Field("b XOR true", binary(field("b", Type.BOOLEAN),
-                                                                                                      value(true),
-                                                                                                      Operation.XOR,
-                                                                                                      Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("b XOR true", binary(field("b", Type.BOOLEAN),
+                                                                                                     value(true),
+                                                                                                     Operation.XOR,
+                                                                                                     Type.BOOLEAN)));
+    }
+
+    @Test
+    public void testAlternativeEqualsAndNotEquals() {
+        // a == 5 and a <> 5 are the exact same expressions as a = 5 and a != 5 respectively and are in fact rewritten
+        // with the field names "a = 5" and "a != 5" in the record
+        build("SELECT a == 5, a <> 5, a = 5, a != 5 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("a = 5", binary(field("a", Type.LONG),
+                                                                                                value(5),
+                                                                                                Operation.EQUALS,
+                                                                                                Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("a != 5", binary(field("a", Type.LONG),
+                                                                                                 value(5),
+                                                                                                 Operation.NOT_EQUALS,
+                                                                                                 Type.BOOLEAN)));
     }
 
     @Test
@@ -281,61 +433,61 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
-    public void testUnaryExpressionSizeOfCollection() {
-        build("SELECT SIZEOF(aaa) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+    public void testUnaryOperationsSizeOf() {
+        build("SELECT SIZEOF(aaa), SIZEOF(c) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
 
+        // SIZEOF collection
         Field field = query.getProjection().getFields().get(0);
 
         Assert.assertEquals(field.getName(), "SIZEOF(aaa)");
         Assert.assertEquals(field.getValue(), unary(field("aaa", Type.STRING_MAP_LIST), Operation.SIZE_OF, Type.INTEGER));
-    }
 
-    @Test
-    public void testUnaryExpressionSizeOfString() {
-        build("SELECT SIZEOF(c) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
-
-        Field field = query.getProjection().getFields().get(0);
+        // SIZEOF string
+        field = query.getProjection().getFields().get(1);
 
         Assert.assertEquals(field.getName(), "SIZEOF(c)");
         Assert.assertEquals(field.getValue(), unary(field("c", Type.STRING), Operation.SIZE_OF, Type.INTEGER));
     }
 
     @Test
-    public void testUnaryExpressionSizeOfInvalid() {
-        build("SELECT SIZEOF(5) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in SIZEOF(5) must be some LIST, MAP, or STRING. Type given: INTEGER.");
-        Assert.assertEquals(errors.size(), 1);
-    }
+    public void testUnaryOperationsNot() {
+        build("SELECT NOT abc, NOT b FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
 
-    @Test
-    public void testUnaryExpressionNotNumber() {
-        build("SELECT NOT abc FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
-
+        // NOT number
         Field field = query.getProjection().getFields().get(0);
 
         Assert.assertEquals(field.getName(), "NOT abc");
         Assert.assertEquals(field.getValue(), unary(field("abc", Type.INTEGER), Operation.NOT, Type.BOOLEAN));
-    }
 
-    @Test
-    public void testUnaryExpressionNotBoolean() {
-        build("SELECT NOT b FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
-
-        Field field = query.getProjection().getFields().get(0);
+        // NOT boolean
+        field = query.getProjection().getFields().get(1);
 
         Assert.assertEquals(field.getName(), "NOT b");
         Assert.assertEquals(field.getValue(), unary(field("b", Type.BOOLEAN), Operation.NOT, Type.BOOLEAN));
     }
 
     @Test
-    public void testUnaryExpressionNotInvalid() {
-        build("SELECT NOT 'foo' FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in NOT 'foo' must be numeric or BOOLEAN. Type given: STRING.");
-        Assert.assertEquals(errors.size(), 1);
+    public void testUnaryOperationsTrim() {
+        build("SELECT TRIM(c) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "TRIM(c)");
+        Assert.assertEquals(field.getValue(), unary(field("c", Type.STRING), Operation.TRIM, Type.STRING));
+    }
+
+    @Test
+    public void testUnaryOperationsAbs() {
+        build("SELECT ABS(abc) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "ABS(abc)");
+        Assert.assertEquals(field.getValue(), unary(field("abc", Type.INTEGER), Operation.ABS, Type.INTEGER));
     }
 
     @Test
@@ -389,9 +541,9 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
-    public void testNAryExpression() {
-        build("SELECT IF(b, 5, 10) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+    public void testNAryOperations() {
+        build("SELECT IF(b, 5, 10), BETWEEN(abc, 5, 10) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
 
         Field field = query.getProjection().getFields().get(0);
 
@@ -399,13 +551,76 @@ public class ExpressionTest extends IntegrationTest {
         Assert.assertEquals(field.getValue(), nary(Type.INTEGER, Operation.IF, field("b", Type.BOOLEAN),
                                                                                value(5),
                                                                                value(10)));
+
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "BETWEEN(abc, 5, 10)");
+        Assert.assertEquals(field.getValue(), nary(Type.BOOLEAN, Operation.BETWEEN, field("abc", Type.INTEGER),
+                                                                                    value(5),
+                                                                                    value(10)));
     }
 
     @Test
-    public void testNAryExpressionBadArguments() {
-        build("SELECT IF(c, 5, 10.0) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the first argument in IF(c, 5, 10.0) must be BOOLEAN. Type given: STRING.");
-        Assert.assertEquals(errors.get(1).getError(), "1:8: The types of the second and third arguments in IF(c, 5, 10.0) must match. Types given: INTEGER, DOUBLE.");
+    public void testNAryOperationsSubstring() {
+        build("SELECT SUBSTRING('abc', 5), SUBSTR('abc', 5, 10) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "SUBSTRING('abc', 5)");
+        Assert.assertEquals(field.getValue(), nary(Type.STRING, Operation.SUBSTRING, value("abc"), value(5)));
+
+        // SUBSTR -> SUBSTRING
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "SUBSTRING('abc', 5, 10)");
+        Assert.assertEquals(field.getValue(), nary(Type.STRING, Operation.SUBSTRING, value("abc"), value(5), value(10)));
+    }
+
+    @Test
+    public void testNAryOperationsUnixTimestamp() {
+        build("SELECT UNIXTIMESTAMP(), UNIXTIMESTAMP('abc'), UNIXTIMESTAMP('abc', 'def'), UNIXTIMESTAMP(123, 'def') FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 4);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP()");
+        Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP));
+
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP('abc')");
+        Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP, value("abc")));
+
+        field = query.getProjection().getFields().get(2);
+
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP('abc', 'def')");
+        Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP, value("abc"), value("def")));
+
+        field = query.getProjection().getFields().get(3);
+
+        Assert.assertEquals(field.getName(), "UNIXTIMESTAMP(123, 'def')");
+        Assert.assertEquals(field.getValue(), nary(Type.LONG, Operation.UNIX_TIMESTAMP, value(123), value("def")));
+    }
+
+    @Test
+    public void testBetweenPredicate() {
+        build("SELECT abc BETWEEN (5, 10), abc NOT BETWEEN (5, 10) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "abc BETWEEN (5, 10)");
+        Assert.assertEquals(field.getValue(), nary(Type.BOOLEAN, Operation.BETWEEN, field("abc", Type.INTEGER),
+                                                                                    value(5),
+                                                                                    value(10)));
+
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "abc NOT BETWEEN (5, 10)");
+        Assert.assertEquals(field.getValue(), nary(Type.BOOLEAN, Operation.NOT_BETWEEN, field("abc", Type.INTEGER),
+                                                                                        value(5),
+                                                                                        value(10)));
     }
 
     @Test

@@ -88,6 +88,17 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
+     * Visit a {@link LateralViewNode} with passed in context.
+     *
+     * @param node A {@link LateralViewNode}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitLateralView(LateralViewNode node, C context) {
+        return visitNode(node, context);
+    }
+
+    /**
      * Visit a {@link GroupByNode} with passed in context.
      *
      * @param node A {@link GroupByNode}.
@@ -198,6 +209,17 @@ public abstract class ASTVisitor<R, C> {
     }
 
     /**
+     * Visit a {@link BetweenPredicateNode} with passed in context.
+     *
+     * @param node A {@link BetweenPredicateNode}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitBetweenPredicate(BetweenPredicateNode node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
      * Visit a {@link UnaryExpressionNode} with passed in context.
      *
      * @param node A {@link UnaryExpressionNode}.
@@ -282,6 +304,17 @@ public abstract class ASTVisitor<R, C> {
      * @return A {@link R}.
      */
     protected R visitBinaryExpression(BinaryExpressionNode node, C context) {
+        return visitExpression(node, context);
+    }
+
+    /**
+     * Visit a {@link TableFunctionNode} with passed in context.
+     *
+     * @param node A {@link TableFunctionNode}.
+     * @param context A {@link C}.
+     * @return A {@link R}.
+     */
+    protected R visitTableFunction(TableFunctionNode node, C context) {
         return visitExpression(node, context);
     }
 
