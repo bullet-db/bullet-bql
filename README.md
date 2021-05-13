@@ -174,7 +174,7 @@ and `inputMode` is one of
 and `tableFunction` is one of
 
     OUTER? EXPLODE ( expression ) AS identifier                                     explode a list to one column
-    OUTER? EXPLODE ( expression ) AS ( identifier , identifier )                    explode a map a key and value column
+    OUTER? EXPLODE ( expression ) AS ( identifier , identifier )                    explode a map to a key and a value column
 
 and `stream` is one of
 
