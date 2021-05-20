@@ -152,4 +152,17 @@ public class SelectTest extends IntegrationTest {
         Assert.assertEquals(errors.get(0).getError(), "Query consists of multiple aggregation types.");
         Assert.assertEquals(errors.size(), 1);
     }
+
+    @Test
+    public void testSelectNow() {
+        long before = System.currentTimeMillis();
+        build("SELECT NOW FROM STREAM()");
+        long after = System.currentTimeMillis();
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+
+        ValueExpression value = (ValueExpression) query.getProjection().getFields().get(0).getValue();
+        long now = (Long) value.getValue();
+        Assert.assertTrue(before <= now && now <= after);
+    }
 }
