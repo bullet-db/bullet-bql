@@ -368,6 +368,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitNowLiteral(BQLBaseParser.NowLiteralContext context) {
+        return new LiteralNode(System.currentTimeMillis(), getLocation(context));
+    }
+
+    @Override
     public Node visitNumericLiteral(BQLBaseParser.NumericLiteralContext context) {
         return new LiteralNode(getSignedNumber(context.number()), getLocation(context));
     }
@@ -437,6 +442,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.MUL;
             case BQLBaseLexer.SLASH:
                 return Operation.DIV;
+            case BQLBaseLexer.PERCENT:
+                return Operation.MOD;
             case BQLBaseLexer.EQ:
                 return Operation.EQUALS;
             case BQLBaseLexer.NEQ:
@@ -483,6 +490,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.SUBSTRING;
             case BQLBaseLexer.UNIXTIMESTAMP:
                 return Operation.UNIX_TIMESTAMP;
+            case BQLBaseLexer.LOWER:
+                return Operation.LOWER;
+            case BQLBaseLexer.UPPER:
+                return Operation.UPPER;
         }
         return null;
     }

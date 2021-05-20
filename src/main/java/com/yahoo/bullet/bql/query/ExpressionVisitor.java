@@ -197,7 +197,7 @@ public class ExpressionVisitor extends DefaultTraversalVisitor<Expression, Layer
     @Override
     protected Expression visitDistribution(DistributionNode node, LayeredSchema layeredSchema) {
         Expression expression = process(node.getExpression(), layeredSchema);
-        TypeChecker.validateNumericType(node, expression).ifPresent(errors::addAll);
+        TypeChecker.validateNumericOrBooleanType(node, expression).ifPresent(errors::addAll);
         return null;
     }
 

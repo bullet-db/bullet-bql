@@ -119,8 +119,10 @@ public class TypeChecker {
                 }
                 return Optional.empty();
             case TRIM:
+            case LOWER:
+            case UPPER:
                 if (operandType != Type.STRING) {
-                    return makeError(node, QueryError.TRIM_HAS_WRONG_TYPE, node, operandType);
+                    return makeError(node, QueryError.STRING_OP_HAS_WRONG_TYPE, node, operandType);
                 }
                 return Optional.empty();
         }
@@ -206,13 +208,13 @@ public class TypeChecker {
         throw new IllegalArgumentException("This is not a supported n-ary operation: " + nAryExpression.getOp());
     }
 
-    static Optional<List<BulletError>> validateNumericType(ExpressionNode node, Expression expression) {
+    static Optional<List<BulletError>> validateNumericOrBooleanType(ExpressionNode node, Expression expression) {
         Type type = expression.getType();
         if (Type.isUnknown(type)) {
             return unknownError();
         }
-        if (!Type.isNumeric(type)) {
-            return makeError(node, QueryError.EXPECTED_NUMERIC_TYPE, node, type);
+        if (!Type.isNumeric(type) && type != Type.BOOLEAN) {
+            return makeError(node, QueryError.EXPECTED_NUMERIC_OR_BOOLEAN_TYPE, node, type);
         }
         return Optional.empty();
     }
@@ -252,6 +254,7 @@ public class TypeChecker {
             case SUB:
             case MUL:
             case DIV:
+            case MOD:
                 if (!Type.isNumeric(leftType) || !Type.isNumeric(rightType)) {
                     return makeError(node, QueryError.BINARY_TYPES_NOT_NUMERIC, node, leftType, rightType);
                 }

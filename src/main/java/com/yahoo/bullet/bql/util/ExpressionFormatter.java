@@ -280,6 +280,7 @@ public final class ExpressionFormatter {
                 case SUB:
                 case MUL:
                 case DIV:
+                case MOD:
                 case EQUALS:
                 case EQUALS_ANY:
                 case EQUALS_ALL:

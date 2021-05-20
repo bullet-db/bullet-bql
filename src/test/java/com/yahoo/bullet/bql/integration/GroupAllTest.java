@@ -59,7 +59,7 @@ public class GroupAllTest extends IntegrationTest {
     @Test
     public void testGroupOpNotNumber() {
         build("SELECT AVG(aaa) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in AVG(aaa) must be numeric. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in AVG(aaa) must be numeric or BOOLEAN. Type given: STRING_MAP_LIST.");
         Assert.assertEquals(errors.size(), 1);
     }
 
