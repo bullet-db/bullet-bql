@@ -71,17 +71,17 @@ expression
     | listExpression                                                                                                    #list
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
+    | left=expression NOT? op=IN (right=expression | '(' expressions ')')                                               #infixIn
     | expression IS NOT? NULL                                                                                           #nullPredicate
     | left=expression op=(ASTERISK | SLASH | PERCENT) right=expression                                                  #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
     | left=expression op=(EQ | NEQ) modifier=(ANY | ALL)? right=expression                                              #infix
-    | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
     | left=expression NOT? op=RLIKE modifier=ANY? right=expression                                                      #infix
-    | left=expression NOT? op=IN (right=expression | '(' expressions ')')                                               #infixIn
     | left=expression op=AND right=expression                                                                           #infix
     | left=expression op=XOR right=expression                                                                           #infix
     | left=expression op=OR right=expression                                                                            #infix
+    | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
     | '(' expression ')'                                                                                                #parentheses
     ;
 
