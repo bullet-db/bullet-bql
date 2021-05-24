@@ -562,7 +562,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         String value = context.value.getText();
         switch (context.value.getType()) {
             case BQLBaseLexer.INTEGER_VALUE:
-                return negative ? -Integer.valueOf(value) : Integer.valueOf(value);
+                try {
+                    return negative ? -Integer.valueOf(value) : Integer.valueOf(value);
+                } catch (NumberFormatException e) {
+                    return negative ? -Long.valueOf(value) : Long.valueOf(value);
+                }
             case BQLBaseLexer.LONG_VALUE:
                 value = value.substring(0, value.length() - 1);
                 return negative ? -Long.valueOf(value) : Long.valueOf(value);
