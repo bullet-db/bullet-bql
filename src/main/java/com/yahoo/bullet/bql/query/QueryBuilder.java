@@ -99,6 +99,7 @@ public class QueryBuilder {
 
     @Getter
     private Query query;
+    private Query postQuery;
 
     private LayeredSchema layeredSchema;
 
@@ -108,10 +109,14 @@ public class QueryBuilder {
 
     private ExpressionVisitor expressionVisitor = new ExpressionVisitor(errors);
 
-    public QueryBuilder(ProcessedQuery processedQuery, Schema schema) {
+    public QueryBuilder(ProcessedQuery processedQuery, LayeredSchema layeredSchema) {
         this.processedQuery = processedQuery;
-        this.layeredSchema = new LayeredSchema(schema);
+        this.layeredSchema = layeredSchema;
         buildQuery();
+    }
+
+    public QueryBuilder(ProcessedQuery processedQuery, Schema schema) {
+        this(processedQuery, new LayeredSchema(schema));
     }
 
     private void buildQuery() {
@@ -146,10 +151,11 @@ public class QueryBuilder {
                 doTopK();
                 break;
         }
+        doPostQuery();
         if (hasErrors()) {
             return;
         }
-        query = new Query(tableFunction, projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, window, duration);
+        query = new Query(tableFunction, projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, postQuery, window, duration);
     }
 
     private void doCommon() {
@@ -173,6 +179,18 @@ public class QueryBuilder {
             if (cannotCastToBoolean(filter.getType())) {
                 addError(whereNode, QueryError.WHERE_CANNOT_CAST_TO_BOOLEAN, whereNode);
             }
+        }
+    }
+
+    private void doPostQuery() {
+        if (processedQuery.getPostQuery() == null) {
+            return;
+        }
+        QueryBuilder builder = new QueryBuilder(processedQuery.getPostQuery(), layeredSchema);
+        if (builder.hasErrors()) {
+            errors.addAll(builder.getErrors());
+        } else {
+            postQuery = builder.query;
         }
     }
 

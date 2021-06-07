@@ -62,7 +62,12 @@ import static com.yahoo.bullet.query.aggregations.DistributionType.QUANTILE;
 
 class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
-    public Node visitQuery(BQLBaseParser.QueryContext context) {
+    public Node visitStatement(BQLBaseParser.StatementContext context) {
+        return visit(context.query());
+    }
+
+    @Override
+    public Node visitQueryPrimary(BQLBaseParser.QueryPrimaryContext context) {
         return new QueryNode((SelectNode) visit(context.select()),
                              (StreamNode) visit(context.stream()),
                              (LateralViewNode) visitIfPresent(context.lateralView()),
@@ -73,6 +78,22 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                              (WindowNode) visitIfPresent(context.window()),
                              getTextIfPresent(context.limit),
                              getLocation(context));
+    }
+
+    @Override
+    public Node visitQuerySecondary(BQLBaseParser.QuerySecondaryContext context) {
+        QueryNode queryPrimary = (QueryNode) visit(context.queryPrimary());
+        queryPrimary.setPostQuery(new QueryNode((SelectNode) visit(context.select()),
+                                                null,
+                                                (LateralViewNode) visitIfPresent(context.lateralView()),
+                                                stripParentheses((ExpressionNode) visitIfPresent(context.where)),
+                                                (GroupByNode) visitIfPresent(context.groupBy()),
+                                                stripParentheses((ExpressionNode) visitIfPresent(context.having)),
+                                                (OrderByNode) visitIfPresent(context.orderBy()),
+                                                null,
+                                                getTextIfPresent(context.limit),
+                                                getLocation(context)));
+        return queryPrimary;
     }
 
     @Override

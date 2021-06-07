@@ -22,6 +22,7 @@ public class QueryNode extends Node {
     private final OrderByNode orderBy;
     private final WindowNode window;
     private final String limit;
+    private QueryNode postQuery;
 
     public QueryNode(SelectNode select, StreamNode stream, LateralViewNode lateralView, ExpressionNode where, GroupByNode groupBy,
                      ExpressionNode having, OrderByNode orderBy, WindowNode window, String limit, NodeLocation nodeLocation) {
