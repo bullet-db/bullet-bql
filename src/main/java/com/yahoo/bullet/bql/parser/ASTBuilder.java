@@ -338,6 +338,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitBooleanExpression(BQLBaseParser.BooleanExpressionContext context) {
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op, null, false),
+                                        getLocation(context));
+    }
+
+    @Override
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
         BQLBaseParser.ExpressionContext expressionContext = context.expression();
         ExpressionNode expression = (ExpressionNode) visit(expressionContext);
