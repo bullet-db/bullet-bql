@@ -202,8 +202,8 @@ public class ExpressionTest extends IntegrationTest {
 
     @Test
     public void testBinaryOperations() {
-        build("SELECT a + 5, a - 5, a * 5, a / 5, a = 5, a != 5, a > 5, a < 5, a >= 5, a <= 5 FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 10);
+        build("SELECT a + 5, a - 5, a * 5, a / 5, a % 5, a = 5, a != 5, a > 5, a < 5, a >= 5, a <= 5 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 11);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("a + 5", binary(field("a", Type.LONG),
                                                                                                 value(5),
                                                                                                 Operation.ADD,
@@ -220,30 +220,34 @@ public class ExpressionTest extends IntegrationTest {
                                                                                                 value(5),
                                                                                                 Operation.DIV,
                                                                                                 Type.LONG)));
-        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("a = 5", binary(field("a", Type.LONG),
+        Assert.assertEquals(query.getProjection().getFields().get(4), new Field("a % 5", binary(field("a", Type.LONG),
+                                                                                                value(5),
+                                                                                                Operation.MOD,
+                                                                                                Type.LONG)));
+        Assert.assertEquals(query.getProjection().getFields().get(5), new Field("a = 5", binary(field("a", Type.LONG),
                                                                                                 value(5),
                                                                                                 Operation.EQUALS,
                                                                                                 Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(5), new Field("a != 5", binary(field("a", Type.LONG),
+        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("a != 5", binary(field("a", Type.LONG),
                                                                                                  value(5),
                                                                                                  Operation.NOT_EQUALS,
                                                                                                  Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(6), new Field("a > 5", binary(field("a", Type.LONG),
+        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("a > 5", binary(field("a", Type.LONG),
                                                                                                 value(5),
                                                                                                 Operation.GREATER_THAN,
                                                                                                 Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(7), new Field("a < 5", binary(field("a", Type.LONG),
+        Assert.assertEquals(query.getProjection().getFields().get(8), new Field("a < 5", binary(field("a", Type.LONG),
                                                                                                 value(5),
                                                                                                 Operation.LESS_THAN,
                                                                                                 Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(8), new Field("a >= 5", binary(field("a", Type.LONG),
+        Assert.assertEquals(query.getProjection().getFields().get(9), new Field("a >= 5", binary(field("a", Type.LONG),
                                                                                                  value(5),
                                                                                                  Operation.GREATER_THAN_OR_EQUALS,
                                                                                                  Type.BOOLEAN)));
-        Assert.assertEquals(query.getProjection().getFields().get(9), new Field("a <= 5", binary(field("a", Type.LONG),
-                                                                                                 value(5),
-                                                                                                 Operation.LESS_THAN_OR_EQUALS,
-                                                                                                 Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(10), new Field("a <= 5", binary(field("a", Type.LONG),
+                                                                                                  value(5),
+                                                                                                  Operation.LESS_THAN_OR_EQUALS,
+                                                                                                  Type.BOOLEAN)));
     }
 
     @Test
@@ -667,5 +671,47 @@ public class ExpressionTest extends IntegrationTest {
     public void testNullValue() {
         build("SELECT NULL FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields(), Collections.singletonList(new Field("NULL", value(null))));
+    }
+
+    @Test
+    public void testBooleanOperatorPrecedence() {
+        build("SELECT true OR true XOR true AND true FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().get(0).getValue(), binary(value(true),
+                                                                                        binary(value(true),
+                                                                                               binary(value(true),
+                                                                                                      value(true),
+                                                                                                      Operation.AND,
+                                                                                                      Type.BOOLEAN),
+                                                                                               Operation.XOR,
+                                                                                               Type.BOOLEAN),
+                                                                                        Operation.OR,
+                                                                                        Type.BOOLEAN));
+    }
+
+    @Test
+    public void testInfixOperatorPrecedence() {
+        build("SELECT true AND 5 / 2 BETWEEN (0, 10), 5 / 2 IN [1, 2] AND true, 5 / 2 IN (1) AND true FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().get(0).getValue(), binary(value(true),
+                                                                                        nary(Type.BOOLEAN,
+                                                                                             Operation.BETWEEN,
+                                                                                             binary(value(5), value(2), Operation.DIV, Type.INTEGER),
+                                                                                             value(0),
+                                                                                             value(10)),
+                                                                                        Operation.AND,
+                                                                                        Type.BOOLEAN));
+        Assert.assertEquals(query.getProjection().getFields().get(1).getValue(), binary(binary(binary(value(5), value(2), Operation.DIV, Type.INTEGER),
+                                                                                               list(Type.INTEGER_LIST, value(1), value(2)),
+                                                                                               Operation.IN,
+                                                                                               Type.BOOLEAN),
+                                                                                        value(true),
+                                                                                        Operation.AND,
+                                                                                        Type.BOOLEAN));
+        Assert.assertEquals(query.getProjection().getFields().get(2).getValue(), binary(binary(binary(value(5), value(2), Operation.DIV, Type.INTEGER),
+                                                                                               list(Type.INTEGER_LIST, value(1)),
+                                                                                               Operation.IN,
+                                                                                               Type.BOOLEAN),
+                                                                                        value(true),
+                                                                                        Operation.AND,
+                                                                                        Type.BOOLEAN));
     }
 }

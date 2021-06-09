@@ -85,7 +85,7 @@ public class TypeSetter {
             expression.setType(Type.LONG);
             return;
         }
-        Optional<List<BulletError>> errors = TypeChecker.validateNumericType(node, operand);
+        Optional<List<BulletError>> errors = TypeChecker.validateNumericOrBooleanType(node, operand);
         errors.ifPresent(bulletErrors::addAll);
         if (errors.isPresent()) {
             expression.setType(Type.DOUBLE);
@@ -137,6 +137,8 @@ public class TypeSetter {
                 }
                 break;
             case TRIM:
+            case LOWER:
+            case UPPER:
                 unaryExpression.setType(Type.STRING);
                 break;
             default:
@@ -175,7 +177,11 @@ public class TypeSetter {
             case SUM:
             case MIN:
             case MAX:
-                expression.setType(operand.getType());
+                if (operand.getType() != Type.BOOLEAN) {
+                    expression.setType(operand.getType());
+                } else {
+                    expression.setType(Type.DOUBLE);
+                }
                 break;
             case AVG:
                 expression.setType(Type.DOUBLE);
@@ -194,6 +200,7 @@ public class TypeSetter {
             case SUB:
             case MUL:
             case DIV:
+            case MOD:
                 if (hasErrors) {
                     binaryExpression.setType(Type.DOUBLE);
                 } else if (leftType == Type.DOUBLE || rightType == Type.DOUBLE) {

@@ -147,6 +147,20 @@ public class TypeCheckTest extends IntegrationTest {
     }
 
     @Test
+    public void testTypeCheckLower() {
+        build("SELECT LOWER(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in LOWER(5) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
+    public void testTypeCheckUpper() {
+        build("SELECT UPPER(5) FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in UPPER(5) must be STRING. Type given: INTEGER.");
+        Assert.assertEquals(errors.size(), 1);
+    }
+
+    @Test
     public void testTypeCheckBooleanComparison() {
         build("SELECT 5 AND true, false OR 5, 'foo' XOR 5 FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The types of the arguments in 5 AND true must be BOOLEAN. Types given: INTEGER, BOOLEAN.");
@@ -219,7 +233,7 @@ public class TypeCheckTest extends IntegrationTest {
     @Test
     public void testTypeCheckDistribution() {
         build("SELECT QUANTILE(aaa, LINEAR, 11) FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in QUANTILE(aaa, LINEAR, 11) must be numeric. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in QUANTILE(aaa, LINEAR, 11) must be numeric or BOOLEAN. Type given: STRING_MAP_LIST.");
         Assert.assertEquals(errors.size(), 1);
     }
 

@@ -72,16 +72,17 @@ expression
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
     | expression IS NOT? NULL                                                                                           #nullPredicate
-    | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
-    | left=expression op=(ASTERISK | SLASH) right=expression                                                            #infix
+    | left=expression op=(ASTERISK | SLASH | PERCENT) right=expression                                                  #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
     | left=expression op=(EQ | NEQ) modifier=(ANY | ALL)? right=expression                                              #infix
-    | left=expression op=AND right=expression                                                                           #infix
-    | left=expression op=XOR right=expression                                                                           #infix
-    | left=expression op=OR right=expression                                                                            #infix
     | left=expression NOT? op=RLIKE modifier=ANY? right=expression                                                      #infix
-    | left=expression NOT? op=IN (right=expression | '(' expressions ')')                                               #infixIn
+    | left=expression NOT? op=IN right=expression                                                                       #infixIn
+    | left=expression NOT? op=IN '(' expressions ')'                                                                    #infixIn
+    | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
+    | left=expression op=AND right=expression                                                                           #booleanExpression
+    | left=expression op=XOR right=expression                                                                           #booleanExpression
+    | left=expression op=OR right=expression                                                                            #booleanExpression
     | '(' expression ')'                                                                                                #parentheses
     ;
 
@@ -91,6 +92,7 @@ expressions
 
 valueExpression
     : NULL                                                                                                              #nullLiteral
+    | NOW                                                                                                               #nowLiteral
     | number                                                                                                            #numericLiteral
     | booleanValue                                                                                                      #booleanLiteral
     | STRING                                                                                                            #stringLiteral
@@ -119,7 +121,7 @@ listExpression
     ;
 
 unaryExpression
-    : op=(NOT | SIZEOF | ABS | TRIM) parens='(' operand=expression ')'
+    : op=(NOT | SIZEOF | ABS | TRIM | LOWER | UPPER) parens='(' operand=expression ')'
     | op=(NOT | SIZEOF) operand=expression
     ;
 
@@ -193,6 +195,7 @@ nonReserved
     | QUANTILE | FREQ | CUMFREQ
     | TOP
     | COUNT | SUM | AVG | MIN
+    | NOW
     ;
 
 ALL: 'ALL';
@@ -215,6 +218,7 @@ LAST: 'LAST';
 LIKE: 'LIKE';
 LIMIT: 'LIMIT';
 NOT: 'NOT';
+NOW: 'NOW';
 NULL: 'NULL';
 OR: 'OR';
 ORDER: 'ORDER';
@@ -253,6 +257,8 @@ FILTER: 'FILTER';
 IF: 'IF';
 ABS: 'ABS';
 TRIM: 'TRIM';
+LOWER: 'LOWER';
+UPPER: 'UPPER';
 SUBSTRING: 'SUBSTRING' | 'SUBSTR';
 UNIXTIMESTAMP: 'UNIXTIMESTAMP';
 

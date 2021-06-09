@@ -338,6 +338,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitBooleanExpression(BQLBaseParser.BooleanExpressionContext context) {
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op, null, false),
+                                        getLocation(context));
+    }
+
+    @Override
     public Node visitParentheses(BQLBaseParser.ParenthesesContext context) {
         BQLBaseParser.ExpressionContext expressionContext = context.expression();
         ExpressionNode expression = (ExpressionNode) visit(expressionContext);
@@ -365,6 +373,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitNullLiteral(BQLBaseParser.NullLiteralContext context) {
         return new LiteralNode(null, getLocation(context));
+    }
+
+    @Override
+    public Node visitNowLiteral(BQLBaseParser.NowLiteralContext context) {
+        return new LiteralNode(System.currentTimeMillis(), getLocation(context));
     }
 
     @Override
@@ -437,6 +450,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.MUL;
             case BQLBaseLexer.SLASH:
                 return Operation.DIV;
+            case BQLBaseLexer.PERCENT:
+                return Operation.MOD;
             case BQLBaseLexer.EQ:
                 return Operation.EQUALS;
             case BQLBaseLexer.NEQ:
@@ -483,6 +498,10 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.SUBSTRING;
             case BQLBaseLexer.UNIXTIMESTAMP:
                 return Operation.UNIX_TIMESTAMP;
+            case BQLBaseLexer.LOWER:
+                return Operation.LOWER;
+            case BQLBaseLexer.UPPER:
+                return Operation.UPPER;
         }
         return null;
     }
@@ -551,7 +570,11 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         String value = context.value.getText();
         switch (context.value.getType()) {
             case BQLBaseLexer.INTEGER_VALUE:
-                return negative ? -Integer.valueOf(value) : Integer.valueOf(value);
+                try {
+                    return negative ? -Integer.valueOf(value) : Integer.valueOf(value);
+                } catch (NumberFormatException e) {
+                    return negative ? -Long.valueOf(value) : Long.valueOf(value);
+                }
             case BQLBaseLexer.LONG_VALUE:
                 value = value.substring(0, value.length() - 1);
                 return negative ? -Long.valueOf(value) : Long.valueOf(value);
