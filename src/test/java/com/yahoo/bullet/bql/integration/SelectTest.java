@@ -165,4 +165,14 @@ public class SelectTest extends IntegrationTest {
         long now = (Long) value.getValue();
         Assert.assertTrue(before <= now && now <= after);
     }
+
+    @Test
+    public void testSelectLargeInteger() {
+        build("SELECT 10000000000 FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+
+        ValueExpression value = (ValueExpression) query.getProjection().getFields().get(0).getValue();
+        Assert.assertEquals(value.getValue(), 10000000000L);
+    }
 }
