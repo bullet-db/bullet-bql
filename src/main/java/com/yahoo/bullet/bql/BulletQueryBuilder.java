@@ -1,5 +1,5 @@
 /*
- *  Copyright 2018, Oath Inc.
+ *  Copyright 2018, Yahoo Inc.
  *  Licensed under the terms of the Apache License, Version 2.0.
  *  See the LICENSE file associated with the project for terms.
  */
@@ -21,10 +21,13 @@ import com.yahoo.bullet.query.Query;
 import com.yahoo.bullet.typesystem.Schema;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.Serializable;
 import java.util.Collections;
 
 @Slf4j
-public class BulletQueryBuilder {
+public class BulletQueryBuilder implements Serializable {
+    private static final long serialVersionUID = -4892719761308177347L;
+
     private final BQLParser bqlParser = new BQLParser();
     private final BQLConfig config;
     private final Schema schema;
