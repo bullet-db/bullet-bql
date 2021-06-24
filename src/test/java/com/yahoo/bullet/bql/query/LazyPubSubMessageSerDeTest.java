@@ -6,6 +6,7 @@
 package com.yahoo.bullet.bql.query;
 
 import com.yahoo.bullet.bql.BQLConfig;
+import com.yahoo.bullet.common.BulletConfig;
 import com.yahoo.bullet.pubsub.Metadata;
 import com.yahoo.bullet.pubsub.PubSubMessage;
 import com.yahoo.bullet.query.Projection;
@@ -56,19 +57,22 @@ public class LazyPubSubMessageSerDeTest {
 
     @Test
     public void testQueryCreation() {
-        LazyPubSubMessageSerDe serDe = new LazyPubSubMessageSerDe(new BQLConfig());
-        PubSubMessage message = serDe.toMessage("id", null, "SELECT * FROM STREAM(MAX, TIME) LIMIT 1");
+        BQLConfig config = new BQLConfig();
+        config.set(BulletConfig.AGGREGATION_MAX_SIZE, 5);
+        LazyPubSubMessageSerDe serDe = new LazyPubSubMessageSerDe(config);
+
+        PubSubMessage message = serDe.toMessage("id", null, "SELECT * FROM STREAM(MAX, TIME) LIMIT 100");
         PubSubMessage result = serDe.fromMessage(message);
 
         Assert.assertEquals(result.getId(), "id");
         Query actual = result.getContentAsQuery();
         Assert.assertEquals(actual.getProjection().getType(), Projection.Type.PASS_THROUGH);
         Assert.assertEquals(actual.getAggregation().getType(), AggregationType.RAW);
-        Assert.assertEquals((long) actual.getAggregation().getSize(), 1L);
+        Assert.assertEquals((long) actual.getAggregation().getSize(), 5L);
         Assert.assertEquals((long) actual.getDuration(), Long.MAX_VALUE);
         Metadata metadata = result.getMetadata();
         Assert.assertNull(metadata.getSignal());
-        Assert.assertEquals(metadata.getContent(), "SELECT * FROM STREAM(MAX, TIME) LIMIT 1");
+        Assert.assertEquals(metadata.getContent(), "SELECT * FROM STREAM(MAX, TIME) LIMIT 100");
         Assert.assertTrue(metadata.getCreated() <= System.currentTimeMillis());
 
         Assert.assertNotSame(message, result);
