@@ -14,6 +14,8 @@ import com.yahoo.bullet.query.aggregations.AggregationType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.HashMap;
+
 public class LazyPubSubMessageSerDeTest {
     @Test
     public void testLazyMessage() {
@@ -23,7 +25,7 @@ public class LazyPubSubMessageSerDeTest {
         Assert.assertEquals(message.getContent(), "bar");
         Assert.assertEquals(message.getContentAsString(), "bar");
         Metadata metadata = message.getMetadata();
-        Assert.assertNull(metadata.getSignal());
+        Assert.assertEquals(metadata.getSignal(), Metadata.Signal.CUSTOM);
         Assert.assertNull(metadata.getContent());
         Assert.assertTrue(metadata.getCreated() <= System.currentTimeMillis());
 
@@ -32,9 +34,24 @@ public class LazyPubSubMessageSerDeTest {
         Assert.assertEquals(unchanged.getContent(), "bar");
         Assert.assertEquals(unchanged.getContentAsString(), "bar");
         metadata = message.getMetadata();
-        Assert.assertNull(metadata.getSignal());
+        Assert.assertEquals(metadata.getSignal(), Metadata.Signal.CUSTOM);
         Assert.assertNull(metadata.getContent());
         Assert.assertEquals(metadata.getCreated(), message.getMetadata().getCreated());
+    }
+
+    @Test
+    public void testIgnoringOtherMessages() {
+        LazyPubSubMessageSerDe serDe = new LazyPubSubMessageSerDe(new BQLConfig());
+        PubSubMessage result = serDe.fromMessage(new PubSubMessage("id", new HashMap<>(), (Metadata) null));
+
+        Assert.assertEquals(result.getId(), "id");
+        Assert.assertNull(result.getMetadata());
+
+        result = serDe.fromMessage(new PubSubMessage("id", new HashMap<>(), new Metadata(Metadata.Signal.KILL, null)));
+        Assert.assertEquals(result.getId(), "id");
+        Metadata metadata = result.getMetadata();
+        Assert.assertEquals(metadata.getSignal(), Metadata.Signal.KILL);
+        Assert.assertNull(metadata.getContent());
     }
 
     @Test
@@ -49,10 +66,13 @@ public class LazyPubSubMessageSerDeTest {
         Assert.assertEquals(actual.getAggregation().getType(), AggregationType.RAW);
         Assert.assertEquals((long) actual.getAggregation().getSize(), 1L);
         Assert.assertEquals((long) actual.getDuration(), Long.MAX_VALUE);
-        Metadata metadata = message.getMetadata();
+        Metadata metadata = result.getMetadata();
         Assert.assertNull(metadata.getSignal());
         Assert.assertEquals(metadata.getContent(), "SELECT * FROM STREAM(MAX, TIME) LIMIT 1");
         Assert.assertTrue(metadata.getCreated() <= System.currentTimeMillis());
+
+        Assert.assertNotSame(message, result);
+        Assert.assertNotSame(message.getMetadata(), metadata);
     }
 
     @Test(expectedExceptions = RuntimeException.class)

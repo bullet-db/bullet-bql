@@ -16,11 +16,18 @@ import com.yahoo.bullet.query.Query;
 /**
  * This {@link PubSubMessageSerDe} is to be used to create a {@link PubSubMessage} for a query without actually creating
  * the {@link Query} object. The {@link Query} is instead created upon use of the {@link #fromMessage(PubSubMessage)}.
- * The {@link BulletConfig} provided to this class is used to configure the {@link BulletQueryBuilder}. The BQL query
- * string is stored as the payload in the {@link PubSubMessage} and it is explicitly not set in the message
+ * The {@link BulletConfig} provided to this class is used to configure the {@link BulletQueryBuilder} and the created
+ * {@link Query} object.
+ *
+ * The BQL query string is stored as the payload in the {@link PubSubMessage} and it is not set in the message
  * {@link Metadata}. It is added back to the {@link Metadata} in {@link #fromMessage(PubSubMessage)}} and the query
- * string is converted back to a {@link Query} using the {@link #toQuery(String)} method. The
- * {@link #toMessage(PubSubMessage)} does nothing by default.
+ * string is converted back to a {@link Query} using the {@link #toQuery(String)} method and configured with the
+ * provided {@link BulletConfig}.
+ *
+ * The {@link #toMessage(PubSubMessage)} does nothing by default, so you can safely use it for sending signals and other
+ * messages or even regular query {@link PubSubMessage}! Do note that this SerDe identifies its lazy Query messages by
+ * placing a {@link Metadata.Signal#CUSTOM} in its metadata. This is what it uses to process its messages in the
+ * {@link #fromMessage(PubSubMessage)}. You will want to not send other messages with that signal.
  *
  * Note, it is essential that the BQL query provided be valid if using the default BQL conversion in
  * {@link #toQuery(String)}! Otherwise, {@link #fromMessage(PubSubMessage)} will throw a {@link RuntimeException} when
@@ -43,7 +50,7 @@ public class LazyPubSubMessageSerDe extends PubSubMessageSerDe {
 
     @Override
     public PubSubMessage toMessage(String id, Query query, String queryString) {
-        return toMessage(new PubSubMessage(id, queryString, new Metadata(null, null)));
+        return toMessage(new PubSubMessage(id, queryString, new Metadata(Metadata.Signal.CUSTOM, null)));
     }
 
     @Override
@@ -53,25 +60,28 @@ public class LazyPubSubMessageSerDe extends PubSubMessageSerDe {
 
     @Override
     public PubSubMessage fromMessage(PubSubMessage message) {
+        if (!message.hasSignal(Metadata.Signal.CUSTOM)) {
+            return message;
+        }
         String queryString = message.getContentAsString();
         Query query = toQuery(queryString);
-        Metadata metadata = message.getMetadata();
-        metadata.setContent(queryString);
-        return new PubSubMessage(message.getId(), query, metadata);
+        return new PubSubMessage(message.getId(), query, new Metadata(null, queryString));
     }
 
     /**
      * Convert the given String query back to a {@link Query} object. Override if you stored something else instead of
      * BQL.
      *
-     * @param query The query.
+     * @param queryString The query.
      * @return A valid {@link Query} object.
      */
-    protected Query toQuery(String query) {
-        BQLResult result = queryBuilder.buildQuery(query);
+    protected Query toQuery(String queryString) {
+        BQLResult result = queryBuilder.buildQuery(queryString);
         if (result.hasErrors()) {
             throw new RuntimeException("The SerDe does not handle invalid BQL!");
         }
-        return result.getQuery();
+        Query query = result.getQuery();
+        query.configure(config);
+        return query;
     }
 }
