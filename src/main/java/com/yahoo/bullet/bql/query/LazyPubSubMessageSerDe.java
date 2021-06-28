@@ -65,7 +65,11 @@ public class LazyPubSubMessageSerDe extends PubSubMessageSerDe {
         }
         String queryString = message.getContentAsString();
         Query query = toQuery(queryString);
-        return new PubSubMessage(message.getId(), query, new Metadata(null, queryString));
+        message.setContent(query);
+        Metadata meta = message.getMetadata();
+        meta.setSignal(null);
+        meta.setContent(queryString);
+        return message;
     }
 
     /**

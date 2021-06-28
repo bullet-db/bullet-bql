@@ -62,6 +62,7 @@ public class LazyPubSubMessageSerDeTest {
         LazyPubSubMessageSerDe serDe = new LazyPubSubMessageSerDe(config);
 
         PubSubMessage message = serDe.toMessage("id", null, "SELECT * FROM STREAM(MAX, TIME) LIMIT 100");
+        long created = message.getMetadata().getCreated();
         PubSubMessage result = serDe.fromMessage(message);
 
         Assert.assertEquals(result.getId(), "id");
@@ -73,10 +74,10 @@ public class LazyPubSubMessageSerDeTest {
         Metadata metadata = result.getMetadata();
         Assert.assertNull(metadata.getSignal());
         Assert.assertEquals(metadata.getContent(), "SELECT * FROM STREAM(MAX, TIME) LIMIT 100");
-        Assert.assertTrue(metadata.getCreated() <= System.currentTimeMillis());
+        Assert.assertEquals(metadata.getCreated(), created);
 
-        Assert.assertNotSame(message, result);
-        Assert.assertNotSame(message.getMetadata(), metadata);
+        Assert.assertSame(message, result);
+        Assert.assertSame(message.getMetadata(), metadata);
     }
 
     @Test(expectedExceptions = RuntimeException.class)
