@@ -1,5 +1,5 @@
 /*
- *  Copyright 2018, Oath Inc.
+ *  Copyright 2018, Yahoo Inc.
  *  Licensed under the terms of the Apache License, Version 2.0.
  *  See the LICENSE file associated with the project for terms.
  */
@@ -88,17 +88,18 @@ expression
     | listExpression                                                                                                    #list
     | unaryExpression                                                                                                   #unary
     | functionExpression                                                                                                #function
-    | left=expression NOT? op=IN (right=expression | '(' expressions ')')                                               #infixIn
     | expression IS NOT? NULL                                                                                           #nullPredicate
     | left=expression op=(ASTERISK | SLASH | PERCENT) right=expression                                                  #infix
     | left=expression op=(PLUS | MINUS) right=expression                                                                #infix
     | left=expression op=(LT | LTE | GT | GTE) modifier=(ANY | ALL)? right=expression                                   #infix
     | left=expression op=(EQ | NEQ) modifier=(ANY | ALL)? right=expression                                              #infix
     | left=expression NOT? op=RLIKE modifier=ANY? right=expression                                                      #infix
-    | left=expression op=AND right=expression                                                                           #infix
-    | left=expression op=XOR right=expression                                                                           #infix
-    | left=expression op=OR right=expression                                                                            #infix
+    | left=expression NOT? op=IN right=expression                                                                       #infixIn
+    | left=expression NOT? op=IN '(' expressions ')'                                                                    #infixIn
     | value=expression NOT? BETWEEN '(' lower=expression ',' upper=expression ')'                                       #betweenPredicate
+    | left=expression op=AND right=expression                                                                           #booleanExpression
+    | left=expression op=XOR right=expression                                                                           #booleanExpression
+    | left=expression op=OR right=expression                                                                            #booleanExpression
     | '(' expression ')'                                                                                                #parentheses
     ;
 

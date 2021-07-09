@@ -57,7 +57,22 @@ public class GroupAllTest extends IntegrationTest {
     }
 
     @Test
-    public void testGroupOpNotNumber() {
+    public void testGroupOpBoolean() {
+        build("SELECT SUM(b) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.PASS_THROUGH);
+
+        GroupAll aggregation = (GroupAll) query.getAggregation();
+
+        Assert.assertEquals(aggregation.getType(), AggregationType.GROUP);
+        Assert.assertEquals(aggregation.getFields(), Collections.emptyList());
+        Assert.assertEquals(aggregation.getOperations(), Collections.singleton(new GroupOperation(GroupOperation.GroupOperationType.SUM,
+                                                                                                  "b",
+                                                                                                  "SUM(b)")));
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testGroupOpNotNumberOrBoolean() {
         build("SELECT AVG(aaa) FROM STREAM()");
         Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the argument in AVG(aaa) must be numeric or BOOLEAN. Type given: STRING_MAP_LIST.");
         Assert.assertEquals(errors.size(), 1);

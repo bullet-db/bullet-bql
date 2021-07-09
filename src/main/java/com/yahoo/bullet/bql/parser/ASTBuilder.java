@@ -1,5 +1,5 @@
 /*
- *  Copyright 2018, Oath Inc.
+ *  Copyright 2018, Yahoo Inc.
  *  Licensed under the terms of the Apache License, Version 2.0.
  *  See the LICENSE file associated with the project for terms.
  */
@@ -355,6 +355,14 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
         return new BinaryExpressionNode((ExpressionNode) visit(context.left),
                                         rightNode,
                                         getOperation(context.op, null, context.NOT() != null),
+                                        getLocation(context));
+    }
+
+    @Override
+    public Node visitBooleanExpression(BQLBaseParser.BooleanExpressionContext context) {
+        return new BinaryExpressionNode((ExpressionNode) visit(context.left),
+                                        (ExpressionNode) visit(context.right),
+                                        getOperation(context.op, null, false),
                                         getLocation(context));
     }
 
