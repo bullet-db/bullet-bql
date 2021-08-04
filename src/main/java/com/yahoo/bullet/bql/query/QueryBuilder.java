@@ -160,12 +160,12 @@ public class QueryBuilder {
         // We can have at most one LATERAL VIEW clause or one SELECT table function but not both
         LateralViewNode lateralViewNode = processedQuery.getLateralView();
         if (lateralViewNode != null) {
-            tableFunction = new LateralView(lateralViewNode.getTableFunctions().stream().map(node -> {
+            List<TableFunction> tableFunctions = lateralViewNode.getTableFunctions().stream().map(node -> {
                 TableFunction tableFunction = getTableFunction(node);
                 addSchemaLayer(false);
                 return tableFunction;
-            }).collect(Collectors.toList()));
-            //addSchemaLayer(false);
+            }).collect(Collectors.toCollection(ArrayList::new));
+            tableFunction = new LateralView(tableFunctions);
         } else if (processedQuery.getSelectTableFunction() != null) {
             tableFunction = getTableFunction(processedQuery.getSelectTableFunction());
             addSchemaLayer(true);
