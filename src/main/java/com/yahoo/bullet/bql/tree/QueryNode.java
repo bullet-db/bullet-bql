@@ -60,11 +60,12 @@ public class QueryNode extends Node {
                Objects.equals(having, other.having) &&
                Objects.equals(orderBy, other.orderBy) &&
                Objects.equals(window, other.window) &&
-               Objects.equals(limit, other.limit);
+               Objects.equals(limit, other.limit) &&
+               Objects.equals(postQuery, other.postQuery);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(select, stream, lateralView, where, groupBy, having, orderBy, window, limit);
+        return Objects.hash(select, stream, lateralView, where, groupBy, having, orderBy, window, limit, postQuery);
     }
 }
