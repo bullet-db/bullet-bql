@@ -67,50 +67,50 @@ public final class ExpressionFormatter {
         @Override
         protected String visitQuery(QueryNode node, Void context) {
             if (node.getPostQuery() == null) {
-                return visitQuery(node, (QueryNode) null);
+                return visitQueryNode(node, null);
             } else {
-                return visitQuery(node.getPostQuery(), node);
+                return visitQueryNode(node.getPostQuery(), node);
             }
         }
 
-        private String visitQuery(QueryNode node, QueryNode innerNode) {
+        private String visitQueryNode(QueryNode queryNode, QueryNode subQueryNode) {
             StringBuilder builder = new StringBuilder();
-            builder.append(process(node.getSelect()))
+            builder.append(process(queryNode.getSelect()))
                    .append(" FROM ");
-            if (innerNode != null) {
+            if (subQueryNode != null) {
                 builder.append("(")
-                       .append(visitQuery(innerNode, (QueryNode) null))
+                       .append(visitQueryNode(subQueryNode, null))
                        .append(")");
             } else {
-                builder.append(process(node.getStream()));
+                builder.append(process(queryNode.getStream()));
             }
-            if (node.getLateralView() != null) {
+            if (queryNode.getLateralView() != null) {
                 builder.append(" ")
-                       .append(process(node.getLateralView()));
+                       .append(process(queryNode.getLateralView()));
             }
-            if (node.getWhere() != null) {
+            if (queryNode.getWhere() != null) {
                 builder.append(" WHERE ")
-                       .append(process(node.getWhere()));
+                       .append(process(queryNode.getWhere()));
             }
-            if (node.getGroupBy() != null) {
+            if (queryNode.getGroupBy() != null) {
                 builder.append(" ")
-                       .append(process(node.getGroupBy()));
+                       .append(process(queryNode.getGroupBy()));
             }
-            if (node.getHaving() != null) {
+            if (queryNode.getHaving() != null) {
                 builder.append(" HAVING ")
-                       .append(process(node.getHaving()));
+                       .append(process(queryNode.getHaving()));
             }
-            if (node.getOrderBy() != null) {
+            if (queryNode.getOrderBy() != null) {
                 builder.append(" ")
-                       .append(process(node.getOrderBy()));
+                       .append(process(queryNode.getOrderBy()));
             }
-            if (node.getWindow() != null) {
+            if (queryNode.getWindow() != null) {
                 builder.append(" ")
-                       .append(process(node.getWindow()));
+                       .append(process(queryNode.getWindow()));
             }
-            if (node.getLimit() != null) {
+            if (queryNode.getLimit() != null) {
                 builder.append(" LIMIT ")
-                       .append(node.getLimit());
+                       .append(queryNode.getLimit());
             }
             return builder.toString();
         }
