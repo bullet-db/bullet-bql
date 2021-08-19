@@ -15,11 +15,11 @@ statement
     ;
 
 query
-    : queryPrimary
-    | querySecondary
+    : innerQuery
+    | outerQuery
     ;
 
-queryPrimary
+innerQuery
     : SELECT select FROM stream
       (LATERAL VIEW lateralView)?
       (WHERE where=expression)?
@@ -30,8 +30,8 @@ queryPrimary
       (LIMIT limit=INTEGER_VALUE)?
     ;
 
-querySecondary
-    : SELECT select FROM '(' queryPrimary ')'
+outerQuery
+    : SELECT select FROM '(' innerQuery ')'
       (LATERAL VIEW lateralView)?
       (WHERE where=expression)?
       (GROUP BY groupBy)?
