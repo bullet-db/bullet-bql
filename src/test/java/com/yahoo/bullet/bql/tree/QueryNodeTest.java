@@ -127,16 +127,16 @@ public class QueryNodeTest {
                                         new WindowNode(null, null, null, null),
                                         "50",
                                         null);
-        nodeA.setPostQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
-                                         new StreamNode("MAX", null),
-                                         new LateralViewNode(null, null),
-                                         new LiteralNode(true, null),
-                                         new GroupByNode(Collections.emptyList(), null),
-                                         new LiteralNode(false, null),
-                                         new OrderByNode(Collections.emptyList(), null),
-                                         new WindowNode(null, null, null, null),
-                                         "50",
-                                         null));
+        nodeA.setOuterQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
+                                          new StreamNode("MAX", null),
+                                          new LateralViewNode(null, null),
+                                          new LiteralNode(true, null),
+                                          new GroupByNode(Collections.emptyList(), null),
+                                          new LiteralNode(false, null),
+                                          new OrderByNode(Collections.emptyList(), null),
+                                          new WindowNode(null, null, null, null),
+                                          "50",
+                                          null));
         QueryNode nodeB = new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                         new StreamNode("MAX", null),
                                         new LateralViewNode(null, null),
@@ -147,30 +147,30 @@ public class QueryNodeTest {
                                         new WindowNode(null, null, null, null),
                                         "50",
                                         null);
-        nodeB.setPostQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
-                                         new StreamNode("MAX", null),
-                                         new LateralViewNode(null, null),
-                                         new LiteralNode(true, null),
-                                         new GroupByNode(Collections.emptyList(), null),
-                                         new LiteralNode(false, null),
-                                         new OrderByNode(Collections.emptyList(), null),
-                                         new WindowNode(null, null, null, null),
-                                         "50",
-                                         null));
+        nodeB.setOuterQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
+                                          new StreamNode("MAX", null),
+                                          new LateralViewNode(null, null),
+                                          new LiteralNode(true, null),
+                                          new GroupByNode(Collections.emptyList(), null),
+                                          new LiteralNode(false, null),
+                                          new OrderByNode(Collections.emptyList(), null),
+                                          new WindowNode(null, null, null, null),
+                                          "50",
+                                          null));
 
         Assert.assertEquals(nodeA, nodeB);
         Assert.assertEquals(nodeA.hashCode(), nodeB.hashCode());
 
-        nodeB.setPostQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
-                                         new StreamNode("MAX", null),
-                                         new LateralViewNode(null, null),
-                                         new LiteralNode(true, null),
-                                         new GroupByNode(Collections.emptyList(), null),
-                                         new LiteralNode(false, null),
-                                         new OrderByNode(Collections.emptyList(), null),
-                                         new WindowNode(null, null, null, null),
-                                         "500",
-                                         null));
+        nodeB.setOuterQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
+                                          new StreamNode("MAX", null),
+                                          new LateralViewNode(null, null),
+                                          new LiteralNode(true, null),
+                                          new GroupByNode(Collections.emptyList(), null),
+                                          new LiteralNode(false, null),
+                                          new OrderByNode(Collections.emptyList(), null),
+                                          new WindowNode(null, null, null, null),
+                                          "500",
+                                          null));
 
         Assert.assertNotEquals(nodeA, nodeB);
         Assert.assertNotEquals(nodeA.hashCode(), nodeB.hashCode());

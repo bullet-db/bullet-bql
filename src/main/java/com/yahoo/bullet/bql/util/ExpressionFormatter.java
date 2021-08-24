@@ -66,20 +66,20 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitQuery(QueryNode node, Void context) {
-            if (node.getPostQuery() == null) {
+            if (node.getOuterQuery() == null) {
                 return visitQueryNode(node, null);
             } else {
-                return visitQueryNode(node.getPostQuery(), node);
+                return visitQueryNode(node.getOuterQuery(), node);
             }
         }
 
-        private String visitQueryNode(QueryNode queryNode, QueryNode subQueryNode) {
+        private String visitQueryNode(QueryNode queryNode, QueryNode innerQueryNode) {
             StringBuilder builder = new StringBuilder();
             builder.append(process(queryNode.getSelect()))
                    .append(" FROM ");
-            if (subQueryNode != null) {
+            if (innerQueryNode != null) {
                 builder.append("(")
-                       .append(visitQueryNode(subQueryNode, null))
+                       .append(visitQueryNode(innerQueryNode, null))
                        .append(")");
             } else {
                 builder.append(process(queryNode.getStream()));

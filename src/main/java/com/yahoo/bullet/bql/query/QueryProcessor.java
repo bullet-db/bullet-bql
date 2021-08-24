@@ -43,8 +43,8 @@ public class QueryProcessor extends DefaultTraversalVisitor<Void, ProcessedQuery
         if (node.getLimit() != null) {
             processedQuery.setLimit(Integer.parseInt(node.getLimit()));
         }
-        if (node.getPostQuery() != null) {
-            processedQuery.setPostQuery(visit(node.getPostQuery()));
+        if (node.getOuterQuery() != null) {
+            processedQuery.setOuterQuery(visit(node.getOuterQuery()));
         }
         return null;
     }

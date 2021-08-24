@@ -99,7 +99,7 @@ public class QueryBuilder {
 
     @Getter
     private Query query;
-    private Query postQuery;
+    private Query outerQuery;
 
     private LayeredSchema layeredSchema;
 
@@ -151,11 +151,11 @@ public class QueryBuilder {
                 doTopK();
                 break;
         }
-        doPostQuery();
+        doOuterQuery();
         if (hasErrors()) {
             return;
         }
-        query = new Query(tableFunction, projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, postQuery, window, duration);
+        query = new Query(tableFunction, projection, filter, aggregation, !postAggregations.isEmpty() ? postAggregations : null, outerQuery, window, duration);
     }
 
     private void doCommon() {
@@ -182,15 +182,15 @@ public class QueryBuilder {
         }
     }
 
-    private void doPostQuery() {
-        if (processedQuery.getPostQuery() == null) {
+    private void doOuterQuery() {
+        if (processedQuery.getOuterQuery() == null) {
             return;
         }
-        QueryBuilder builder = new QueryBuilder(processedQuery.getPostQuery(), layeredSchema);
+        QueryBuilder builder = new QueryBuilder(processedQuery.getOuterQuery(), layeredSchema);
         if (builder.hasErrors()) {
             errors.addAll(builder.getErrors());
         } else {
-            postQuery = builder.query;
+            outerQuery = builder.query;
         }
     }
 

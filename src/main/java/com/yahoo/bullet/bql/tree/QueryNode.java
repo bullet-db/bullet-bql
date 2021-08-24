@@ -22,7 +22,7 @@ public class QueryNode extends Node {
     private final OrderByNode orderBy;
     private final WindowNode window;
     private final String limit;
-    private QueryNode postQuery;
+    private QueryNode outerQuery;
 
     public QueryNode(SelectNode select, StreamNode stream, LateralViewNode lateralView, ExpressionNode where, GroupByNode groupBy,
                      ExpressionNode having, OrderByNode orderBy, WindowNode window, String limit, NodeLocation nodeLocation) {
@@ -61,11 +61,11 @@ public class QueryNode extends Node {
                Objects.equals(orderBy, other.orderBy) &&
                Objects.equals(window, other.window) &&
                Objects.equals(limit, other.limit) &&
-               Objects.equals(postQuery, other.postQuery);
+               Objects.equals(outerQuery, other.outerQuery);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(select, stream, lateralView, where, groupBy, having, orderBy, window, limit, postQuery);
+        return Objects.hash(select, stream, lateralView, where, groupBy, having, orderBy, window, limit, outerQuery);
     }
 }

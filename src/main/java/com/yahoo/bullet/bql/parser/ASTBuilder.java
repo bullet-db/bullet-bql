@@ -83,16 +83,16 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     @Override
     public Node visitOuterQuery(BQLBaseParser.OuterQueryContext context) {
         QueryNode innerQuery = (QueryNode) visit(context.innerQuery());
-        innerQuery.setPostQuery(new QueryNode((SelectNode) visit(context.select()),
-                                              null,
-                                              (LateralViewNode) visitIfPresent(context.lateralView()),
-                                              stripParentheses((ExpressionNode) visitIfPresent(context.where)),
-                                              (GroupByNode) visitIfPresent(context.groupBy()),
-                                              stripParentheses((ExpressionNode) visitIfPresent(context.having)),
-                                              (OrderByNode) visitIfPresent(context.orderBy()),
-                                              null,
-                                              getTextIfPresent(context.limit),
-                                              getLocation(context)));
+        innerQuery.setOuterQuery(new QueryNode((SelectNode) visit(context.select()),
+                                               null,
+                                               (LateralViewNode) visitIfPresent(context.lateralView()),
+                                               stripParentheses((ExpressionNode) visitIfPresent(context.where)),
+                                               (GroupByNode) visitIfPresent(context.groupBy()),
+                                               stripParentheses((ExpressionNode) visitIfPresent(context.having)),
+                                               (OrderByNode) visitIfPresent(context.orderBy()),
+                                               null,
+                                               getTextIfPresent(context.limit),
+                                               getLocation(context)));
         return innerQuery;
     }
 

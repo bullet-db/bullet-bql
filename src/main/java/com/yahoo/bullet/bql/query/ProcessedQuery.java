@@ -61,7 +61,7 @@ public class ProcessedQuery {
     @Setter
     private LateralViewNode lateralView;
     @Setter
-    private ProcessedQuery postQuery;
+    private ProcessedQuery outerQuery;
 
     private Map<ExpressionNode, String> aliases = new HashMap<>();
 
@@ -149,8 +149,8 @@ public class ProcessedQuery {
         if (having != null && groupByNodes.isEmpty()) {
             queryErrors.add(QueryError.HAVING_WITHOUT_GROUP_BY);
         }
-        if (postQuery != null && !postQuery.validate()) {
-            queryErrors.addAll(postQuery.getQueryErrors());
+        if (outerQuery != null && !outerQuery.validate()) {
+            queryErrors.addAll(outerQuery.getQueryErrors());
         }
         return queryErrors.isEmpty();
     }
