@@ -70,7 +70,7 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
     SELECT select FROM stream
     ( LATERAL VIEW tableFunction )?
     ( WHERE expression )?
-    ( GROUP BY expression ( , expression )* )?
+    ( GROUP BY expressions )?
     ( HAVING expression )?
     ( ORDER BY orderBy )?
     ( WINDOWING window )?
@@ -97,19 +97,25 @@ and `expression` is one of
     expression IS NULL                                                                      
     expression IS NOT NULL                                                                  
     unaryExpression                                                                         
-    functionExpression                                                                      
-    expression NOT? IN expression                                    
-    expression RLIKE ANY? expression                                 
-    expression ( * | / ) expression                                  
+    functionExpression                                                                                                       
+    expression ( * | / | % ) expression                                  
     expression ( + | - ) expression                                      
     expression ( < | <= | > | >= ) ( ANY | ALL )? expression         
-    expression ( = | != ) ( ANY | ALL )? expression                    
+    expression ( = | != ) ( ANY | ALL )? expression
+    expression NOT? RLIKE ANY? expression
+    expression NOT? IN expression
+    expression NOT? IN ( expressions )
+    expressioon NOT? BETWEEN ( expression, expression )
     expression AND expression                                                 
     expression XOR expression                                                 
     expression OR expression                                                  
     ( expression )                                                                      
 
-where `valueExpression` is one of Null, Boolean, Integer, Long, Float, Double, or String
+and `expressions` is
+
+    expression ( , expression )*
+
+where `valueExpression` is one of Null, Boolean, Integer, Long, Float, Double, String, or `NOW` - a keyword that is converted to the current unix time in milliseconds
 
 and `fieldExpression` is
 
@@ -141,16 +147,19 @@ and `primitiveType` is `INTEGER`, `LONG`, `FLOAT`, `DOUBLE`, `BOOLEAN`, or `STRI
 where `listExpression` is one of
     
     []
-    [ expression ( , expression )* ]
+    [ expressions ]
 
 `unaryExpression` is 
     
     ( NOT | SIZEOF ) ( expression )                                                 with optional parentheses
+    ( ABS | TRIM | LOWER | UPPER ) ( expression )                                   with non-optional parentheses
 
 `functionExpression` is one of
 
-    ( SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER ) ( expression, expression )      
-    IF ( expression ( , expression )* )                                             three arguments                         
+    ( SIZEIS | CONTAINSKEY | CONTAINSVALUE | FILTER ) ( expression , expression )
+    UNIXTIMESTAMP ( expressions? )                                                  zero, one, or two arguments
+    SUBSTRING ( expressions? )                                                      two or three arguments
+    ( IF | BETWEEN ) ( expressions? )                                               three arguments                         
     aggregateExpression                               
     CAST ( expression AS primitiveType )          
 
@@ -237,6 +246,27 @@ and `window` is one of
     FROM STREAM(30000, TIME)
     WHERE id = uid
     LIMIT 1;
+    
+### Filtering with NOW Keyword
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE event_timestamp >= NOW
+    LIMIT 10;
+    
+### BETWEEN Filtering
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE heart_rate BETWEEN (70, 100)
+    LIMIT 10;
+    
+### IN Filtering
+
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE color IN ('red', 'green', 'blue)
+    LIMIT 10;
      
 ### Relational & Logical Filters and Projections
 
@@ -325,6 +355,20 @@ Or
     SELECT DISTINCT browser_name
     FROM STREAM(30000, TIME)
     ORDER BY browser_name;
+    
+### Lateral View Explode
+
+    SELECT student, score
+    FROM STREAM(30000, TIME)
+    LATERAL VIEW EXPLODE(test_scores) AS (student, score)
+    WHERE score >= 80
+    LIMIT 10;
+    
+### Subfields with Fields
+
+    SELECT contest_id, contestants_info[first_id].name AS first_place
+    FROM STREAM(30000, TIME)
+    LIMIT 10;
 
 ## Useful links
 
