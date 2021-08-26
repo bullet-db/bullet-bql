@@ -67,15 +67,31 @@ Bullet-BQL is created to provide users with a friendly SQL-like layer to manipul
 
 ## Statement Syntax
 
+`query` is one of
+
+    innerQuery
+    outerQuery
+    
+where `innerQuery` is
+
     SELECT select FROM stream
-    ( LATERAL VIEW tableFunction )?
+    ( LATERAL VIEW lateralView )?
     ( WHERE expression )?
     ( GROUP BY expressions )?
     ( HAVING expression )?
     ( ORDER BY orderBy )?
     ( WINDOWING window )?
     ( LIMIT Integer )?
-    ';'?
+    
+and `outerQuery` is
+
+    SELECT select FROM ( innerQuery )
+    ( LATERAL VIEW lateralView )?
+    ( WHERE expression )?
+    ( GROUP BY expressions )?
+    ( HAVING expression )?
+    ( ORDER BY orderBy )?
+    ( LIMIT Integer )?
     
 where `select` is 
     
@@ -191,6 +207,10 @@ and `stream` is one of
     STREAM( ( Integer | MAX ), TIME )                                               time based duration control 
 
 `RECORD` will be supported in the future.
+
+and `lateralView` is
+
+    tableFunction (LATERAL VIEW tableFunction)*
 
 and `orderBy` is 
 
@@ -364,11 +384,29 @@ Or
     WHERE score >= 80
     LIMIT 10;
     
+### Multiple Lateral View Explode
+
+    SELECT district, school, average_score
+    FROM STREAM(30000, TIME)
+    LATERAL VIEW EXPLODE(district_scores) AS (district, school_scores)
+    LATERAL VIEW EXPLODE(school_scores) AS (school, average_score)
+    LIMIT 500;
+    
 ### Subfields with Fields
 
     SELECT contest_id, contestants_info[first_id].name AS first_place
     FROM STREAM(30000, TIME)
     LIMIT 10;
+    
+### Outer Query
+
+    SELECT COUNT(*)
+    FROM (
+        SELECT browser_name, COUNT(*)
+        FROM STREAM(30000, TIME)
+        GROUP BY browser_name
+        HAVING COUNT(*) > 10
+    )
 
 ## Useful links
 
