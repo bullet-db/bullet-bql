@@ -57,7 +57,7 @@ public class ExpressionFormatterTest {
     }
 
     @Test
-    public void testPostQuery() {
+    public void testOuterQuery() {
         QueryNode queryNode = bqlParser.createQueryNode("select * from (select * from stream())");
         Assert.assertEquals(ExpressionFormatter.format(queryNode, true), "SELECT * FROM (SELECT * FROM STREAM())");
     }

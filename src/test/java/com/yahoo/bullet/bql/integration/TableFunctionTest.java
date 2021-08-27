@@ -238,7 +238,7 @@ public class TableFunctionTest extends IntegrationTest {
 
         Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
 
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) lateralView.getTableFunctions().get(0);
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
         Assert.assertTrue(explode.isOuter());
@@ -275,7 +275,7 @@ public class TableFunctionTest extends IntegrationTest {
 
         Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
 
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) lateralView.getTableFunctions().get(0);
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
         Assert.assertFalse(explode.isOuter());
@@ -304,7 +304,7 @@ public class TableFunctionTest extends IntegrationTest {
 
         Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
 
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) lateralView.getTableFunctions().get(0);
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
         Assert.assertFalse(explode.isOuter());

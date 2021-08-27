@@ -39,7 +39,7 @@ public class BulletBQLTest {
 
         String content = out.toString();
 
-        Assert.assertTrue(content.startsWith("{tableFunction: null, projection: {fields: null, type: PASS_THROUGH}, filter: null, aggregation: {size: 500, type: RAW}, postAggregations: null, window: {emitEvery: null, emitType: null, includeType: null, includeFirst: null}, duration: 9223372036854775807, postQuery: null}\n"));
+        Assert.assertTrue(content.startsWith("{tableFunction: null, projection: {fields: null, type: PASS_THROUGH}, filter: null, aggregation: {size: 500, type: RAW}, postAggregations: null, window: {emitEvery: null, emitType: null, includeType: null, includeFirst: null}, duration: 9223372036854775807, outerQuery: null}\n"));
         Assert.assertTrue(content.contains("error: Query consists of multiple aggregation types."));
     }
 
