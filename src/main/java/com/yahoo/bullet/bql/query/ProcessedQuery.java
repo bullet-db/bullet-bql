@@ -120,7 +120,7 @@ public class ProcessedQuery {
             }
         }
         if (lateralView != null) {
-            if (isSuperAggregate(lateralView.getTableFunction())) {
+            if (lateralView.getTableFunctions().stream().anyMatch(this::isSuperAggregate)) {
                 queryErrors.add(QueryError.TABLE_FUNCTION_WITH_AGGREGATE);
             }
         }
