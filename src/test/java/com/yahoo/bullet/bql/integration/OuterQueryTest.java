@@ -96,4 +96,11 @@ public class OuterQueryTest extends IntegrationTest {
         Assert.assertEquals(outerQuery.getFilter(), binary(field("COUNT(*)", Type.LONG), value(1), Operation.GREATER_THAN, Type.BOOLEAN));
         Assert.assertEquals(outerQuery.getAggregation().getType(), AggregationType.RAW);
     }
+
+    @Test
+    public void testOuterQueryWithError() {
+        build("SELECT AVG(SUM(abc)) FROM (SELECT * FROM STREAM())");
+        Assert.assertEquals(errors.get(0).getError(), "Aggregates cannot be nested.");
+        Assert.assertEquals(errors.size(), 1);
+    }
 }

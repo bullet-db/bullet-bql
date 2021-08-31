@@ -120,7 +120,7 @@ public class QueryNodeTest {
     public void testEqualsAndHashCodeWithPostQuery() {
         QueryNode nodeA = new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                         new StreamNode("MAX", null),
-                                        new LateralViewNode(null, null),
+                                        new LateralViewNode((List<TableFunctionNode>) null, null),
                                         new LiteralNode(true, null),
                                         new GroupByNode(Collections.emptyList(), null),
                                         new LiteralNode(false, null),
@@ -130,7 +130,7 @@ public class QueryNodeTest {
                                         null);
         nodeA.setOuterQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                           new StreamNode("MAX", null),
-                                          new LateralViewNode(null, null),
+                                          new LateralViewNode((List<TableFunctionNode>) null, null),
                                           new LiteralNode(true, null),
                                           new GroupByNode(Collections.emptyList(), null),
                                           new LiteralNode(false, null),
@@ -140,7 +140,7 @@ public class QueryNodeTest {
                                           null));
         QueryNode nodeB = new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                         new StreamNode("MAX", null),
-                                        new LateralViewNode(null, null),
+                                        new LateralViewNode((List<TableFunctionNode>) null, null),
                                         new LiteralNode(true, null),
                                         new GroupByNode(Collections.emptyList(), null),
                                         new LiteralNode(false, null),
@@ -150,7 +150,7 @@ public class QueryNodeTest {
                                         null);
         nodeB.setOuterQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                           new StreamNode("MAX", null),
-                                          new LateralViewNode(null, null),
+                                          new LateralViewNode((List<TableFunctionNode>) null, null),
                                           new LiteralNode(true, null),
                                           new GroupByNode(Collections.emptyList(), null),
                                           new LiteralNode(false, null),
@@ -164,7 +164,7 @@ public class QueryNodeTest {
 
         nodeB.setOuterQuery(new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                           new StreamNode("MAX", null),
-                                          new LateralViewNode(null, null),
+                                          new LateralViewNode((List<TableFunctionNode>) null, null),
                                           new LiteralNode(true, null),
                                           new GroupByNode(Collections.emptyList(), null),
                                           new LiteralNode(false, null),
