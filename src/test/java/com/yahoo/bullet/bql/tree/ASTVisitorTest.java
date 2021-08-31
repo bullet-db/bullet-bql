@@ -12,6 +12,8 @@ import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.List;
+
 public class ASTVisitorTest {
     private static class MockASTVisitor extends ASTVisitor<Void, Void> {
     }
@@ -53,7 +55,7 @@ public class ASTVisitorTest {
 
     @Test
     public void testVisitLateralView() {
-        LateralViewNode lateralView = new LateralViewNode(null, null);
+        LateralViewNode lateralView = new LateralViewNode((List<TableFunctionNode>) null, null);
         visitor.process(lateralView);
         Mockito.verify(visitor).visitLateralView(lateralView, null);
     }

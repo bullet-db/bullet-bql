@@ -95,7 +95,7 @@ public enum QueryError {
     CONTAINS_VALUE_PRIMITIVES_DO_NOT_MATCH("The primitive type of the first argument and the type of the second argument in %s must match. Types given: %s, %s."),
     BINARY_LHS_NOT_PRIMITIVE("The type of the left operand in %s must be primitive. Type given: %s."),
     BINARY_RHS_NOT_LIST_OR_MAP("The type of the right operand in %s must be some LIST or MAP. Type given: %s."),
-    IN_PRIMITIVES_NOT_MATCHING("The type of the left operand and the primitive type of the right operand in %s must match. Types given: %s, %s."),
+    IN_PRIMITIVES_NOT_MATCHING("The type of the left operand and the primitive type of the right operand in %s must either match or both be numeric. Types given: %s, %s."),
     EXPECTED_BOOLEAN_TYPES("The types of the arguments in %s must be BOOLEAN. Types given: %s, %s."),
     FILTER_NOT_LIST("The type of the first argument in %s must be some LIST. Type given: %s."),
     FILTER_NOT_BOOLEAN_LIST("The type of the second argument in %s must be BOOLEAN_LIST. Type given: %s."),

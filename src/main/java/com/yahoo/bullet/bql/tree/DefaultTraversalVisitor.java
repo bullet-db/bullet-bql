@@ -41,7 +41,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends ASTVisitor<R, C> {
 
     @Override
     protected R visitLateralView(LateralViewNode node, C context) {
-        process(node.getTableFunction(), context);
+        node.getTableFunctions().forEach(process(context));
         return null;
     }
 

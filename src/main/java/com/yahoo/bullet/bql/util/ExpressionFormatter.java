@@ -138,7 +138,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitLateralView(LateralViewNode node, Void context) {
-            return "LATERAL VIEW " + process(node.getTableFunction());
+            return node.getTableFunctions().stream().map(tableFunctionNode -> "LATERAL VIEW " + process(tableFunctionNode)).collect(Collectors.joining(" "));
         }
 
         @Override

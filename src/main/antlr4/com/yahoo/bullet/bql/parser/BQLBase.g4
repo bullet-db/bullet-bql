@@ -55,7 +55,7 @@ stream
     ;
 
 lateralView
-    : tableFunction
+    : tableFunction (LATERAL VIEW tableFunction)*
     ;
 
 groupBy

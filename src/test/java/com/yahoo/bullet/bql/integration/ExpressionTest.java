@@ -348,6 +348,22 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
+    public void testBinaryOperationsInNumerics() {
+        build("SELECT 1.0 IN ccc, 2 IN fff FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("1.0 IN ccc",
+                                                                                binary(value(1.0),
+                                                                                       field("ccc", Type.INTEGER_LIST),
+                                                                                       Operation.IN,
+                                                                                       Type.BOOLEAN)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("2 IN fff",
+                                                                                binary(value(2),
+                                                                                       field("fff", Type.DOUBLE_MAP_MAP),
+                                                                                       Operation.IN,
+                                                                                       Type.BOOLEAN)));
+    }
+
+    @Test
     public void testBinaryOperationsInWithParentheses() {
         build("SELECT 'abc' IN ('abc'), 'abc' NOT IN ('abc'), 'abc' IN('abc', 'def'), 'abc' NOT IN('abc', 'def') FROM STREAM()");
         Assert.assertEquals(query.getProjection().getFields().size(), 4);

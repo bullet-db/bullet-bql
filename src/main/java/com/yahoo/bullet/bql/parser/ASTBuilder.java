@@ -126,8 +126,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
 
     @Override
     public Node visitLateralView(BQLBaseParser.LateralViewContext context) {
-        return new LateralViewNode((TableFunctionNode) visit(context.tableFunction()), getLocation(context));
-
+        return new LateralViewNode(visit(context.tableFunction(), TableFunctionNode.class), getLocation(context));
     }
 
     @Override

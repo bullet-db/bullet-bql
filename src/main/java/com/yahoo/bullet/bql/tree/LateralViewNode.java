@@ -7,15 +7,21 @@ package com.yahoo.bullet.bql.tree;
 
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 @Getter
 public class LateralViewNode extends Node {
-    private final TableFunctionNode tableFunction;
+    private final List<TableFunctionNode> tableFunctions;
 
     public LateralViewNode(TableFunctionNode tableFunction, NodeLocation nodeLocation) {
+        this(Collections.singletonList(tableFunction), nodeLocation);
+    }
+
+    public LateralViewNode(List<TableFunctionNode> tableFunctions, NodeLocation nodeLocation) {
         super(nodeLocation);
-        this.tableFunction = tableFunction;
+        this.tableFunctions = tableFunctions;
     }
 
     @Override
@@ -32,11 +38,11 @@ public class LateralViewNode extends Node {
             return false;
         }
         LateralViewNode other = (LateralViewNode) obj;
-        return Objects.equals(tableFunction, other.tableFunction);
+        return Objects.equals(tableFunctions, other.tableFunctions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tableFunction);
+        return Objects.hash(tableFunctions);
     }
 }
