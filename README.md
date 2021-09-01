@@ -250,14 +250,14 @@ and `window` is one of
 
     SELECT *
     FROM STREAM(30000, TIME)
-    WHERE id_map CONTAINSKEY ("key")
+    WHERE CONTAINSKEY(id_map, 'key')
     LIMIT 1;
 
 ### CONTAINSVALUE Filtering
 
     SELECT *
     FROM STREAM(30000, TIME)
-    WHERE id_map NOT CONTAINSVALUE ("btsg8l9b234ha")
+    WHERE NOT CONTAINSVALUE(id_map, 'btsg8l9b234ha')
     LIMIT 1;
 
 ### Compare to other fields Filtering
@@ -281,11 +281,18 @@ and `window` is one of
     WHERE heart_rate BETWEEN (70, 100)
     LIMIT 10;
     
+Or
+    
+    SELECT *
+    FROM STREAM(30000, TIME)
+    WHERE BETWEEN(heart_rate, 70, 100)
+    LIMIT 10;
+    
 ### IN Filtering
 
     SELECT *
     FROM STREAM(30000, TIME)
-    WHERE color IN ('red', 'green', 'blue)
+    WHERE color IN ('red', 'green', 'blue')
     LIMIT 10;
      
 ### Relational & Logical Filters and Projections
