@@ -66,37 +66,51 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitQuery(QueryNode node, Void context) {
+            if (node.getOuterQuery() == null) {
+                return visitQueryNode(node, null);
+            } else {
+                return visitQueryNode(node.getOuterQuery(), node);
+            }
+        }
+
+        private String visitQueryNode(QueryNode queryNode, QueryNode innerQueryNode) {
             StringBuilder builder = new StringBuilder();
-            builder.append(process(node.getSelect()))
-                   .append(" FROM ")
-                   .append(process(node.getStream()));
-            if (node.getLateralView() != null) {
-                builder.append(" ")
-                       .append(process(node.getLateralView()));
+            builder.append(process(queryNode.getSelect()))
+                   .append(" FROM ");
+            if (innerQueryNode != null) {
+                builder.append("(")
+                       .append(visitQueryNode(innerQueryNode, null))
+                       .append(")");
+            } else {
+                builder.append(process(queryNode.getStream()));
             }
-            if (node.getWhere() != null) {
+            if (queryNode.getLateralView() != null) {
+                builder.append(" ")
+                       .append(process(queryNode.getLateralView()));
+            }
+            if (queryNode.getWhere() != null) {
                 builder.append(" WHERE ")
-                       .append(process(node.getWhere()));
+                       .append(process(queryNode.getWhere()));
             }
-            if (node.getGroupBy() != null) {
+            if (queryNode.getGroupBy() != null) {
                 builder.append(" ")
-                       .append(process(node.getGroupBy()));
+                       .append(process(queryNode.getGroupBy()));
             }
-            if (node.getHaving() != null) {
+            if (queryNode.getHaving() != null) {
                 builder.append(" HAVING ")
-                       .append(process(node.getHaving()));
+                       .append(process(queryNode.getHaving()));
             }
-            if (node.getOrderBy() != null) {
+            if (queryNode.getOrderBy() != null) {
                 builder.append(" ")
-                       .append(process(node.getOrderBy()));
+                       .append(process(queryNode.getOrderBy()));
             }
-            if (node.getWindow() != null) {
+            if (queryNode.getWindow() != null) {
                 builder.append(" ")
-                       .append(process(node.getWindow()));
+                       .append(process(queryNode.getWindow()));
             }
-            if (node.getLimit() != null) {
+            if (queryNode.getLimit() != null) {
                 builder.append(" LIMIT ")
-                       .append(node.getLimit());
+                       .append(queryNode.getLimit());
             }
             return builder.toString();
         }
@@ -124,7 +138,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitLateralView(LateralViewNode node, Void context) {
-            return "LATERAL VIEW " + process(node.getTableFunction());
+            return node.getTableFunctions().stream().map(tableFunctionNode -> "LATERAL VIEW " + process(tableFunctionNode)).collect(Collectors.joining(" "));
         }
 
         @Override

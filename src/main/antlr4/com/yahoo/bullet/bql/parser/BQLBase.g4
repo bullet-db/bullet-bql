@@ -10,7 +10,16 @@
  */
 grammar BQLBase;
 
+statement
+    : query ';'? EOF
+    ;
+
 query
+    : innerQuery
+    | outerQuery
+    ;
+
+innerQuery
     : SELECT select FROM stream
       (LATERAL VIEW lateralView)?
       (WHERE where=expression)?
@@ -19,8 +28,16 @@ query
       (ORDER BY orderBy)?
       (WINDOWING window)?
       (LIMIT limit=INTEGER_VALUE)?
-      ';'?
-      EOF
+    ;
+
+outerQuery
+    : SELECT select FROM '(' innerQuery ')'
+      (LATERAL VIEW lateralView)?
+      (WHERE where=expression)?
+      (GROUP BY groupBy)?
+      (HAVING having=expression)?
+      (ORDER BY orderBy)?
+      (LIMIT limit=INTEGER_VALUE)?
     ;
 
 select
@@ -38,7 +55,7 @@ stream
     ;
 
 lateralView
-    : tableFunction
+    : tableFunction (LATERAL VIEW tableFunction)*
     ;
 
 groupBy

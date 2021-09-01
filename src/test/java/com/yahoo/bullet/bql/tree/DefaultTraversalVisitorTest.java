@@ -31,7 +31,7 @@ public class DefaultTraversalVisitorTest {
     public void testVisitQuery() {
         QueryNode query = new QueryNode(new SelectNode(false, Collections.emptyList(), null),
                                         new StreamNode(null, null),
-                                        new LateralViewNode(null, null),
+                                        new LateralViewNode(Collections.emptyList(), null),
                                         new LiteralNode(true, null),
                                         new GroupByNode(Collections.emptyList(), null),
                                         new LiteralNode(false, null),

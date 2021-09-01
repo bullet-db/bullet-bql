@@ -28,6 +28,10 @@
         "type": "STRING_LIST"
     },
     {
+        "name": "fff",
+        "type": "DOUBLE_MAP_MAP"
+    },
+    {
         "name": "a",
         "type": "LONG"
     },

@@ -60,6 +60,8 @@ public class ProcessedQuery {
     private Integer limit;
     @Setter
     private LateralViewNode lateralView;
+    @Setter
+    private ProcessedQuery outerQuery;
 
     private Map<ExpressionNode, String> aliases = new HashMap<>();
 
@@ -120,7 +122,7 @@ public class ProcessedQuery {
             }
         }
         if (lateralView != null) {
-            if (isSuperAggregate(lateralView.getTableFunction())) {
+            if (lateralView.getTableFunctions().stream().anyMatch(this::isSuperAggregate)) {
                 queryErrors.add(QueryError.TABLE_FUNCTION_WITH_AGGREGATE);
             }
         }
@@ -146,6 +148,9 @@ public class ProcessedQuery {
         }
         if (having != null && groupByNodes.isEmpty()) {
             queryErrors.add(QueryError.HAVING_WITHOUT_GROUP_BY);
+        }
+        if (outerQuery != null && !outerQuery.validate()) {
+            queryErrors.addAll(outerQuery.getQueryErrors());
         }
         return queryErrors.isEmpty();
     }

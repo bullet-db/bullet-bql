@@ -238,7 +238,7 @@ public class TableFunctionTest extends IntegrationTest {
 
         Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
 
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) lateralView.getTableFunctions().get(0);
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
         Assert.assertTrue(explode.isOuter());
@@ -249,6 +249,38 @@ public class TableFunctionTest extends IntegrationTest {
         Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
         Assert.assertEquals(query.getProjection().getFields().size(), 1);
         Assert.assertEquals(query.getProjection().getFields().get(0), new Field("foo", field("foo", Type.STRING)));
+        Assert.assertEquals(query.getAggregation().getType(), AggregationType.RAW);
+        Assert.assertNull(query.getPostAggregations());
+    }
+
+    @Test
+    public void testMultipleLateralViewExplode() {
+        build("SELECT bar, baz FROM STREAM() LATERAL VIEW EXPLODE(aaa) AS foo LATERAL VIEW OUTER EXPLODE(foo) AS (bar, baz)");
+
+        LateralView lateralView = (LateralView) query.getTableFunction();
+
+        Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
+
+        Explode explode1 = (Explode) lateralView.getTableFunctions().get(0);
+
+        Assert.assertEquals(explode1.getType(), TableFunctionType.EXPLODE);
+        Assert.assertFalse(explode1.isOuter());
+        Assert.assertEquals(explode1.getField(), field("aaa", Type.STRING_MAP_LIST));
+        Assert.assertEquals(explode1.getKeyAlias(), "foo");
+        Assert.assertNull(explode1.getValueAlias());
+
+        Explode explode2 = (Explode) lateralView.getTableFunctions().get(1);
+
+        Assert.assertEquals(explode2.getType(), TableFunctionType.EXPLODE);
+        Assert.assertTrue(explode2.isOuter());
+        Assert.assertEquals(explode2.getField(), field("foo", Type.STRING_MAP));
+        Assert.assertEquals(explode2.getKeyAlias(), "bar");
+        Assert.assertEquals(explode2.getValueAlias(), "baz");
+
+        Assert.assertEquals(query.getProjection().getType(), Projection.Type.NO_COPY);
+        Assert.assertEquals(query.getProjection().getFields().size(), 2);
+        Assert.assertEquals(query.getProjection().getFields().get(0), new Field("bar", field("bar", Type.STRING)));
+        Assert.assertEquals(query.getProjection().getFields().get(1), new Field("baz", field("baz", Type.STRING)));
         Assert.assertEquals(query.getAggregation().getType(), AggregationType.RAW);
         Assert.assertNull(query.getPostAggregations());
     }
@@ -275,7 +307,7 @@ public class TableFunctionTest extends IntegrationTest {
 
         Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
 
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) lateralView.getTableFunctions().get(0);
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
         Assert.assertFalse(explode.isOuter());
@@ -304,7 +336,7 @@ public class TableFunctionTest extends IntegrationTest {
 
         Assert.assertEquals(lateralView.getType(), TableFunctionType.LATERAL_VIEW);
 
-        Explode explode = (Explode) lateralView.getTableFunction();
+        Explode explode = (Explode) lateralView.getTableFunctions().get(0);
 
         Assert.assertEquals(explode.getType(), TableFunctionType.EXPLODE);
         Assert.assertFalse(explode.isOuter());

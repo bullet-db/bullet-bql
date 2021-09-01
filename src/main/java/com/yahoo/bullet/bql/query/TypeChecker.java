@@ -359,8 +359,12 @@ public class TypeChecker {
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
                 }
-                subType = rightType.getSubType();
-                if (subType != leftType && subType.getSubType() != leftType) {
+                if (Type.isComplexList(rightType) || Type.isComplexMap(rightType)) {
+                    subType = rightType.getSubType().getSubType();
+                } else {
+                    subType = rightType.getSubType();
+                }
+                if (subType != leftType && !(Type.isNumeric(leftType) && Type.isNumeric(subType))) {
                     return makeError(node, QueryError.IN_PRIMITIVES_NOT_MATCHING, node, leftType, rightType);
                 }
                 return Optional.empty();

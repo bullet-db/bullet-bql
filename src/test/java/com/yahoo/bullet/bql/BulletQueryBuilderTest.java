@@ -79,7 +79,7 @@ public class BulletQueryBuilderTest {
         BQLResult result = builder.buildQuery("not a valid query");
         Assert.assertTrue(result.hasErrors());
         Assert.assertEquals(result.getErrors().size(), 1);
-        Assert.assertEquals(result.getErrors().get(0).getError(), "1:1: missing 'SELECT' at 'not'");
+        Assert.assertEquals(result.getErrors().get(0).getError(), "1:1: mismatched input 'not' expecting 'SELECT'");
         Assert.assertEquals(result.getErrors().get(0).getResolutions(), Collections.singletonList("This is a parsing error."));
     }
 

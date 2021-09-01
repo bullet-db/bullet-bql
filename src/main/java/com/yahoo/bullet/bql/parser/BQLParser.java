@@ -49,7 +49,7 @@ public class BQLParser implements Serializable {
      * @throws ParsingException when query is not valid.
      */
     public QueryNode createQueryNode(String bql) {
-        return (QueryNode) invokeParser(bql, BQLBaseParser::query);
+        return (QueryNode) invokeParser(bql, BQLBaseParser::statement);
     }
 
     private Node invokeParser(String bql, Function<BQLBaseParser, ParserRuleContext> parseFunction) {
