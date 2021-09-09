@@ -21,22 +21,20 @@ public class TypeCheckTest extends IntegrationTest {
     @Test
     public void testTypeCheckComparison() {
         build("SELECT 'foo' > 'bar', 'foo' = 0, 0 != 'foo', 'foo' = 'bar', [5] = [5L] FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The left operand in 'foo' > 'bar' must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(1).getError(), "1:8: The right operand in 'foo' > 'bar' must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(2).getError(), "1:23: The left and right operands in 'foo' = 0 must be comparable. Types given: STRING, INTEGER.");
-        Assert.assertEquals(errors.get(3).getError(), "1:34: The left and right operands in 0 != 'foo' must be comparable. Types given: INTEGER, STRING.");
-        Assert.assertEquals(errors.get(4).getError(), "1:61: The left and right operands in [5] = [5L] must be comparable. Types given: INTEGER_LIST, LONG_LIST.");
-        Assert.assertEquals(errors.size(), 5);
+        Assert.assertEquals(errors.get(0).getError(), "1:23: The left and right operands in 'foo' = 0 must be comparable. Types given: STRING, INTEGER.");
+        Assert.assertEquals(errors.get(1).getError(), "1:34: The left and right operands in 0 != 'foo' must be comparable. Types given: INTEGER, STRING.");
+        Assert.assertEquals(errors.get(2).getError(), "1:61: The left and right operands in [5] = [5L] must be comparable. Types given: INTEGER_LIST, LONG_LIST.");
+        Assert.assertEquals(errors.size(), 3);
     }
 
     @Test
     public void testTypeCheckComparisonModifier() {
-        build("SELECT 'foo' > ANY aaa, 5 > ANY ccc, 5 > ALL eee, 5 = ANY ccc, 5 = ALL 'foo', 5 = ANY aaa, 'foo' = ALL eee FROM STREAM()");
-        Assert.assertEquals(errors.get(0).getError(), "1:8: The left operand in 'foo' > ANY aaa must be numeric. Type given: STRING.");
-        Assert.assertEquals(errors.get(1).getError(), "1:8: The right operand in 'foo' > ANY aaa must be some numeric LIST. Type given: STRING_MAP_LIST.");
-        Assert.assertEquals(errors.get(2).getError(), "1:38: The right operand in 5 > ALL eee must be some numeric LIST. Type given: STRING_LIST.");
-        Assert.assertEquals(errors.get(3).getError(), "1:64: The right operand in 5 = ALL 'foo' must be some LIST. Type given: STRING.");
-        Assert.assertEquals(errors.get(4).getError(), "1:79: The type of the left operand and the subtype of the right operand in 5 = ANY aaa must be comparable. Types given: INTEGER, STRING_MAP_LIST.");
+        build("SELECT 'foo' > ANY aaa, 5 > ANY ccc, 5 > ALL eee, 5 = ANY ccc, 5 = ALL 'foo', 5 = ANY aaa, eee > ALL eee, 'foo' = ALL eee FROM STREAM()");
+        Assert.assertEquals(errors.get(0).getError(), "1:8: The type of the right operand in 'foo' > ANY aaa must be some numeric LIST or STRING_LIST. Type given: STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(1).getError(), "1:38: The type of the left operand and the subtype of the right operand in 5 > ALL eee must either both be numeric or both be STRING. Types given: INTEGER, STRING_LIST.");
+        Assert.assertEquals(errors.get(2).getError(), "1:64: The right operand in 5 = ALL 'foo' must be some LIST. Type given: STRING.");
+        Assert.assertEquals(errors.get(3).getError(), "1:79: The type of the left operand and the subtype of the right operand in 5 = ANY aaa must be comparable. Types given: INTEGER, STRING_MAP_LIST.");
+        Assert.assertEquals(errors.get(4).getError(), "1:92: The type of the left operand in eee > ALL eee must be numeric or STRING. Type given: STRING_LIST.");
         Assert.assertEquals(errors.size(), 5);
     }
 

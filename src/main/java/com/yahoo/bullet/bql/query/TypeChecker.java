@@ -91,7 +91,6 @@ public class TypeChecker {
             return makeError(node, QueryError.BETWEEN_VALUES_WRONG_TYPES, node, types);
         }
         return Optional.empty();
-
     }
 
     static Optional<List<BulletError>> validateUnaryType(ExpressionNode node, UnaryExpression unaryExpression) {
@@ -112,6 +111,7 @@ public class TypeChecker {
                 return Optional.empty();
             case IS_NULL:
             case IS_NOT_NULL:
+            case HASH:
                 return Optional.empty();
             case ABS:
                 if (!Type.isNumeric(operandType)) {
@@ -280,13 +280,10 @@ public class TypeChecker {
             case GREATER_THAN_OR_EQUALS:
             case LESS_THAN:
             case LESS_THAN_OR_EQUALS:
-                if (!Type.isNumeric(leftType)) {
-                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_NUMERIC, node, leftType));
+                if (!(Type.isNumeric(leftType) && Type.isNumeric(rightType)) && !(leftType == Type.STRING && rightType == Type.STRING)) {
+                    return makeError(node, QueryError.BINARY_TYPES_NOT_NUMERIC_OR_STRING, node, leftType, rightType);
                 }
-                if (!Type.isNumeric(rightType)) {
-                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_NUMERIC, node, rightType));
-                }
-                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+                return Optional.empty();
             case GREATER_THAN_ANY:
             case GREATER_THAN_ALL:
             case GREATER_THAN_OR_EQUALS_ANY:
@@ -295,13 +292,20 @@ public class TypeChecker {
             case LESS_THAN_ALL:
             case LESS_THAN_OR_EQUALS_ANY:
             case LESS_THAN_OR_EQUALS_ALL:
-                if (!Type.isNumeric(leftType)) {
-                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_NUMERIC, node, leftType));
+                if (!Type.isNumeric(leftType) && leftType != Type.STRING) {
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_NUMERIC_OR_STRING, node, leftType));
                 }
-                if (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType())) {
-                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_NUMERIC_LIST, node, rightType));
+                if (!Type.isPrimitiveList(rightType) || (!Type.isNumeric(rightType.getSubType()) && rightType != Type.STRING_LIST)) {
+                    errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_NUMERIC_OR_STRING_LIST, node, rightType));
                 }
-                return !errors.isEmpty() ? Optional.of(errors) : Optional.empty();
+                if (!errors.isEmpty()) {
+                    return Optional.of(errors);
+                }
+                if ((Type.isNumeric(leftType) && (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType()))) ||
+                    (leftType == Type.STRING && rightType != Type.STRING_LIST)) {
+                    return makeError(node, QueryError.BINARY_LHS_NOT_MATCH_RHS_SUBTYPE, node, leftType, rightType);
+                }
+                return Optional.empty();
             case REGEX_LIKE:
             case NOT_REGEX_LIKE:
                 if (leftType != Type.STRING || rightType != Type.STRING) {

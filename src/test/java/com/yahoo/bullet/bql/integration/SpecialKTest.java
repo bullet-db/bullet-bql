@@ -216,7 +216,7 @@ public class SpecialKTest extends IntegrationTest {
         Assert.assertNotEquals(query.getAggregation().getType(), AggregationType.TOP_K);
 
         build("SELECT abc, COUNT(*) FROM STREAM() GROUP BY abc HAVING COUNT(*) >= '5' ORDER BY COUNT(*) DESC LIMIT 10");
-        Assert.assertEquals(errors.get(0).getError(), "1:56: The right operand in COUNT(*) >= '5' must be numeric. Type given: STRING.");
+        Assert.assertEquals(errors.get(0).getError(), "1:56: The left and right operands in COUNT(*) >= '5' must either both be numeric or both be STRING. Types given: LONG, STRING.");
         Assert.assertEquals(errors.size(), 1);
     }
 

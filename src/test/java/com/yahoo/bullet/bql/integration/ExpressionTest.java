@@ -489,14 +489,24 @@ public class ExpressionTest extends IntegrationTest {
     }
 
     @Test
-    public void testUnaryOperationsTrim() {
-        build("SELECT TRIM(c) FROM STREAM()");
-        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+    public void testUnaryOperationsString() {
+        build("SELECT TRIM(c), LOWER(c), UPPER(c) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 3);
 
         Field field = query.getProjection().getFields().get(0);
 
         Assert.assertEquals(field.getName(), "TRIM(c)");
         Assert.assertEquals(field.getValue(), unary(field("c", Type.STRING), Operation.TRIM, Type.STRING));
+
+        field = query.getProjection().getFields().get(1);
+
+        Assert.assertEquals(field.getName(), "LOWER(c)");
+        Assert.assertEquals(field.getValue(), unary(field("c", Type.STRING), Operation.LOWER, Type.STRING));
+
+        field = query.getProjection().getFields().get(2);
+
+        Assert.assertEquals(field.getName(), "UPPER(c)");
+        Assert.assertEquals(field.getValue(), unary(field("c", Type.STRING), Operation.UPPER, Type.STRING));
     }
 
     @Test
@@ -508,6 +518,17 @@ public class ExpressionTest extends IntegrationTest {
 
         Assert.assertEquals(field.getName(), "ABS(abc)");
         Assert.assertEquals(field.getValue(), unary(field("abc", Type.INTEGER), Operation.ABS, Type.INTEGER));
+    }
+
+    @Test
+    public void testUnaryOperationsHash() {
+        build("SELECT HASH(bbb) FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().size(), 1);
+
+        Field field = query.getProjection().getFields().get(0);
+
+        Assert.assertEquals(field.getName(), "HASH(bbb)");
+        Assert.assertEquals(field.getValue(), unary(field("bbb", Type.STRING_MAP_MAP), Operation.HASH, Type.INTEGER));
     }
 
     @Test
