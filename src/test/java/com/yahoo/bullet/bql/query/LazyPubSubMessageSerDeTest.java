@@ -76,8 +76,9 @@ public class LazyPubSubMessageSerDeTest {
         Assert.assertEquals(metadata.getContent(), "SELECT * FROM STREAM(MAX, TIME) LIMIT 100");
         Assert.assertEquals(metadata.getCreated(), created);
 
-        Assert.assertSame(message, result);
-        Assert.assertSame(message.getMetadata(), metadata);
+        Assert.assertNotSame(message, result);
+        Assert.assertNotSame(message.getMetadata(), metadata);
+        Assert.assertEquals(message.getMetadata().getCreated(), metadata.getCreated());
     }
 
     @Test(expectedExceptions = RuntimeException.class)
