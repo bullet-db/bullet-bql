@@ -65,11 +65,13 @@ public class LazyPubSubMessageSerDe extends PubSubMessageSerDe {
         }
         String queryString = message.getContentAsString();
         Query query = toQuery(queryString);
-        message.setContent(query);
-        Metadata meta = message.getMetadata();
+        Metadata original = message.getMetadata();
+        // Need to copy it if it's a custom Metadata with other fields besides the standard metadata fields
+        Metadata meta = original.copy();
         meta.setSignal(null);
         meta.setContent(queryString);
-        return message;
+        meta.setCreated(original.getCreated());
+        return new PubSubMessage(message.getId(), query, meta);
     }
 
     /**
