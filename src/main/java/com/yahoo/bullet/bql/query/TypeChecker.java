@@ -192,7 +192,7 @@ public class TypeChecker {
                         }
                         break;
                     case 2:
-                        if (argTypes.get(0) != Type.STRING && !Type.isNumeric(argTypes.get(0))) {
+                        if (!isNumericOrString(argTypes.get(0))) {
                             errors.add(makeErrorOnly(node, QueryError.UNIX_TIMESTAMP_VALUE_NOT_STRING_OR_NUMERIC, node, argTypes.get(0)));
                         }
                         if (argTypes.get(1) != Type.STRING) {
@@ -280,7 +280,7 @@ public class TypeChecker {
             case GREATER_THAN_OR_EQUALS:
             case LESS_THAN:
             case LESS_THAN_OR_EQUALS:
-                if (!(Type.isNumeric(leftType) && Type.isNumeric(rightType)) && !(leftType == Type.STRING && rightType == Type.STRING)) {
+                if (!isComparable(leftType, rightType)) {
                     return makeError(node, QueryError.BINARY_TYPES_NOT_NUMERIC_OR_STRING, node, leftType, rightType);
                 }
                 return Optional.empty();
@@ -292,17 +292,16 @@ public class TypeChecker {
             case LESS_THAN_ALL:
             case LESS_THAN_OR_EQUALS_ANY:
             case LESS_THAN_OR_EQUALS_ALL:
-                if (!Type.isNumeric(leftType) && leftType != Type.STRING) {
+                if (!isNumericOrString(leftType)) {
                     errors.add(makeErrorOnly(node, QueryError.BINARY_LHS_NOT_NUMERIC_OR_STRING, node, leftType));
                 }
-                if (!Type.isPrimitiveList(rightType) || (!Type.isNumeric(rightType.getSubType()) && rightType != Type.STRING_LIST)) {
+                if (!Type.isPrimitiveList(rightType) || !isNumericOrString(rightType.getSubType())) {
                     errors.add(makeErrorOnly(node, QueryError.BINARY_RHS_NOT_NUMERIC_OR_STRING_LIST, node, rightType));
                 }
                 if (!errors.isEmpty()) {
                     return Optional.of(errors);
                 }
-                if ((Type.isNumeric(leftType) && (!Type.isPrimitiveList(rightType) || !Type.isNumeric(rightType.getSubType()))) ||
-                    (leftType == Type.STRING && rightType != Type.STRING_LIST)) {
+                if (!isComparable(leftType, rightType.getSubType())) {
                     return makeError(node, QueryError.BINARY_LHS_NOT_MATCH_RHS_SUBTYPE, node, leftType, rightType);
                 }
                 return Optional.empty();
@@ -434,5 +433,13 @@ public class TypeChecker {
 
     private static boolean isCollection(Type type) {
         return Type.isList(type) || Type.isMap(type);
+    }
+
+    private static boolean isComparable(Type leftType, Type rightType) {
+        return Type.isNumeric(leftType) && Type.isNumeric(rightType) || leftType == Type.STRING && rightType == Type.STRING;
+    }
+
+    private static boolean isNumericOrString(Type type) {
+        return Type.isNumeric(type) || type == Type.STRING;
     }
 }
