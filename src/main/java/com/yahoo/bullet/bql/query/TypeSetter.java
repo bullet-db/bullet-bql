@@ -127,6 +127,7 @@ public class TypeSetter {
                 unaryExpression.setType(Type.BOOLEAN);
                 break;
             case SIZE_OF:
+            case HASH:
                 unaryExpression.setType(Type.INTEGER);
                 break;
             case ABS:

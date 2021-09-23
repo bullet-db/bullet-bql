@@ -138,7 +138,7 @@ listExpression
     ;
 
 unaryExpression
-    : op=(NOT | SIZEOF | ABS | TRIM | LOWER | UPPER) parens='(' operand=expression ')'
+    : op=(NOT | SIZEOF | ABS | TRIM | LOWER | UPPER | HASH) parens='(' operand=expression ')'
     | op=(NOT | SIZEOF) operand=expression
     ;
 
@@ -278,6 +278,7 @@ LOWER: 'LOWER';
 UPPER: 'UPPER';
 SUBSTRING: 'SUBSTRING' | 'SUBSTR';
 UNIXTIMESTAMP: 'UNIXTIMESTAMP';
+HASH: 'HASH';
 
 INTEGER_TYPE: 'INTEGER';
 LONG_TYPE: 'LONG';

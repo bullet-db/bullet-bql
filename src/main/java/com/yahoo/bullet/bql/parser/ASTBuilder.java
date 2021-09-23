@@ -522,6 +522,8 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
                 return Operation.LOWER;
             case BQLBaseLexer.UPPER:
                 return Operation.UPPER;
+            case BQLBaseLexer.HASH:
+                return Operation.HASH;
         }
         return null;
     }
