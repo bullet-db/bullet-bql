@@ -86,7 +86,8 @@ expression
     | subFieldExpression (':' fieldType)?                                                                               #subField
     | subSubFieldExpression (':' fieldType)?                                                                            #subSubField
     | listExpression                                                                                                    #list
-    | unaryExpression                                                                                                   #unary
+    | op=(NOT | SIZEOF | ABS | TRIM | LOWER | UPPER | HASH) parens='(' operand=expression ')'                           #unary
+    | op=(NOT | SIZEOF) operand=expression                                                                              #unary
     | functionExpression                                                                                                #function
     | expression IS NOT? NULL                                                                                           #nullPredicate
     | left=expression op=(ASTERISK | SLASH | PERCENT) right=expression                                                  #infix
@@ -135,11 +136,6 @@ subSubFieldExpression
 listExpression
     : '[' ']'
     | '[' expressions ']'
-    ;
-
-unaryExpression
-    : op=(NOT | SIZEOF | ABS | TRIM | LOWER | UPPER | HASH) parens='(' operand=expression ')'
-    | op=(NOT | SIZEOF) operand=expression
     ;
 
 functionExpression
