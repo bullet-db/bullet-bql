@@ -247,7 +247,7 @@ class ASTBuilder extends BQLBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitUnaryExpression(BQLBaseParser.UnaryExpressionContext context) {
+    public Node visitUnary(BQLBaseParser.UnaryContext context) {
         return new UnaryExpressionNode(getOperation(context.op),
                                        (ExpressionNode) visit(context.expression()),
                                        context.parens != null,

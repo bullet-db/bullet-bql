@@ -751,4 +751,13 @@ public class ExpressionTest extends IntegrationTest {
                                                                                         Operation.AND,
                                                                                         Type.BOOLEAN));
     }
+
+    @Test
+    public void testUnaryOperatorPrecedence() {
+        build("SELECT NOT true AND false FROM STREAM()");
+        Assert.assertEquals(query.getProjection().getFields().get(0).getValue(), binary(unary(value(true), Operation.NOT, Type.BOOLEAN),
+                                                                                        value(false),
+                                                                                        Operation.AND,
+                                                                                        Type.BOOLEAN));
+    }
 }
